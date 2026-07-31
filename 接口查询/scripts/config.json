@@ -1,0 +1,22 @@
+{
+    "platform": {
+        "name": "服务治理平台",
+        "login_url": "https://www.gtht.com.cn/login.html?href=http://sg.gtht.com.cn/SSOVerify",
+        "target_url": "http://sg.gtht.com.cn/fwzl/interfaceManage/interfaceManage.html",
+        "goto_timeout_ms": 30000
+    },
+    "account": {
+        "username": "125360",
+        "password": "ENC:gAAAAABqH4qJl-EAxY_sd1AbOQ_qcsfeF35ysPSVBrpzQh0YD8V9wgHh7srxeqU-rLeH3NqlVBaEIzwf5nSBTWxuNDSahEsrOg==",
+        "username_placeholder": "工号|OA账号"
+    },
+    "browser": {
+        "headless": true,
+        "channel": "chrome",
+        "slow_mo": 0,
+        "viewport": {
+            "width": 1440,
+            "height": 900
+        }
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "paths": {
+    "md_dir_sheet_to_md": "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/",
+    "md_dir_md_to_sheet": "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/",
+    "dept_csv": "/Volumes/Macintosh HD_Data/WorkBuddy/会议纪要/人员部门对应关系表.csv",
+    "mcporter": "/Users/wujin/.npm-global/bin/mcporter"
+  },
+  "biz_file_map": {
+    "rzrq": "DVGtPSXpzWU1zYXNi",
+    "gpzy": "DVEtyb05taEFDc0xL",
+    "qt": "DVE9Gb0daTmtzUE9H"
+  },
+  "system_keywords": [
+    {"keywords": ["低延时", "低延迟"], "label": "低延时"},
+    {"keywords": ["集中交易", "交易系统"], "label": "集中交易"},
+    {"keywords": ["参数中心", "参数系统", "参数"], "label": "参数中心"},
+    {"keywords": ["清算"], "label": "集中清算"},
+    {"keywords": ["核心98", "98节点", "98交易节点"], "label": "低延时创新域"}
+  ],
+  "match_stop_words": [
+    "两融清算", "低延时两融", "个微两融柜台", "个微两融", "低延时系统",
+    "集中交易系统", "集中清算系统", "集中交易", "集中清算", "低延时",
+    "三方存管", "相关", "关于", "的", "优化", "需求", "说明",
+    "方案", "系统", "业务", "改造", "控制", "支持", "新规", "柜台"
+  ]
+}

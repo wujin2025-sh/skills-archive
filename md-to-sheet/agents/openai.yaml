@@ -1,0 +1,4 @@
+interface:
+  display_name: "MD转腾讯文档"
+  short_description: "将Obsidian需求MD批量写入腾讯文档在线表格"
+  default_prompt: "@tdoc:表格名 把MD需求写入表格"

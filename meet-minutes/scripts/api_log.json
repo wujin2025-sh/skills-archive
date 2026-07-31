@@ -1,0 +1,4087 @@
+[
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/",
+    "method": "GET",
+    "status": 200,
+    "body": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/login-logic/user/query-detail?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227921&c_instance_id=5&c_nonce=zEBG5fjc&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=8033c320427b903a029cd085d658fc72&rnds=zEBG5fjc",
+    "method": "POST",
+    "post_data": "{\"refresh_token\":0}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet_cowork_config/get-h5-common-config?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227928&c_instance_id=5&c_nonce=4NtN8j4Q&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=b2b90c9a1ccc5ab91ac95c7607a13334&rnds=4NtN8j4Q",
+    "method": "POST",
+    "post_data": "{\"type\":[1],\"voov\":0}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227937&c_instance_id=5&c_nonce=R36Hiwrk&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=61abea8ad5fef0ba26ab354ee31e934d&rnds=R36Hiwrk",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/account/login/refresh-token?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227944&c_instance_id=5&c_nonce=SWzcJhX5&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=3bfffe881b29097aafd5121d16f0c9e4&rnds=SWzcJhX5",
+    "method": "POST",
+    "post_data": "{\"refresh_token\":0}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227945&c_instance_id=5&c_nonce=jj8FnnXz&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-CN&c_district=0&trace-id=89b90fcb69d2319300b61a690a087169&rnds=jj8FnnXz",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227948&c_instance_id=5&c_nonce=7sJB6HX2&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=bbbfdf2407b6b2caa8cbf677c3e36b15&rnds=7sJB6HX2&group=webConfig.configManager.nextWebsite.noticeBar&key=customerServiceModal",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=bannerList&c_os_model=web&c_timestamp=1781331228000&c_instance_id=5&c_nonce=e2B2bMRe&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=11b3b24e365085860b87956ce1572ed7&rnds=e2B2bMRe&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.webgray&key=configList&c_os_model=web&c_timestamp=1781331228001&c_instance_id=5&c_nonce=mDp8zxAK&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=690d1e8568fe70c77e790d3eaa94636a&rnds=mDp8zxAK&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=configList&c_os_model=web&c_timestamp=1781331228001&c_instance_id=5&c_nonce=eRbRfnsA&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=9a166db7785ca955ef15dc307cb16727&rnds=eRbRfnsA&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=operateActivity&c_os_model=web&c_timestamp=1781331228116&c_instance_id=5&c_nonce=k5zKJpHY&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=b99dfddb8557e8d26b1df02c176c5474&rnds=k5zKJpHY&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/auth-power?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228894&c_instance_id=5&c_nonce=tNxKCxKb&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=70bc97e4694785cd2a8d658182da9fd5&rnds=tNxKCxKb",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/login-logic/login/can-change-account?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228896&c_instance_id=5&c_nonce=YsNSRBiB&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=d51831ee8e27fcd047eb7a2ed972484e&rnds=YsNSRBiB",
+    "method": "POST",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activities/entry/show-activity-room?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228897&c_instance_id=5&c_nonce=2XbS8aNt&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=3d41c20a33a58de6b5ea702a54981459&rnds=2XbS8aNt",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/get-user-pay-tag-info?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228898&c_instance_id=5&c_nonce=7P5mHZSw&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=e951bbf10be4b5edf62ef45bec802220&rnds=7P5mHZSw",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/banners/activity-banner?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228901&c_instance_id=5&c_nonce=RHhja4A4&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=21a57fa7b0377b273ab9557d7ff117ae&rnds=RHhja4A4",
+    "method": "POST",
+    "post_data": "{\"template_key\":\"member_information_card\"}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/profile-business-info?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228902&c_instance_id=5&c_nonce=n8rcrzzG&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=22c1b5b7abc1fce2e2ad40883a6b3e4f&rnds=n8rcrzzG",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "post_data": "{\"appVersion\":\"\",\"sdkId\":\"js\",\"sdkVersion\":\"4.7.6-web\",\"mainAppKey\":\"00000C2AM539PVHX\",\"platformId\":3,\"common\":{\"source_id\":\"7\",\"report_cmd\":\"cmd_prod_old_atta\",\"report_flag\":\"3\",\"request_time\":\"1781331228925\",\"product\":\"meeting\",\"A2\":\"6fNBQzQxwtJHPzd4m5fzPS1ZrNy3p9My\",\"A8\":\"\",\"A12\":\"zh-CN\",\"A17\":\"1280*720*1\",\"A23\":\"\",\"A50\":\"\",\"A76\":\"00000C2AM539PVHX_1781330865693\",\"A101\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"A102\":\"https://meeting.tencent.com/\",\"A104\":\"\",\"A119\":\"\",\"A153\":\"\"},\"events\":[{\"eventCode\":\"e#homepage_cli#denglutai_banner#exposure\",\"eventTime\":\"1781331228930\",\"mapValue\":{\"isI18n\":\"false\",\"act\":\"exposure\",\"page\":\"homepage_cli\",\"page_module\":\"denglutai_banner\",\"page_title\":\"腾讯会议官方——腾讯会议 会开会\",\"path\":\"https://meeting.tencent.com/\",\"fromSource\":\"\",\"from_path\":\"\",\"userid\":\"\",\"device_type\":\"pc\",\"user_agent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"app_uid\":\"144115215978250896\",\"app_id\":\"\",\"corp_type\":\"\",\"corp_name\":\"\",\"nick_name\":\"\",\"is_overseas\":\"no\",\"nav_platform\":\"MacIntel\",\"multi_from\":\"\",\"experiment_id\":\"\",\"experiment_group_id\":\"\",\"mid\":\"\",\"page_name\":\"homepage_cli\",\"element_name\":\"denglutai_banner\",\"account_corp_id\":\"504789436\",\"user_type\":\"1\",\"landing_referralurl\":\"\",\"landing_referraldomain\":\"\",\"landing_url\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_path\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_url_session\":\"https://meeting.tencent.com/\",\"landing_path_session\":\"https://meeting.tencent.com/\",\"landing_referralurl_session\":\"\",\"landing_referraldomain_session\":\"\",\"source_id\":\"7\",\"uid\":\"144115215978250896\",\"corp_id\":\"200000001\",\"unique_report_id\":\"0e71c029-2e43-687c-1c3f-5d1fe1c4fbe0\",\"hardware_os\":\"Mac\",\"web_uid\":\"84298965-63f9-40b9-a25e-82acabc7c13e\",\"prev_url\":\"\",\"current_url\":\"https://meeting.tencent.com/\",\"current_path\":\"https://meeting.tencent.com/\",\"explore_name\":\"Chrome\",\"explore_version\":\"149.0.0.0\",\"from_source\":\"\",\"net_type\":\"\",\"event_time\":\"1781331228909\",\"event_code\":\"e#homepage_cli#denglutai_banner#exposure\",\"current_account_type\":\"\",\"pay_account_type\":\"0\",\"tag_type_version\":\"0\",\"pay_status\":\"0\",\"business_model\":\"0\",\"now_version_type\":\"2\",\"deviceId\":\"\",\"language\":\"zh-CN\",\"query\":\"\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"pixel\":\"1280*720*1\",\"channelID\":\"\",\"openid\":\"\",\"unid\":\"\",\"sdkVersion\":\"4.7.6-web\",\"resolution\":\"1280*720*1\",\"A99\":\"Y\",\"A100\":\"19\",\"A72\":\"4.7.6-web\",\"A88\":\"1781330865692\"}}]}"
+  },
+  {
+    "type": "request",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "post_data": "{\"appVersion\":\"\",\"sdkId\":\"js\",\"sdkVersion\":\"4.7.6-web\",\"mainAppKey\":\"00000C2AM539PVHX\",\"platformId\":3,\"common\":{\"source_id\":\"7\",\"report_cmd\":\"cmd_prod_old_atta\",\"report_flag\":\"3\",\"request_time\":\"1781331228925\",\"product\":\"meeting\",\"A2\":\"6fNBQzQxwtJHPzd4m5fzPS1ZrNy3p9My\",\"A8\":\"\",\"A12\":\"zh-CN\",\"A17\":\"1280*720*1\",\"A23\":\"\",\"A50\":\"\",\"A76\":\"00000C2AM539PVHX_1781330865693\",\"A101\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"A102\":\"https://meeting.tencent.com/\",\"A104\":\"\",\"A119\":\"\",\"A153\":\"\"},\"events\":[{\"eventCode\":\"e#homepage#banner_xaizai_p#exposure\",\"eventTime\":\"1781331228931\",\"mapValue\":{\"isI18n\":\"false\",\"act\":\"exposure\",\"page\":\"homepage\",\"page_module\":\"banner_xaizai_p\",\"page_title\":\"腾讯会议官方——腾讯会议 会开会\",\"path\":\"https://meeting.tencent.com/\",\"fromSource\":\"\",\"from_path\":\"\",\"userid\":\"\",\"device_type\":\"pc\",\"user_agent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"app_uid\":\"144115215978250896\",\"app_id\":\"\",\"corp_type\":\"\",\"corp_name\":\"\",\"nick_name\":\"\",\"is_overseas\":\"no\",\"nav_platform\":\"MacIntel\",\"multi_from\":\"\",\"experiment_id\":\"\",\"experiment_group_id\":\"\",\"mid\":\"\",\"page_name\":\"homepage\",\"element_name\":\"banner_xaizai_p\",\"account_corp_id\":\"504789436\",\"user_type\":\"1\",\"landing_referralurl\":\"\",\"landing_referraldomain\":\"\",\"landing_url\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_path\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_url_session\":\"https://meeting.tencent.com/\",\"landing_path_session\":\"https://meeting.tencent.com/\",\"landing_referralurl_session\":\"\",\"landing_referraldomain_session\":\"\",\"source_id\":\"7\",\"uid\":\"144115215978250896\",\"corp_id\":\"200000001\",\"unique_report_id\":\"d5adfe40-0f46-2e14-4416-1a0ac0b70c9c\",\"hardware_os\":\"Mac\",\"web_uid\":\"84298965-63f9-40b9-a25e-82acabc7c13e\",\"prev_url\":\"\",\"current_url\":\"https://meeting.tencent.com/\",\"current_path\":\"https://meeting.tencent.com/\",\"explore_name\":\"Chrome\",\"explore_version\":\"149.0.0.0\",\"from_source\":\"\",\"net_type\":\"\",\"event_time\":\"1781331228911\",\"event_code\":\"e#homepage#banner_xaizai_p#exposure\",\"current_account_type\":\"\",\"pay_account_type\":\"0\",\"tag_type_version\":\"0\",\"pay_status\":\"0\",\"business_model\":\"0\",\"now_version_type\":\"2\",\"deviceId\":\"\",\"language\":\"zh-CN\",\"query\":\"\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"pixel\":\"1280*720*1\",\"channelID\":\"\",\"openid\":\"\",\"unid\":\"\",\"sdkVersion\":\"4.7.6-web\",\"resolution\":\"1280*720*1\",\"A99\":\"Y\",\"A100\":\"20\",\"A72\":\"4.7.6-web\",\"A88\":\"1781330865692\"}}]}"
+  },
+  {
+    "type": "request",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "post_data": "{\"appVersion\":\"\",\"sdkId\":\"js\",\"sdkVersion\":\"4.7.6-web\",\"mainAppKey\":\"00000C2AM539PVHX\",\"platformId\":3,\"common\":{\"source_id\":\"7\",\"report_cmd\":\"cmd_prod_old_atta\",\"report_flag\":\"3\",\"request_time\":\"1781331228925\",\"product\":\"meeting\",\"A2\":\"6fNBQzQxwtJHPzd4m5fzPS1ZrNy3p9My\",\"A8\":\"\",\"A12\":\"zh-CN\",\"A17\":\"1280*720*1\",\"A23\":\"\",\"A50\":\"\",\"A76\":\"00000C2AM539PVHX_1781330865693\",\"A101\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"A102\":\"https://meeting.tencent.com/\",\"A104\":\"\",\"A119\":\"\",\"A153\":\"\"},\"events\":[{\"eventCode\":\"e#page#all#exposure\",\"eventTime\":\"1781331228934\",\"mapValue\":{\"isI18n\":\"false\",\"notAutoReport\":\"false\",\"act\":\"exposure\",\"page\":\"page\",\"page_module\":\"all\",\"page_title\":\"腾讯会议官方——腾讯会议 会开会\",\"path\":\"https://meeting.tencent.com/\",\"fromSource\":\"\",\"from_path\":\"\",\"userid\":\"\",\"device_type\":\"pc\",\"user_agent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"app_uid\":\"144115215978250896\",\"app_id\":\"\",\"corp_type\":\"\",\"corp_name\":\"\",\"nick_name\":\"\",\"is_overseas\":\"no\",\"nav_platform\":\"MacIntel\",\"multi_from\":\"\",\"experiment_id\":\"\",\"experiment_group_id\":\"\",\"mid\":\"\",\"page_name\":\"page\",\"element_name\":\"all\",\"account_corp_id\":\"504789436\",\"user_type\":\"1\",\"landing_referralurl\":\"\",\"landing_referraldomain\":\"\",\"landing_url\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_path\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_url_session\":\"https://meeting.tencent.com/\",\"landing_path_session\":\"https://meeting.tencent.com/\",\"landing_referralurl_session\":\"\",\"landing_referraldomain_session\":\"\",\"source_id\":\"7\",\"uid\":\"144115215978250896\",\"corp_id\":\"200000001\",\"unique_report_id\":\"428039b7-5d99-c933-9024-a5697a803385\",\"hardware_os\":\"Mac\",\"web_uid\":\"84298965-63f9-40b9-a25e-82acabc7c13e\",\"prev_url\":\"\",\"current_url\":\"https://meeting.tencent.com/\",\"current_path\":\"https://meeting.tencent.com/\",\"explore_name\":\"Chrome\",\"explore_version\":\"149.0.0.0\",\"from_source\":\"\",\"net_type\":\"\",\"event_time\":\"1781331228912\",\"event_code\":\"e#page#all#exposure\",\"current_account_type\":\"\",\"pay_account_type\":\"0\",\"tag_type_version\":\"0\",\"pay_status\":\"0\",\"business_model\":\"0\",\"now_version_type\":\"2\",\"deviceId\":\"\",\"language\":\"zh-CN\",\"query\":\"\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"pixel\":\"1280*720*1\",\"channelID\":\"\",\"openid\":\"\",\"unid\":\"\",\"sdkVersion\":\"4.7.6-web\",\"resolution\":\"1280*720*1\",\"A99\":\"Y\",\"A100\":\"21\",\"A72\":\"4.7.6-web\",\"A88\":\"1781330865692\"}}]}"
+  },
+  {
+    "type": "request",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "post_data": "{\"appVersion\":\"\",\"sdkId\":\"js\",\"sdkVersion\":\"4.7.6-web\",\"mainAppKey\":\"00000C2AM539PVHX\",\"platformId\":3,\"common\":{\"source_id\":\"7\",\"report_cmd\":\"cmd_prod_old_atta\",\"report_flag\":\"3\",\"request_time\":\"1781331228935\",\"product\":\"meeting\",\"A2\":\"6fNBQzQxwtJHPzd4m5fzPS1ZrNy3p9My\",\"A8\":\"\",\"A12\":\"zh-CN\",\"A17\":\"1280*720*1\",\"A23\":\"\",\"A50\":\"\",\"A76\":\"00000C2AM539PVHX_1781330865693\",\"A101\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"A102\":\"https://meeting.tencent.com/\",\"A104\":\"\",\"A119\":\"\",\"A153\":\"\"},\"events\":[{\"eventCode\":\"e#cs_component#all#exposure\",\"eventTime\":\"1781331228939\",\"mapValue\":{\"isI18n\":\"false\",\"experiment_id\":\"\",\"experiment_group_id\":\"\",\"TAB_experiment_id\":\"\",\"TAB_experiment_group\":\"\",\"mid\":\"home\",\"isnewtype\":\"202411old\",\"userid\":\"\",\"device_type\":\"pc\",\"user_agent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"app_uid\":\"144115215978250896\",\"app_id\":\"\",\"corp_type\":\"\",\"corp_name\":\"\",\"nick_name\":\"\",\"is_overseas\":\"no\",\"nav_platform\":\"MacIntel\",\"multi_from\":\"\",\"act\":\"exposure\",\"page_name\":\"cs_component\",\"element_name\":\"all\",\"account_corp_id\":\"504789436\",\"user_type\":\"1\",\"landing_referralurl\":\"\",\"landing_referraldomain\":\"\",\"landing_url\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_path\":\"https://meeting.tencent.com/user-center/my-record\",\"landing_url_session\":\"https://meeting.tencent.com/\",\"landing_path_session\":\"https://meeting.tencent.com/\",\"landing_referralurl_session\":\"\",\"landing_referraldomain_session\":\"\",\"source_id\":\"7\",\"uid\":\"144115215978250896\",\"corp_id\":\"200000001\",\"unique_report_id\":\"1656e30f-f022-caa0-7816-3fd95229ad9e\",\"hardware_os\":\"Mac\",\"web_uid\":\"84298965-63f9-40b9-a25e-82acabc7c13e\",\"prev_url\":\"\",\"current_url\":\"https://meeting.tencent.com/\",\"current_path\":\"https://meeting.tencent.com/\",\"explore_name\":\"Chrome\",\"explore_version\":\"149.0.0.0\",\"from_source\":\"\",\"net_type\":\"\",\"event_time\":\"1781331228913\",\"event_code\":\"e#cs_component#all#exposure\",\"current_account_type\":\"\",\"pay_account_type\":\"0\",\"tag_type_version\":\"0\",\"pay_status\":\"0\",\"business_model\":\"0\",\"now_version_type\":\"2\",\"deviceId\":\"\",\"language\":\"zh-CN\",\"query\":\"\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\",\"pixel\":\"1280*720*1\",\"channelID\":\"\",\"openid\":\"\",\"unid\":\"\",\"sdkVersion\":\"4.7.6-web\",\"resolution\":\"1280*720*1\",\"A99\":\"Y\",\"A100\":\"23\",\"A72\":\"4.7.6-web\",\"A88\":\"1781330865692\"}}]}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic-nar/saas/is-experiment-user?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331229073&c_instance_id=5&c_nonce=zwwmNtDb&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=295a29f2ccce5c671c5e357a5ae35fdf&rnds=zwwmNtDb",
+    "method": "POST",
+    "post_data": "{}"
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-cloudrecording-webapi/v1/space?aggregation_fast_recording=0&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=BG8NRMek&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=23e337e1cc590ded07d7cca307877341&rnds=BG8NRMek&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.rightConfig&key=configList&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=j8Std76T&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=f5e7e467b5da1a677e0b9c3114a7742b&rnds=j8Std76T&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.rightConfig&key=configNumber&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=EwxTEbGD&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=9d6c87273f372ca27aa6606d22a34fe1&rnds=EwxTEbGD&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227948&c_instance_id=5&c_nonce=7sJB6HX2&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=bbbfdf2407b6b2caa8cbf677c3e36b15&rnds=7sJB6HX2&group=webConfig.configManager.nextWebsite.noticeBar&key=customerServiceModal",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "page": [
+          "buy",
+          "buy-meeting"
+        ],
+        "longTermValid": true,
+        "showFrequency": "daily",
+        "jumpLink": "https://cloud.tencent.com/online-service?source=MP&noTopNav=true&noFooter=true&noFloatBar=true&from=sales_meeting_newbuy_stay_toolong",
+        "mjumpLink": "https://cloud.tencent.com/online-service?source=MP&noTopNav=true&noFooter=true&noFloatBar=true&from=sales_meeting_newbuy_stay_toolong",
+        "isShow": true,
+        "exposureEvent": "e#zixunguwen#tanchuang#exposure",
+        "clickEvent": "e#zixunguwen#tanchuang#click",
+        "clickCloseEvent": "e#zixunguwen#tanchaung_close#click",
+        "pcPopupImage": "https://cdn.meeting.tencent.com/pro/Mzk2YmNiMWMtNDQzYi00MTMyLTljY2QtM2RiZWY2YThjMTAy",
+        "mobilePopupImage": "https://cdn.meeting.tencent.com/pro/OGY1ZmM0MTgtNjFiMy00YzEwLTlmMWItYzk4MzAzODE4Yzk4",
+        "pcCloseIconImage": "https://cdn.meeting.tencent.com/pro/YjM4YTZmOGYtZDY3OC00N2E1LTk0NmMtOThjZjBhZTNjZWNh",
+        "mobileCloseIconImage": "https://cdn.meeting.tencent.com/pro/OTg4YTgxZmQtNTFhYS00ZGE0LWFlOTYtMGRhYzBhNTI4OTdk",
+        "version": 7
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=bannerList&c_os_model=web&c_timestamp=1781331228000&c_instance_id=5&c_nonce=e2B2bMRe&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=11b3b24e365085860b87956ce1572ed7&rnds=e2B2bMRe&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "bannerId": "757a5fcd-4f2e-4b2b-9bec-19ac0061a0eb",
+          "bannerName": "产品下载",
+          "titleLineOne": "用腾讯会议",
+          "titleLineTwo": "会见AI新可能",
+          "shortTitle": "腾讯会议，会开会",
+          "shortDesc": "已为220+国家及地区提供智能会议解决方案，用元宝纪要/AI托管开启智能新体验。",
+          "eventExposure": "e#homepage#banner_xaizai_p#exposure",
+          "buttons": [
+            {
+              "text": "立即下载",
+              "jumpUrl": "https://meeting.tencent.com/download/index.html?fromSource=20240829_syb_freetest",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_xaizai#click",
+              "eventData": {}
+            },
+            {
+              "text": "版本与定价",
+              "jumpUrl": "https://meeting.tencent.com/buy/index.html?mid=web.p.topdh.djygm&fromSource=20240829_syb_freetest",
+              "type": "outline-black",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_xaizai_liaojie#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "已为220+国家及地区提供智能会议解决方案，用元宝纪要/AI托管开启智能新体验。",
+          "videoLoopUrl": "https://cdn.meeting.tencent.com/pro/NjdjMGRjMzYtZjNiYi00NTg1LWI4N2QtNTBhN2U1NGFjOWRj",
+          "videoUrl": "https://cdn.meeting.tencent.com/pro/YmJkNGEwMjgtYTRiYy00NTAzLTg4MGYtMmE0YzQ1NjQ1OWI5",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/NjBmMmIyMzYtZWVkNS00MjI0LWJkYWUtYjY3MjFiMDlkOGE0",
+          "rank": 1,
+          "bannerRank": 1,
+          "isPublished": true
+        },
+        {
+          "bannerId": "a2cff394-f776-43cc-af47-643a139316c4",
+          "bannerName": "龙虾skills",
+          "titleLineOne": "接入OpenClaw",
+          "titleLineTwo": "即刻成为会议专家",
+          "shortTitle": "接入龙虾成为会议专家",
+          "shortDesc": "基于标准MCP协议，极简集成。只需复制一行指令即可完成多种会议操作。",
+          "eventExposure": "e#tm_skills_homepage#skiils_banner#exposure",
+          "buttons": [
+            {
+              "text": "查看详情",
+              "jumpUrl": "https://meeting.tencent.com/ai-skill.html",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#tm_skills_homepage#skiils_banner#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "基于标准MCP协议，极简集成。只需复制一行指令即可完成多种会议操作。",
+          "videoLoopUrl": "https://cdn.meeting.tencent.com/pro/MTdmYjgxM2MtYjEzMi00ODAwLTg1ZGYtMTI3MDU1ZWNjZGZm",
+          "videoUrl": "https://cdn.meeting.tencent.com/pro/MDUwMzUwZDktZDJlZS00MzhiLTlmNDMtNjdmYjMzMThlYWJh",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/MTU5ODMyZTItMzNlNy00YjhmLWI3NmMtYmJjMzRmMTg4OGVi",
+          "rank": 6,
+          "bannerRank": 2,
+          "isPublished": true
+        },
+        {
+          "bannerId": "bc53cce9-ad0f-4d4e-aaff-f80f2e0bd20e",
+          "bannerName": "AI智能化",
+          "titleLineOne": "元宝纪要AI托管",
+          "titleLineTwo": "开启智能新体验",
+          "shortTitle": "AI智能新体验",
+          "shortDesc": "智能提炼关键要点，实时还原会议氛围； 突发情况无法参会，支持一键开启元宝AI托管",
+          "eventExposure": "e#homepage#banner_rooms#exposure",
+          "buttons": [
+            {
+              "text": "了解详情",
+              "jumpUrl": "https://meeting.tencent.com/ai/summary/",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_rooms_shiyong#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "智能提炼关键要点，实时还原会议氛围； 突发情况无法参会，支持一键开启元宝AI托管",
+          "videoLoopUrl": "https://cdn.meeting.tencent.com/pro/YTJjMzdmYzQtZDA5Yi00ZDIzLTk0MGUtYWE0NmRiZGNiMWQ4",
+          "videoUrl": "https://cdn.meeting.tencent.com/pro/OGI2NjQ3ODktYTVhOC00YjQ5LWI5ZWMtMTkyMDE2NDJhMTU5",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/NTM0NDc2ODYtYjJkZC00M2VlLWI1MzMtMjI4NzAwZWNjMWNm",
+          "rank": 3,
+          "bannerRank": 3,
+          "isPublished": true
+        },
+        {
+          "bannerId": "f54a8a74-6acd-408f-bd65-604d8f9b4891",
+          "bannerName": "腾讯元宝",
+          "titleLineOne": "腾讯元宝电脑版",
+          "titleLineTwo": "DeepSeek+ 新体验",
+          "shortTitle": "腾讯元宝+DeepSeek",
+          "shortDesc": "DeepSeek+ 新体验",
+          "eventExposure": "e#homepage#banner_yuanbao_p#exposure",
+          "buttons": [
+            {
+              "text": "体验腾讯元宝",
+              "jumpUrl": "https://yuanbao.tencent.com/evt/dl?tridChannel=wemeet.website&pkgChId=10008",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_yuanbao#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "支持语音输入，联网搜索公众号、视频号等优质腾讯生态信源，搜得更准、答得更全。",
+          "renderSpline": "https://cdn.meeting.tencent.com/pro/ZGRmMzU5ZDMtZTIxMi00ODhjLTgwYzYtYWIwYjUxMDZlNDE0",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/ODU2NmUzNTAtNjI2NC00MzBiLThlYjUtYTMyODNhOGExOTBm",
+          "rank": 3,
+          "bannerRank": 4,
+          "isPublished": true
+        },
+        {
+          "bannerId": "2e6bb2bd-da3f-4d07-b61e-19f1862867a9",
+          "bannerName": "企业版试用",
+          "titleLineOne": "腾讯会议企业版",
+          "titleLineTwo": "限时免费试用",
+          "shortTitle": "商业版免费试用",
+          "shortDesc": "首期限量500个试用资格，先到先得!",
+          "eventExposure": "e#homepage#banner_qiye#exposure",
+          "buttons": [
+            {
+              "text": "立即试用",
+              "jumpUrl": "https://meeting.tencent.com/v2/operation-activity/business-trial/apply?fromSource=website_tryout&mid=web.corp.sybhd.syblx",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_qiye_shiyong#click",
+              "eventData": {}
+            },
+            {
+              "text": "了解详情",
+              "jumpUrl": "https://meeting.tencent.com/business-service-enterprise/index.html?fromSource=mainpage_sy_banner_qyb_test",
+              "type": "outline-black",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_qiye_liaojie#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "首期限量500个试用资格，先到先得! 体验更适合大型企业的云会议解决方案",
+          "videoLoopUrl": "https://cdn.meeting.tencent.com/pro/YWZhZTkxNGItMGRkZC00ODg2LTk1NWMtNTllYjdhMTM4ODc3.mp4",
+          "videoUrl": "https://cdn.meeting.tencent.com/pro/OTBhMzE3OGQtZTU5MS00NTYwLTk4YzUtZDMwMzU2OTdmNDEw.mp4",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/Mzk2MDMwN2ItNmFmOS00NjM0LTg3ZTYtMTE3MGZkMGJhZWM1",
+          "rank": 5,
+          "bannerRank": 5,
+          "isPublished": true
+        },
+        {
+          "bannerId": "e41d21aa-7476-4547-8b71-8fda4cb45860",
+          "bannerName": "专家服务",
+          "titleLineOne": "腾讯会议",
+          "titleLineTwo": "1V1专家支持服务",
+          "shortTitle": "专家支持服务",
+          "shortDesc": "全方位的专业服务，保障您的会议体验",
+          "isPublished": false,
+          "eventExposure": "e#homepage#banner_zhuanjia_p#exposure",
+          "buttons": [
+            {
+              "text": "申请服务",
+              "jumpUrl": "https://meeting.tencent.com/professional-service/",
+              "type": "primary",
+              "oldEvent": "",
+              "newEvent": "e#homepage#banner_zhuanjia#click",
+              "eventData": {}
+            }
+          ],
+          "desc": "提供Rooms部署服务、会议护航服务、MRA交付服务等全方位的专业服务，保障您的",
+          "videoLoopUrl": "https://cdn.meeting.tencent.com/pro/NDc4OTgzMGItY2JmMC00MDkzLTlhZTYtOTNkZDRjMTRlZTU2",
+          "videoUrl": "https://cdn.meeting.tencent.com/pro/YWZhOTZlNWYtZjA1Zi00YjQ0LWIxNWEtODk3NDVhYTFkNjhj",
+          "renderSpline": "",
+          "mobileImg": "https://cdn.meeting.tencent.com/pro/OTBhYjQ3ZTctOGFhNC00NWYzLWE1M2UtNmJhZGNiOGE5Mjdk",
+          "bannerRank": 6,
+          "rank": 5
+        }
+      ]
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet_cowork_config/get-h5-common-config?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227928&c_instance_id=5&c_nonce=4NtN8j4Q&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=b2b90c9a1ccc5ab91ac95c7607a13334&rnds=4NtN8j4Q",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "ok",
+      "traceId": "a130bd0a8b3a4b44105362bf0d186daa",
+      "data": [
+        {
+          "type": 1,
+          "content": "eyJ3ZWxmYXJlQ2FyZCI6W3siY2FyZF9pZCI6MTcsImNhcmRfbmFtZSI6IuiFvuiur+inhumikVZJUCA35aSp5Y2hIiwiY2FyZF90eXBlIjo3LCJwZXJpb2QiOjcsInByaWNlIjo3LCJ1c2VkX251bSI6MSwidG90YWxfbnVtIjo1MDAsInN0YXR1cyI6MSwiY2FyZF9pbWciOiJodHRwczovL3ZmaWxlcy5ndGltZy5jbi92dXBsb2FkLzIwMjExMjEwL2E0NzkyMDE2MzkxMzYzNjU3MzcucG5nIiwiY2FyZF9tb2RlbCI6MSwicHJpb3JpdHkiOjF9LHsiY2FyZF9pZCI6MzMsImNhcmRfbmFtZSI6IuiFvuiur+inhumikVZJUCA35aSp5Y2hIiwiY2FyZF90eXBlIjo3LCJwZXJpb2QiOjcsInByaWNlIjo4LCJ1c2VkX251bSI6OTA3LCJ0b3RhbF9udW0iOjEwMDAsInN0YXR1cyI6MiwiY2FyZF9pbWciOiJodHRwczovL3ZmaWxlcy5ndGltZy5jbi92dXBsb2FkLzIwMjExMjEwL2E0NzkyMDE2MzkxMzYzNjU3MzcucG5nIiwiY2FyZF9tb2RlbCI6MywicHJpb3JpdHkiOjF9LHsiY2FyZF9pZCI6MzQsImNhcmRfbmFtZSI6IlFR6Z+z5LmQVklQIDflpKnljaEiLCJjYXJkX3R5cGUiOjEwLCJwZXJpb2QiOjcsInByaWNlIjo4LCJ1c2VkX251bSI6OTA2LCJ0b3RhbF9udW0iOjEwMDAsInN0YXR1cyI6MiwiY2FyZF9pbWciOiJodHRwczovL3ZmaWxlcy5ndGltZy5jbi92dXBsb2FkLzIwMjExMjEwL2UwODM1OTE2MzkxMzYzOTA2OTYucG5nIiwiY2FyZF9tb2RlbCI6MywicHJpb3JpdHkiOjF9LHsiY2FyZF9pZCI6MzUsImNhcmRfbmFtZSI6IuiFvuiur+inhumikVZJUCAzMeWkqeWNoSIsImNhcmRfdHlwZSI6NywicGVyaW9kIjozMSwicHJpY2UiOjIwLCJ1c2VkX251bSI6MSwidG90YWxfbnVtIjoxMDAwLCJzdGF0dXMiOjIsImNhcmRfaW1nIjoiaHR0cHM6Ly92ZmlsZXMuZ3RpbWcuY24vdnVwbG9hZC8yMDIxMTIxMC80NmQ2ZDAxNjM5MTM2MzMzOTI2LnBuZyIsImNhcmRfbW9kZWwiOjMsInByaW9yaXR5IjoxfSx7ImNhcmRfaWQiOjM2LCJjYXJkX25hbWUiOiJRUemfs+S5kFZJUCAzMeWkqeWNoSIsImNhcmRfdHlwZSI6MTAsInBlcmlvZCI6MzEsInByaWNlIjoyMCwidXNlZF9udW0iOjAsInRvdGFsX251bSI6MTAwMCwic3RhdHVzIjoyLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvOTZhMjExMTYzOTEzNjM3ODE4NC5wbmciLCJjYXJkX21vZGVsIjozLCJwcmlvcml0eSI6MX0seyJjYXJkX2lkIjoxOCwiY2FyZF9uYW1lIjoi6IW+6K6v6KeG6aKRVklQIDMx5aSp5Y2hIiwiY2FyZF90eXBlIjo3LCJwZXJpb2QiOjMxLCJwcmljZSI6MjAsInVzZWRfbnVtIjowLCJ0b3RhbF9udW0iOjUwMCwic3RhdHVzIjoxLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvNDZkNmQwMTYzOTEzNjMzMzkyNi5wbmciLCJjYXJkX21vZGVsIjoxLCJwcmlvcml0eSI6Mn0seyJjYXJkX2lkIjoyNSwiY2FyZF9uYW1lIjoiUVHpn7PkuZBWSVAgN+WkqeWNoSIsImNhcmRfdHlwZSI6MTAsInBlcmlvZCI6NywicHJpY2UiOjgsInVzZWRfbnVtIjowLCJ0b3RhbF9udW0iOjUwMCwic3RhdHVzIjoxLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvZTA4MzU5MTYzOTEzNjM5MDY5Ni5wbmciLCJjYXJkX21vZGVsIjoxLCJwcmlvcml0eSI6M30seyJjYXJkX2lkIjoyNiwiY2FyZF9uYW1lIjoiUVHpn7PkuZBWSVAgMzHlpKnljaEiLCJjYXJkX3R5cGUiOjEwLCJwZXJpb2QiOjMxLCJwcmljZSI6MjAsInVzZWRfbnVtIjowLCJ0b3RhbF9udW0iOjUwMCwic3RhdHVzIjoxLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvOTZhMjExMTYzOTEzNjM3ODE4NC5wbmciLCJjYXJkX21vZGVsIjoxLCJwcmlvcml0eSI6NH0seyJjYXJkX2lkIjoyMSwiY2FyZF9uYW1lIjoi5LqR5b2V5Yi25a2Y5YKo56m66Ze0MjAwTeWNoSIsImNhcmRfdHlwZSI6OSwicGVyaW9kIjoxLCJwcmljZSI6MiwidXNlZF9udW0iOi0xLCJ0b3RhbF9udW0iOjAsInN0YXR1cyI6MSwiY2FyZF9pbWciOiJodHRwczovL3ZmaWxlcy5ndGltZy5jbi92dXBsb2FkLzIwMjExMjEwLzMwOTE1OTE2MzkxMzY1ODU0NTQucG5nIiwiY2FyZF9tb2RlbCI6MiwicHJpb3JpdHkiOjV9LHsiY2FyZF9pZCI6MSwiY2FyZF9uYW1lIjoi5LiT5bGe5Liq5Lq65Lya6K6u5Y+35Y2V5qyh5pu05o2i5Y2hIiwiY2FyZF90eXBlIjoxLCJwZXJpb2QiOjEsInByaWNlIjoxLCJ1c2VkX251bSI6LTEsInRvdGFsX251bSI6MCwic3RhdHVzIjoxLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvNTdiYTY0MTYzOTEzNjYyODAzMS5wbmciLCJjYXJkX21vZGVsIjoyLCJwcmlvcml0eSI6Nn0seyJjYXJkX2lkIjoyLCJjYXJkX25hbWUiOiLkurrlt6XlkIzkvKAz5aSp5L2T6aqM5Y2hIiwiY2FyZF90eXBlIjoyLCJwZXJpb2QiOjMsInByaWNlIjoyLCJ1c2VkX251bSI6LTEsInRvdGFsX251bSI6MCwic3RhdHVzIjoxLCJjYXJkX2ltZyI6Imh0dHBzOi8vdmZpbGVzLmd0aW1nLmNuL3Z1cGxvYWQvMjAyMTEyMTAvZjM4NmNiMTYzOTEzNjY0MjY2Mi5wbmciLCJjYXJkX21vZGVsIjoyLCJwcmlvcml0eSI6N30seyJjYXJkX2lkIjoyMywiY2FyZF9uYW1lIjoi5LqR5b2V5Yi25a2Y5YKo56m66Ze0MUfljaEiLCJjYXJkX3R5cGUiOjksInBlcmlvZCI6MSwicHJpY2UiOjgsInVzZWRfbnVtIjotMSwidG90YWxfbnVtIjowLCJzdGF0dXMiOjMsImNhcmRfaW1nIjoiaHR0cHM6Ly92ZmlsZXMuZ3RpbWcuY24vdnVwbG9hZC8yMDIxMTIxMC84NzI0MzQxNjM5MTM2NTczNDI5LnBuZyIsImNhcmRfbW9kZWwiOjIsInByaW9yaXR5IjozfV0sIm1zZ0NvbmZpZyI6W3siaWNvbl91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAucGljZ3pjLnFwaWMuY24vbGF1bmNoX21hdGVyaWFsLzE2NDk2NDc5NDgucG5nIiwicmVkaXJlY3RfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3N1cHBvcnQuaHRtbD9mcm9tU291cmNlPW1lc3NhZ2Vob21ld2luZG93cyIsImluc3RhbmNlX2lkIjoiMSJ9LHsiaWNvbl91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAucGljZ3pjLnFwaWMuY24vbGF1bmNoX21hdGVyaWFsLzE2NDk2NDc5NDgucG5nIiwicmVkaXJlY3RfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3N1cHBvcnQuaHRtbD9mcm9tU291cmNlPW1lc3NhZ2Vob21lTWFjIiwiaW5zdGFuY2VfaWQiOiIyIn0seyJpY29uX3VybCI6Imh0dHBzOi8vbWVldGluZy03NTQyMC5waWNnemMucXBpYy5jbi9sYXVuY2hfbWF0ZXJpYWwvMTY0OTY0Nzk0OC5wbmciLCJyZWRpcmVjdF91cmwiOiJodHRwczovL21lZXRpbmcudGVuY2VudC5jb20vc3VwcG9ydC1jZW50ZXIvaW5kZXguaHRtbD9mcm9tU291cmNlPW1lc3NhZ2Vob21lIiwiaW5zdGFuY2VfaWQiOiIzIn0seyJpY29uX3VybCI6Imh0dHBzOi8vbWVldGluZy03NTQyMC5waWNnemMucXBpYy5jbi9sYXVuY2hfbWF0ZXJpYWwvMTY0OTY0Nzk0OC5wbmciLCJyZWRpcmVjdF91cmwiOiJodHRwczovL21lZXRpbmcudGVuY2VudC5jb20vc3VwcG9ydC1jZW50ZXIvaW5kZXguaHRtbD9mcm9tU291cmNlPW1lc3NhZ2Vob21lSU9TIiwiaW5zdGFuY2VfaWQiOiI0In0sCnsiaWNvbl91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAucGljZ3pjLnFwaWMuY24vbGF1bmNoX21hdGVyaWFsLzE2NDk2NDc5NDgucG5nIiwicmVkaXJlY3RfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3N1cHBvcnQtY2VudGVyL2luZGV4Lmh0bWw/ZnJvbVNvdXJjZT1tZXNzYWdlaG9tZWlwYWQiLCJpbnN0YW5jZV9pZCI6IjYifV0sImlvc19oaWRkZW5fdmVyc2lvbiI6IjMuOC4zIiwiaGlkZGVuX3Rlc3QiOmZhbHNlLCJ3ZWxmYXJlQ2VudGVyIjp7InRpdGxlIjoi56aP5Yip5Lit5b+DIiwiaXNHcmF5VXNlciI6dHJ1ZSwiYmFubmVyIjpbeyJpbWFnZV91cmwiOiJodHRwczovL2Nkbi5tZWV0aW5nLnRlbmNlbnQuY29tL3Byby9OREkxT0RNd01EQXRPVEV6T1MwMFpXUTJMV0ZrWkRVdE5ESTVZVGt5WVdOalltVmkucG5nIiwidXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL29wdGFzay1jZW50ZXIvZXhjaGFuZ2UtY2VudGVyIiwic3RhcnRfdGltZSI6IjE2MDcyNzA0MDAiLCJlbmRfdGltZSI6IjE2NzUwOTQ0MDAifV0sIndlbGZhcmUiOlt7ImltYWdlX3VybCI6Imh0dHBzOi8vY2RuLm1lZXRpbmcudGVuY2VudC5jb20vcHJvL05ESTFPRE13TURBdE9URXpPUzAwWldRMkxXRmtaRFV0TkRJNVlUa3lZV05qWW1WaS5wbmciLCJ1cmwiOiJodHRwczovL21lZXRpbmcudGVuY2VudC5jb20vb3B0YXNrLWNlbnRlci9leGNoYW5nZS1jZW50ZXIiLCJ0aXRsZSI6Iuenr+WIhuWFkeaNoiIsInN1Yl90aXRsZSI6IuS7mOi0ueWKn+iDveWFjei0ueeUqCJ9LHsiaW1hZ2VfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLTc1NDIwLmd6Yy52b2QudGVuY2VudC1jbG91ZC5jb20vYWN0aXZpdHktZXhwZXJpZW5jZS8xNjIyMDE2NzEyLnBuZyIsInVybCI6Imh0dHBzOi8vbWVldGluZy50ZW5jZW50LmNvbS9vcGVyYXRpb24tYWN0aXZpdHkvaW52aXRlLWFjdGl2aXR5P29yaWdpbj0xMiIsInRpdGxlIjoi6KOC5Y+Y5ouJ5pawIiwic3ViX3RpdGxlIjoi6KOC5Y+Y5ouJ5pawIn1dLCJ0YXNrIjpbeyJpbWFnZV91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAuZ3pjLnZvZC50ZW5jZW50LWNsb3VkLmNvbS9hY3Rpdml0eS1leHBlcmllbmNlLzE2MDczNDMzNjkucG5nIiwidXJsIjoiIiwiYnV0dG9uX3RleHQiOiLljrvnu5HlrpoiLCJ0YXNrX3R5cGUiOjIsInN1Yl90aXRsZSI6Iue7keWumuW+l+S6keW9leWItuWtmOWCqOepuumXtDIwME0iLCJ0aXRsZSI6Iue7keWumuW+ruS/oeWPtyIsImNhcmRfdHlwZSI6MjEsInN0YXR1cyI6MSwiY2FyZF9uYW1lIjoi5LqR5b2V5Yi25a2Y5YKo56m66Ze0MjAwTSIsImFjdGl2aXR5X3R5cGUiOjEsImhvdXJzIjowLCJqdW1wX3VybCI6IiIsImhvc3RfbnVtIjoxLCJiaWdfcm9vbV9udW0iOjEsImlzX21vbnRoX3Rhc2siOjAsIm1vbnRoX2dyYW5kX3RvdGFsX2hvdXIiOjAsInJlY2VpdmVkX3RocmlkX3RpdGxlIjpudWxsLCJ2YWxpZF9tZWV0aW5nX21pbnV0ZXMiOjB9LHsiaW1hZ2VfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLTc1NDIwLmd6Yy52b2QudGVuY2VudC1jbG91ZC5jb20vYWN0aXZpdHktZXhwZXJpZW5jZS8xNjI4MjIwOTUzLnBuZyIsInVybCI6IiIsImJ1dHRvbl90ZXh0Ijoi5Y676K6+572uIiwidGFza190eXBlIjozMSwic3ViX3RpdGxlIjoi5a6M5oiQ5b6X5LqR5b2V5Yi25a2Y5YKo56m66Ze0MjAwTSIsInRpdGxlIjoi6K6+572u576O6aKcL+a7pOmVnCIsImNhcmRfdHlwZSI6MjEsInN0YXR1cyI6MSwiY2FyZF9uYW1lIjoi5LqR5b2V5Yi25a2Y5YKo56m66Ze0MjAwTSIsImFjdGl2aXR5X3R5cGUiOjIsImhvdXJzIjowLCJqdW1wX3VybCI6IiIsImhvc3RfbnVtIjowLCJiaWdfcm9vbV9udW0iOjAsImlzX21vbnRoX3Rhc2siOjAsIm1vbnRoX2dyYW5kX3RvdGFsX2hvdXIiOjAsInJlY2VpdmVkX3RocmlkX3RpdGxlIjpudWxsLCJ2YWxpZF9tZWV0aW5nX21pbnV0ZXMiOjB9LHsiaW1hZ2VfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLTc1NDIwLmd6Yy52b2QudGVuY2VudC1jbG91ZC5jb20vYWN0aXZpdHktZXhwZXJpZW5jZS8xNjI4MjIwOTA1LnBuZyIsInVybCI6IiIsImJ1dHRvbl90ZXh0Ijoi5Y676K6+572uIiwidGFza190eXBlIjozMiwic3ViX3RpdGxlIjoi5a6M5oiQ5b6X5LqR5b2V5Yi25a2Y5YKo56m66Ze0MjAwTSIsInRpdGxlIjoi6K6+572u6Jma5ouf6IOM5pmvIiwiY2FyZF90eXBlIjoyMSwic3RhdHVzIjoxLCJjYXJkX25hbWUiOiLkupHlvZXliLblrZjlgqjnqbrpl7QyMDBNIiwiYWN0aXZpdHlfdHlwZSI6MiwiaG91cnMiOjAsImp1bXBfdXJsIjoiIiwiaG9zdF9udW0iOjAsImJpZ19yb29tX251bSI6MCwiaXNfbW9udGhfdGFzayI6MCwibW9udGhfZ3JhbmRfdG90YWxfaG91ciI6MCwicmVjZWl2ZWRfdGhyaWRfdGl0bGUiOm51bGwsInZhbGlkX21lZXRpbmdfbWludXRlcyI6MH0seyJpbWFnZV91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAuZ3pjLnZvZC50ZW5jZW50LWNsb3VkLmNvbS9hY3Rpdml0eS1leHBlcmllbmNlLzE2MjQ4ODYyMzgucG5nIiwidXJsIjoiIiwiYnV0dG9uX3RleHQiOiLmn6XnnIvmjIflvJUiLCJ0YXNrX3R5cGUiOjI3LCJzdWJfdGl0bGUiOiLlrozmiJDlvpfkupHlvZXliLblrZjlgqjnqbrpl7QyMDBNIiwidGl0bGUiOiLkvb/nlKjkupHlvZXliLYy5bCP5pe2IiwiY2FyZF90eXBlIjoyMSwic3RhdHVzIjoxLCJjYXJkX25hbWUiOiLkupHlvZXliLblrZjlgqjnqbrpl7QyMDBNIiwiYWN0aXZpdHlfdHlwZSI6MiwiaG91cnMiOjAsImp1bXBfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL20vbWFnaWMtYWN0L2ZnZmFocGMzdzB0Z2Y4dTRjZmhvbHlrcmw1L2luZGV4X2luZGV4Lmh0bWw/b3ZzY3JvbGw9MCZwYWdlPWluZGV4IiwiaG9zdF9udW0iOjAsImJpZ19yb29tX251bSI6MSwiaXNfbW9udGhfdGFzayI6MCwibW9udGhfZ3JhbmRfdG90YWxfaG91ciI6MCwicmVjZWl2ZWRfdGhyaWRfdGl0bGUiOm51bGwsInZhbGlkX21lZXRpbmdfbWludXRlcyI6MH0seyJpbWFnZV91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAuZ3pjLnZvZC50ZW5jZW50LWNsb3VkLmNvbS9hY3Rpdml0eS1leHBlcmllbmNlLzE2MjU3MTU0MjYucG5nIiwidXJsIjoiIiwiYnV0dG9uX3RleHQiOiLmn6XnnIvmjIflvJUiLCJ0YXNrX3R5cGUiOjI4LCJzdWJfdGl0bGUiOiLlrozmiJDlvpfkupHlvZXliLblrZjlgqjnqbrpl7Q1MDBNIiwidGl0bGUiOiLkvb/nlKjkupHlvZXliLY05bCP5pe2IiwiY2FyZF90eXBlIjoyMiwic3RhdHVzIjoxLCJjYXJkX25hbWUiOiLkupHlvZXliLblrZjlgqjnqbrpl7Q1MDBNIiwiYWN0aXZpdHlfdHlwZSI6MiwiaG91cnMiOjAsImp1bXBfdXJsIjoiaHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL20vbWFnaWMtYWN0L2ZnZmFocGMzdzB0Z2Y4dTRjZmhvbHlrcmw1L2luZGV4X2luZGV4Lmh0bWw/b3ZzY3JvbGw9MCZwYWdlPWluZGV4IiwiaG9zdF9udW0iOjAsImJpZ19yb29tX251bSI6MSwiaXNfbW9udGhfdGFzayI6MCwibW9udGhfZ3JhbmRfdG90YWxfaG91ciI6MCwicmVjZWl2ZWRfdGhyaWRfdGl0bGUiOm51bGwsInZhbGlkX21lZXRpbmdfbWludXRlcyI6MH0seyJpbWFnZV91cmwiOiJodHRwczovL21lZXRpbmctNzU0MjAuZ3pjLnZvZC50ZW5jZW50LWNsb3VkLmNvbS9hY3Rpdml0eS1leHBlcmllbmNlLzE2MzI2NTg0NDIucG5nIiwidXJsIjoiIiwiYnV0dG9uX3RleHQiOiLljrvkuLvmjIEiLCJ0YXNrX3R5cGUiOjQ2LCJzdWJfdGl0bGUiOiLlrozmiJDlvpfohb7orq/op4bpopFWSVAg5a2j5Y2hIiwidGl0bGUiOiLkuLvmjIEx5qyhMjAw5Lq65Lul5LiK5Lya6K6uIiwiY2FyZF90eXBlIjozMSwic3RhdHVzIjoxLCJjYXJkX25hbWUiOiLohb7orq/op4bpopFWSVAg5a2j5Y2hIiwiYWN0aXZpdHlfdHlwZSI6MiwiaG91cnMiOjAsImp1bXBfdXJsIjoiIiwiaG9zdF9udW0iOjEsImJpZ19yb29tX251bSI6MjAwLCJpc19tb250aF90YXNrIjowLCJtb250aF9ncmFuZF90b3RhbF9ob3VyIjowLCJyZWNlaXZlZF90aHJpZF90aXRsZSI6bnVsbCwidmFsaWRfbWVldGluZ19taW51dGVzIjo2MH1dLCJkZXNjcmlwdGlvbiI6IuWujOaIkOebuOW6lOeahOS7u+WKoe+8jOWPr+iOt+W+l+S7u+WKoeWvueW6lOeahOWlluWKse+8jOWlluWKseWMheaLrOS6keW9leWItuawuOS5heWtmOWCqOepuumXtDIwME3jgIHkuKrkurrkvJrorq7lj7fljZXmrKHkv67mlLnljaHnrYnvvIzmr4/kuKrnlKjmiLfmr4/pobnku7vliqHku4Xlj6/lj4LkuI4x5qyh77yM5rOo6ZSA5peg5pWI77ybXFxu5aWW5ZOB5Y2h5Yi45pyJ5pWI5pyf5Li6OTDlpKnvvIzliLDmnJ/lkI7liJnml6Dms5Xkvb/nlKjvvIzor7flnKjliLDmnJ/liY3mv4DmtLvkvb/nlKjvvJtcXG7kuIDlvKDkuKrkurrkvJrorq7lj7fmm7TmjaLljaHljbPlj6/kv67mlLnkuIDmrKHkuKrkurrkvJrorq7lj7fvvJtcXG7kuKrkurrkvJrorq7lj7fmm7TmjaLljaHmnInmnLrkvJrojrflvpfpmZDph4/kvJrorq7lj7fvvJtcXG7kv67mlLnkuYvlkI7vvIzlvZPliY3kvb/nlKjnmoTkuKrkurrkvJrorq7lj7fliJnkvJrooqvlm57mlLbvvIzml6Dms5Xnu6fnu63kvb/nlKjjgIJ85a6M5oiQ6L+b6Zi25Lu75Yqh77yM5Y+v6I635b6X5Lu75Yqh5a+55bqU55qE5aWW5Yqx77yM5aWW5Yqx5YyF5ous5LqR5b2V5Yi25rC45LmF5a2Y5YKo56m66Ze0MjAwTeOAgeS6keW9leWItuawuOS5heWtmOWCqOepuumXtDUwME3vvIzmr4/kuKrnlKjmiLfmr4/pobnku7vliqHku4Xlj6/lj4LkuI4x5qyh77yM5rOo6ZSA5peg5pWI77ybXFxu5aWW5ZOB5Y2h5Yi45pyJ5pWI5pyf5Li6OTDlpKnvvIzliLDmnJ/lkI7liJnml6Dms5Xkvb/nlKjvvIzor7flnKjliLDmnJ/liY3mv4DmtLvkvb/nlKjvvJtcXG7kupHlvZXliLbkvb/nlKjml7bplb/ku7vliqHoh6rmnKzku7vliqHkuIrnur/otbfnrpfvvIzlnKjku7vkvZXoh6rlt7HliJvlu7rkuJTkuLvmjIHnmoTkvJrorq7kuK3kvb/nlKjkupHlvZXliLbnmobkvJrntK/orqHkvb/nlKjml7bplb/vvJtcXG7nvo7popzjgIHmu6TplZzjgIHomZrmi5/og4zmma/orr7nva7ku7vliqHpnIDopoHku47mnKzpobXpnaLnmoTjgJDljrvorr7nva7jgJHmjInpkq7liY3lvoDliLDlr7nlupTnmoTorr7nva7pobXpnaLlrozmiJDorr7nva7miY3og73orqHlrozmiJDku7vliqHvvIzku47lhbbku5blnLrmma/miJbnlLXohJHkuIrorr7nva7kuI3orqHlrozmiJDku7vliqHjgIIiLCJyb3RhdGlvbl90aW1lIjoyMCwiaXNfcG9wX3VwIjpmYWxzZSwiY2FyZEluZm9MaXN0IjpbXX0sIm9wdGFza0NlbnRlckFjdGl2aXR5UnVsZXMiOlt7InRpdGxlIjoiKuemj+WIqeS4reW/g+S7u+WKoeivtOaYjiIsImNvbnRlbnQiOiIiLCJpdGVtcyI6WyLlrozmiJDnm7jlupTnmoTmlrDmiYvku7vliqHlkozov5vpmLbku7vliqHvvIzlj6/ojrflvpfor6Xku7vliqHnmoTlpZblirHvvIzmr4/kuKrnlKjmiLfmr4/pobnku7vliqHku4Xlj6/lj4LkuI4x5qyh77yM5rOo6ZSA6LSm5Y+35YiZ5peg5rOV5YaN5YGa5Lu75Yqh6aKG5Y+W5aWW5YqxIiwi5YGa5a6M5Lu75Yqh6K+35ZyoM+S4quaciOWGhemihuWPluivpeS7u+WKoeeahOWlluWKse+8jOi2hei/hzPkuKrmnIjlkI7liJnml6Dms5Xlho3pooblj5blt7LlrozmiJDku7vliqHnmoTlpZblirHvvJvlpZblk4HljaHliLjmnInmlYjmnJ/kuLo5MOWkqe+8jOWIsOacn+WQjuWImeaXoOazleS9v+eUqO+8jOivt+WcqOWIsOacn+WJjea/gOa0u+S9v+eUqCIsIuemj+WIqeS4reW/g+eahOS7u+WKoeWmguaXoOeJueauiuivtOaYju+8jDLkurozMOWIhumSn+S7peS4iueahOS8muiuruaJjeiiq+eul+S9nOacieaViOS8muiuriIsIuS6keW9leWItuS9v+eUqOaXtumVv+S7u+WKoeiHquacrOS7u+WKoeS4iue6v+i1t+eul++8jOWcqOS7u+S9leiHquW3seWIm+W7uuS4lOS4u+aMgeeahOS8muiuruS4reS9v+eUqOS6keW9leWItueahuS8mue0r+iuoeS9v+eUqOaXtumVvyIsIuaWsOaJi+S7u+WKoeS4k+WMuueahOOAkOS4u+aMgTLmrKHkvJrorq7jgJHku7vliqHpnIDlnKjliY0z5Liq5paw5omL5Lu75Yqh5a6M5oiQ5ZCO5omN5Y+v6Kej6ZSB77yM5Li75oyB5qyh5pWw5LuO6K+l5Lu75Yqh6KKr6Kej6ZSB5LmL5ZCO5byA5aeL6K6w5b2VIiwi44CQ5pys5pyI5L2/55SoNeS4quaJqeWxleW6lOeUqOOAkeS7u+WKoeS7juS4iue6v+aXtumXtOi1t+W8gOWni+e7n+iuoeeUqOaIt+iHqueEtuaciOS9v+eUqOW6lOeUqOeahOaVsOaNru+8jOW9k+WkqeS9v+eUqOeahOaVsOaNruWcqOesrOS6jOWkqeabtOaWsO+8jOavj+S4quaciDHlj7fnu5/orqHkuIrkuKrmnIjlhajmnIjmlbDmja7vvIzmr4/mnIgy5Y+35byA5aeL57uf6K6h5b2T5pyI5bqU55So5L2/55So5pWw5o2u77yb6K+l5Lu75Yqh5Y+q6IO95a6M5oiQMeasoe+8jOW9k+aciOWBmuWujOivt+WcqDPkuKrmnIjlhoXpooblj5blpZblirHvvIzotoXov4cz5Liq5pyI5ZCO5YiZ5peg5rOV5YaN6aKG5Y+WIiwi44CQ576O6aKcL+a7pOmVnC/omZrmi5/og4zmma/jgJHku7vliqHpnIDopoHku47mnKzpobXpnaLnmoTjgJDljrvorr7nva7jgJHmjInpkq7liY3lvoDliLDlr7nlupTnmoTorr7nva7pobXpnaLlrozmiJDorr7nva7miY3og73nrpfkvZzlrozmiJDku7vliqHvvIzku47lhbbku5blnLrmma/miJbnlLXohJHkuIrorr7nva7kuI3orqHlrozmiJDku7vliqEiLCLkuIDlvKDkuKrkurrkvJrorq7lj7fmm7TmjaLljaHku4Xlj6/kv67mlLnkuIDmrKHkuKrkurrkvJrorq7lj7fvvIzkv67mlLnkuYvlkI7lvZPliY3kvb/nlKjnmoTkuKrkurrkvJrorq7lj7fkvJrooqvlm57mlLbvvIzml6Dms5Xnu6fnu63kvb/nlKgiLCLlhY3otLnniYjotKblj7fmnIDlpJrlj6/pop3lpJbntK/orqHpooblj5Y0R+S6keW9leWItuWtmOWCqOepuumXtOS9k+mqjOWNoe+8jOiLpei+vumihuWPluS4iumZkOWwhuaXoOazleWGjemihu+8jOafpeivouacrOi0puWPt+S6keW9leWItuepuumXtO+8jOWPr0FQUOmmlumhteeCueWHu+WktOWDjy3miJHnmoTlvZXliLbmn6XnnIsiXX0seyJ0aXRsZSI6Iirlj4LkuI7otYTmoLwiLCJjb250ZW50Ijoi5Y+q5pyJ5YWN6LS554mI6LSm5Y+35LiU6K+l6LSm5Y+35peg5Lu75L2V6L+d6KeE6KGM5Li677yM5omN6IO95Y+C5LiO5q2k5rS75Yqo44CCIiwiaXRlbXMiOltdfSx7InRpdGxlIjoiKumAmueUqOadoeasviIsImNvbnRlbnQiOiLmgqjoi6XmnInkuIvliJfku7vkvZXkuIDnp43ooYzkuLrmiJbmg4XlhrXnmoTvvIzohb7orq/mnInmnYPljZXmlrnpnaLlj5bmtojmgqjnmoTlj4LkuI7otYTmoLzvvJoiLCJpdGVtcyI6WyLkuI3nrKblkIjlj4LkuI7otYTmoLznmoQiLCLmj5DkvpvomZrlgYfkv6Hmga/nmoQiLCLomZrlgYfkuqTmmJPmiJbmgbbmhI/noLTlnY/mtLvliqjnmoQiLCLku6Xku7vkvZXmnLrlmajkurrova/ku7bjgIHonJjom5vova/ku7bjgIHniKzomavova/ku7bjgIHliLfljZXova/ku7bjgIHmqKHmi5/lmajmiJblhbbku5boh6rliqjmlrnlvI/jgIHkuI3mraPlvZPmiYvmrrXnrYnlj4LkuI7mtLvliqjnmoQiLCLliKnnlKjomZrmi5/miYvmnLrlj7fnoIHms6jlhoznmoTohb7orq/kvJrorq7otKblj7ciLCLnlKjlkIzkuIDmiYvmnLrlj7flpJrmrKHms6jplIDohb7orq/kvJrorq7otKblj7flubbph43mlrDms6jlhoznmoTnlKjmiLciLCLmnInmjILmnLrooYzkuLrnmoTnlKjmiLciLCLmnInku7vkvZXov53lj43or5rlrp7kv6HnlKjjgIHlhazluo/oia/kv5fjgIHlhazlubPjgIHlhazmraPnrYnljp/liJnooYzkuLrnmoQiLCLlr7nova/ku7bov5DooYzov4fnqIvkuK3lrqLmiLfnq6/kuI7mnI3liqHlmajnq6/nmoTkuqTkupLmlbDmja7vvIzku6Xlj4rmnKzova/ku7bov5DooYzmiYDlv4XpnIDnmoTns7vnu5/mlbDmja7vvIzov5vooYzlpI3liLbjgIHkv67mlLnjgIHlop7liqDjgIHliKDpmaTvvJvpgJrov4fkv67mlLnmiJbkvKrpgKDova/ku7bov5DooYzkuK3nmoTmjIfku6TjgIHmlbDmja7vvIzlop7liqDjgIHliKDlh4/jgIHlj5jliqjova/ku7bnmoTlip/og73miJbov5DooYzmlYjmnpzvvJvoh6rooYzjgIHmjojmnYPku5bkurrmiJbliKnnlKjnrKzkuInmlrnova/ku7blr7nmnKzova/ku7blkowv5oiW5pys5pyN5Yqh5Y+K5YW257uE5Lu244CB5qih5Z2X44CB5pWw5o2u562J6L+b6KGM5bmy5omwIiwi5YW25LuW6L+d5Y+N55u45YWz5rOV6KeE44CB5pys6KeE5YiZ6KGM5Li655qEIl19LHsidGl0bGUiOiIq5YWN6LSj5p2h5qy+IiwiY29udGVudCI6IueUqOaIt+efpeaCieS6kuiBlOe9keWtmOWcqOivuOWkmuS4jeehruWumuaAp+WboOe0oO+8jOWboOatpOeQhuino+W5tuWQjOaEj++8jOWmguWboOS4jeWPr+aKl+WKm+OAgee9kee7nOOAgemAmuiur+e6v+i3r+aVhemanOOAgeiuoeeul+acuuWkp+inhOaooeeYq+eXquWPiua0u+WKqOS4reWtmOWcqOWkp+mdouenr+S9nOW8iuihjOS4uuetiemdnuiFvuiur+WOn+WboOWvvOS9v+acrOa0u+WKqOWHuueOsOW8guW4uOaDheWGteaIlumavuS7pee7p+e7reW8gOWxleeahO+8jOiFvuiur+acieadg+mHh+WPluWMheaLrOS9huS4jemZkOS6jumAmui/h+WQhOenjeaWueW8j+a2iOmZpOW8guW4uOaDheWGteaIluiwg+aVtOOAgeaaguWBnOOAgeWPlua2iOacrOa0u+WKqOetieaOquaWve+8jOWboOatpOmAoOaIkOeUqOaIt+aNn+WkseeahO+8jOiFvuiur+S4jeaJv+aLheS7u+S9lei0o+S7u+OAgiIsIml0ZW1zIjpbXX1dfQ==",
+          "iosShieldVersion": "3.43.21.433",
+          "macShieldVersion": "",
+          "iosMaxVersion": "3.43.21.433",
+          "macMaxVersion": "",
+          "blackList": [
+            "144115215300016949",
+            "144115215266196784",
+            "144115215356410721",
+            "144115215356410733",
+            "144115215266196825",
+            "144115215266196846",
+            "144115215356410675",
+            "144115215266196854",
+            "144115215266196865",
+            "144115215356410812",
+            "144115215356410824",
+            "test_144115380234358541",
+            "test_144115380234400611",
+            "test_144115380646214835",
+            "test_144115380646214987",
+            "test_144115380234401107",
+            "test_144115380646215292",
+            "test_144115380234401419",
+            "test_144115380646215565",
+            "test_144115380234401717",
+            "test_144115380646215835",
+            "test_144115380234439875",
+            "test_144115380234440024",
+            "test_144115380646254447",
+            "test_144115380234440354",
+            "test_144115380234440506",
+            "test_144115380234440678",
+            "test_144115380234440838",
+            "test_144115380646255249",
+            "test_144115380234441141",
+            "test_144115380234441279",
+            "test_144115380234441404",
+            "test_144115380234441555",
+            "test_144115380234441719",
+            "test_144115380234441864",
+            "test_144115380646256273",
+            "test_144115380646256408",
+            "test_144115380646256548",
+            "test_144115380234442476",
+            "test_144115380646256860",
+            "test_144115380646257038",
+            "test_144115380234442951",
+            "144115261934128917",
+            "144115380545045422",
+            "144115380133584293",
+            "test_144115378890511845",
+            "144115386320669343",
+            "144115225612002433",
+            "16901441153961122279730",
+            "16901441153867704291058",
+            "16901441153867704353473",
+            "144115392401913628",
+            "144115391089016671",
+            "16802000000005366324640",
+            "144115392401819366",
+            "144115391088981200",
+            "16802000000024490285289",
+            "16802000000019612587870",
+            "17001441153867783960538",
+            "16801441153958875410292"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/login-logic/user/query-detail?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227921&c_instance_id=5&c_nonce=zEBG5fjc&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=8033c320427b903a029cd085d658fc72&rnds=zEBG5fjc",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "de368ca9642108c304d6e5eab5a1b1f6",
+      "timestamp": 1781331228,
+      "server": "login_logic-formal",
+      "data": {
+        "userid": "144115215978250896",
+        "nick_name": "Neo",
+        "avatar": "https://meeting-75420.picgzc.qpic.cn/a73df7e96b075e71c6053e56e350f0c37e558076d3b268ab9d7c0c8cec66a03b",
+        "avatar_type": "2",
+        "avatar_token": "a73df7e96b075e71c6053e56e350f0c37e558076d3b268ab9d7c0c8cec66a03b",
+        "area": "86",
+        "phone": "18516696078",
+        "email": "wujin@gtht.com",
+        "user_type": "1",
+        "app_id": "200000001",
+        "corp_name": "",
+        "corp_type": "0",
+        "wemeet_sign": "",
+        "wemeet_expiretimes": "",
+        "wemeet_cgi_token": "",
+        "wemeet_cgi_token_expiretimes": "",
+        "qywechat_session_key": "",
+        "qywechat_open_userid": "",
+        "is_default_avatar": 0,
+        "name": "",
+        "gender": "",
+        "position": "",
+        "department": "",
+        "telephone": "",
+        "vip_level": "0",
+        "issuer_url": "",
+        "is_reset_password": false,
+        "is_set_nick_name": true,
+        "openid": "wm_7dPgh2dN2lxxUyxkrkGsrhr1WZj+3I/5Nvz8rvY1vAE=",
+        "user_district": 0,
+        "wemeet_web_cgi_token": "",
+        "wemeet_web_cgi_token_expiretimes": "",
+        "role_id": "1",
+        "is_show_wework_logo": false,
+        "activity_ticket": "",
+        "password_type": 0,
+        "corp_avatar_token": "",
+        "is_tc": false,
+        "hidden_phone": "185****6078",
+        "hidden_email": "wuj***@gtht.com",
+        "register_by": "1",
+        "unionid": "oHSzwsxFv5LtN4UArpd4lRdfgTrQ",
+        "appleOpenId": "",
+        "googleOpenId": "",
+        "need_corp_real_name": false,
+        "corp_real_name_data": {
+          "corp_real_name_code": "",
+          "corp_real_name_means_list": null,
+          "is_show_skip_button": false,
+          "is_nature": false,
+          "title": "",
+          "content": ""
+        },
+        "corp_certify_status": 0,
+        "sub_token": "",
+        "account_corp_id": "504789436"
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.webgray&key=configList&c_os_model=web&c_timestamp=1781331228001&c_instance_id=5&c_nonce=mDp8zxAK&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=690d1e8568fe70c77e790d3eaa94636a&rnds=mDp8zxAK&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "graySwitch": false
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227937&c_instance_id=5&c_nonce=R36Hiwrk&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=61abea8ad5fef0ba26ab354ee31e934d&rnds=R36Hiwrk",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "8IVyZykDgc",
+      "trace_id": "8191bbb63299313da8dbd6a9b483af87",
+      "timestamp": 1781331228,
+      "data": {
+        "tag_type": 15,
+        "tag_type_version": 0,
+        "order_id": "",
+        "status": 0,
+        "create_time": "",
+        "start_time": "",
+        "end_time": "",
+        "corp_id": "200000001",
+        "account_corp_id": "504789436",
+        "order_resource_id": "",
+        "channel": 0,
+        "pay_type": 2,
+        "modify_time": "",
+        "status_reason": 0,
+        "end_time_timestamp": "",
+        "is_poc": false,
+        "is_offline_pay": false,
+        "is_in_announcement": false,
+        "buy_model": 1,
+        "corp_type": 0,
+        "pay_guide_type": 0,
+        "pay_source": 0,
+        "user_meeting_online_member": 100,
+        "base_meeting_online_member": 100,
+        "user_pay_tag": {
+          "tag_type": 0,
+          "status": 0,
+          "start_time": "0",
+          "end_time": "0",
+          "create_time": "0",
+          "update_time": "0",
+          "status_reason": 0,
+          "is_highest_level": 0,
+          "pro_level": 0,
+          "tag_type_version": 0
+        },
+        "resources": [
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "assistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "webinarAssistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 2,
+            "size": "2",
+            "resource_code": "breakoutRoomCountLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 30,
+            "size": "30",
+            "resource_code": "videoUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 100,
+            "size": "100",
+            "resource_code": "audioUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 1073741824,
+            "size": "1073741824",
+            "resource_code": "cloudRecordCosStorageSize",
+            "resource_limit_switch": 2
+          }
+        ],
+        "pro_resource": [
+          {
+            "resource_code": "time_unlimited",
+            "member_limit": 2,
+            "time_limit": -1,
+            "free_limit": 0,
+            "is_show_expansion": true,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "MuS6uuS4jemZkOaXtuS8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          },
+          {
+            "resource_code": "hostAccount100",
+            "member_limit": 100,
+            "time_limit": 2400,
+            "free_limit": 0,
+            "is_show_expansion": false,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "My0xMDDkurrpmZDml7Y0MOWIhumSn+S8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          }
+        ],
+        "promotion_card_number": 0,
+        "join_before_limit_type": {
+          "0": "100"
+        },
+        "recycle_policy": "3",
+        "advance-card-pay": "",
+        "user_tips": {
+          "remaining_card_tips": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "auto_use_tips": "5q+P5byg5Y2h5Y+v5Li65Lya6K6u5bu26ZW/MuWwj+aXtu+8jOWPr+WPoOWKoOS9v+eUqOOAguiDveWQpuiHquWKqOS9v+eUqOWKoOaXtuWNoeS7peS8muiuruWunumZheWPrOW8gOaXtueahOaVsOmHj+S4uuWHhuOAgg==",
+          "title_tips": "6LaF6L+HMuS6uuWwhuiHquWKqOi9rOS4ujQw5YiG6ZKf6ZmQ5pe25Lya6K6u",
+          "before_recycled_content": "",
+          "card_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2Vudmlyb25tZW50YWwtaW50ZWdyYWwvZW50ZXI=",
+          "schedule_host_account_tips": "5pyA5aSa5pSv5oyBMTAw5Lq65Y+C5Lya77yM5Lya6K6u5Lq65pWw6LaF6L+HMuS6uuaXtu+8jOWQr+WKqDQw5YiG6ZKf6ZmQ5pe244CC",
+          "schedule_host_account_btn": "5Y2H57qn6IO95Yqb",
+          "schedule_btn_link_url": "",
+          "schedule_webinar_tips": "5pyA5aSa5pSv5oyBMTDlkI3lmInlrr7lkowxMDDlkI3op4LkvJflj4LkvJrvvIzpmZDml7Y0MOWIhumSn+OAgg==",
+          "schedule_remaining_card": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "is_show_expansion": false,
+          "schedule_host_account_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2J1eS92aXA/d21fd3Zfd2lkdGg9OTYwJndtX3d2X2hlaWdodD03MjAmd3ZfdWlfc3R5bGU9MTg2",
+          "schedule_host_account_jump_url_type": 2,
+          "schedule_limited_number_tips": "",
+          "schedule_limited_number_btn_txt": "",
+          "schedule_limited_number_jump_url": "",
+          "quick_meeting_tips": "",
+          "quick_meeting_btn_txt": "",
+          "quick_meeting_jump_url": ""
+        },
+        "rooms_resource": null,
+        "rooms_user_tips": {
+          "limit_meeting_tips": ""
+        },
+        "expire_tips": "NotNeed",
+        "is_qywechat_corp": false,
+        "corp_life_cycle": "normal",
+        "account_tag": {
+          "account_type": "",
+          "account_desc": ""
+        },
+        "corp_source": "unknown",
+        "business_end_time": "",
+        "user_type": "1",
+        "business_model": 0
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/account/login/refresh-token?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227944&c_instance_id=5&c_nonce=SWzcJhX5&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=3bfffe881b29097aafd5121d16f0c9e4&rnds=SWzcJhX5",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "5bbc93aa02334ca65a8ed14406875929",
+      "timestamp": 1781331228,
+      "server": "login_logic-formal",
+      "data": {
+        "userid": "144115215978250896",
+        "nick_name": "Neo",
+        "avatar": "https://meeting-75420.picgzc.qpic.cn/a73df7e96b075e71c6053e56e350f0c37e558076d3b268ab9d7c0c8cec66a03b",
+        "avatar_type": "2",
+        "avatar_token": "a73df7e96b075e71c6053e56e350f0c37e558076d3b268ab9d7c0c8cec66a03b",
+        "area": "86",
+        "phone": "18516696078",
+        "email": "wujin@gtht.com",
+        "user_type": "1",
+        "app_id": "200000001",
+        "corp_name": "",
+        "corp_type": "0",
+        "wemeet_sign": "",
+        "wemeet_expiretimes": "",
+        "wemeet_cgi_token": "",
+        "wemeet_cgi_token_expiretimes": "",
+        "qywechat_session_key": "",
+        "qywechat_open_userid": "",
+        "is_default_avatar": 0,
+        "name": "",
+        "gender": "",
+        "position": "",
+        "department": "",
+        "telephone": "",
+        "vip_level": "0",
+        "issuer_url": "",
+        "is_reset_password": false,
+        "is_set_nick_name": true,
+        "openid": "wm_7dPgh2dN2lxxUyxkrkGsrhr1WZj+3I/5Nvz8rvY1vAE=",
+        "user_district": 0,
+        "wemeet_web_cgi_token": "",
+        "wemeet_web_cgi_token_expiretimes": "",
+        "role_id": "1",
+        "is_show_wework_logo": false,
+        "activity_ticket": "",
+        "password_type": 0,
+        "corp_avatar_token": "",
+        "is_tc": false,
+        "hidden_phone": "185****6078",
+        "hidden_email": "wuj***@gtht.com",
+        "register_by": "1",
+        "unionid": "oHSzwsxFv5LtN4UArpd4lRdfgTrQ",
+        "appleOpenId": "",
+        "googleOpenId": "",
+        "need_corp_real_name": false,
+        "corp_real_name_data": {
+          "corp_real_name_code": "",
+          "corp_real_name_means_list": null,
+          "is_show_skip_button": false,
+          "is_nature": false,
+          "title": "",
+          "content": ""
+        },
+        "corp_certify_status": 0,
+        "sub_token": "",
+        "account_corp_id": "504789436"
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331227945&c_instance_id=5&c_nonce=jj8FnnXz&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-CN&c_district=0&trace-id=89b90fcb69d2319300b61a690a087169&rnds=jj8FnnXz",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "aBt49Gbz5g",
+      "trace_id": "f20b68ed2f5c9e71f5d067dcfdc007fe",
+      "timestamp": 1781331228,
+      "data": {
+        "tag_type": 15,
+        "tag_type_version": 0,
+        "order_id": "",
+        "status": 0,
+        "create_time": "",
+        "start_time": "",
+        "end_time": "",
+        "corp_id": "200000001",
+        "account_corp_id": "504789436",
+        "order_resource_id": "",
+        "channel": 0,
+        "pay_type": 2,
+        "modify_time": "",
+        "status_reason": 0,
+        "end_time_timestamp": "",
+        "is_poc": false,
+        "is_offline_pay": false,
+        "is_in_announcement": false,
+        "buy_model": 1,
+        "corp_type": 0,
+        "pay_guide_type": 0,
+        "pay_source": 0,
+        "user_meeting_online_member": 100,
+        "base_meeting_online_member": 100,
+        "user_pay_tag": {
+          "tag_type": 0,
+          "status": 0,
+          "start_time": "0",
+          "end_time": "0",
+          "create_time": "0",
+          "update_time": "0",
+          "status_reason": 0,
+          "is_highest_level": 0,
+          "pro_level": 0,
+          "tag_type_version": 0
+        },
+        "resources": [
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "assistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "webinarAssistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 2,
+            "size": "2",
+            "resource_code": "breakoutRoomCountLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 30,
+            "size": "30",
+            "resource_code": "videoUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 100,
+            "size": "100",
+            "resource_code": "audioUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 1073741824,
+            "size": "1073741824",
+            "resource_code": "cloudRecordCosStorageSize",
+            "resource_limit_switch": 2
+          }
+        ],
+        "pro_resource": [
+          {
+            "resource_code": "time_unlimited",
+            "member_limit": 2,
+            "time_limit": -1,
+            "free_limit": 0,
+            "is_show_expansion": true,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "MuS6uuS4jemZkOaXtuS8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          },
+          {
+            "resource_code": "hostAccount100",
+            "member_limit": 100,
+            "time_limit": 2400,
+            "free_limit": 0,
+            "is_show_expansion": false,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "My0xMDDkurrpmZDml7Y0MOWIhumSn+S8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          }
+        ],
+        "promotion_card_number": 0,
+        "join_before_limit_type": {
+          "0": "100"
+        },
+        "recycle_policy": "3",
+        "advance-card-pay": "",
+        "user_tips": {
+          "remaining_card_tips": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "auto_use_tips": "5q+P5byg5Y2h5Y+v5Li65Lya6K6u5bu26ZW/MuWwj+aXtu+8jOWPr+WPoOWKoOS9v+eUqOOAguiDveWQpuiHquWKqOS9v+eUqOWKoOaXtuWNoeS7peS8muiuruWunumZheWPrOW8gOaXtueahOaVsOmHj+S4uuWHhuOAgg==",
+          "title_tips": "6LaF6L+HMuS6uuWwhuiHquWKqOi9rOS4ujQw5YiG6ZKf6ZmQ5pe25Lya6K6u",
+          "before_recycled_content": "",
+          "card_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2Vudmlyb25tZW50YWwtaW50ZWdyYWwvZW50ZXI=",
+          "schedule_host_account_tips": "5pyA5aSa5pSv5oyBMTAw5Lq65Y+C5Lya77yM5Lya6K6u5Lq65pWw6LaF6L+HMuS6uuaXtu+8jOWQr+WKqDQw5YiG6ZKf6ZmQ5pe244CC",
+          "schedule_host_account_btn": "5Y2H57qn6IO95Yqb",
+          "schedule_btn_link_url": "",
+          "schedule_webinar_tips": "5pyA5aSa5pSv5oyBMTDlkI3lmInlrr7lkowxMDDlkI3op4LkvJflj4LkvJrvvIzpmZDml7Y0MOWIhumSn+OAgg==",
+          "schedule_remaining_card": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "is_show_expansion": false,
+          "schedule_host_account_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2J1eS92aXA/d21fd3Zfd2lkdGg9OTYwJndtX3d2X2hlaWdodD03MjAmd3ZfdWlfc3R5bGU9MTg2",
+          "schedule_host_account_jump_url_type": 2,
+          "schedule_limited_number_tips": "",
+          "schedule_limited_number_btn_txt": "",
+          "schedule_limited_number_jump_url": "",
+          "quick_meeting_tips": "",
+          "quick_meeting_btn_txt": "",
+          "quick_meeting_jump_url": ""
+        },
+        "rooms_resource": null,
+        "rooms_user_tips": {
+          "limit_meeting_tips": ""
+        },
+        "expire_tips": "NotNeed",
+        "is_qywechat_corp": false,
+        "corp_life_cycle": "normal",
+        "account_tag": {
+          "account_type": "",
+          "account_desc": ""
+        },
+        "corp_source": "unknown",
+        "business_end_time": "",
+        "user_type": "1",
+        "business_model": 0
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=operateActivity&c_os_model=web&c_timestamp=1781331228116&c_instance_id=5&c_nonce=k5zKJpHY&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=b99dfddb8557e8d26b1df02c176c5474&rnds=k5zKJpHY&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": {
+        "backgroundImage": "https://cdn.meeting.tencent.com/pro/N2IyYWIxOGEtMGM5NC00YTgzLTgxNmYtYmQyZDc2YmZkOTY4",
+        "mbackgroundImage": "https://cdn.meeting.tencent.com/pro/YjA2MzBjODgtMGRlMS00ZjY1LWI4MTEtYjMwN2NiMDdkYThl",
+        "jumpLink": "https://meeting.tencent.com/skill-recruit.html?from_page_source=5",
+        "mjumpLink": "https://meeting.tencent.com/skill-recruit.html?from_page_source=5",
+        "page": [
+          "home",
+          "cloud-meeting"
+        ],
+        "isShow": true,
+        "showTime": [
+          "2026-04-09T16:00:00.000Z",
+          "2026-05-31T15:59:59.000Z"
+        ],
+        "backgroundColor": "#FFFFFF",
+        "eventCode": {
+          "exposure": "",
+          "close": "",
+          "click": ""
+        },
+        "account": [
+          "person",
+          "edu",
+          "personal-hc"
+        ],
+        "exposureEvent": "e#homepage#tanchaung#exposure",
+        "clickEvent": "e#homepage#tanchaung_dianji#click",
+        "closeIconImage": "https://cdn.meeting.tencent.com/pro/OGUxNjE3NzMtYmViYy00NWYzLWJhMmUtNDM4ZjIxYTg1MGRm"
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.noticeBar&key=configList&c_os_model=web&c_timestamp=1781331228001&c_instance_id=5&c_nonce=eRbRfnsA&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=9a166db7785ca955ef15dc307cb16727&rnds=eRbRfnsA&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "backgroundImage": "https://cdn.meeting.tencent.com/pro/ZDc1MDM0NmYtY2FjNi00ODBiLWE2NTUtZjc3OWRkMDc2NmMw",
+          "mbackgroundImage": "https://cdn.meeting.tencent.com/pro/ZjcyMGU0ZDItZDhiZS00ODdkLTlmMzQtNzg2MmIzOWYwM2M2",
+          "jumpLink": "https://meeting.tencent.com/v2/operation-activity/2025-activity?activity_from=5&mid=h.yxhd.syby",
+          "mjumpLink": "https://meeting.tencent.com/v2/operation-activity/2025-activity?activity_from=5&mid=h.yxhd.syby",
+          "page": [
+            "home"
+          ],
+          "isShow": true,
+          "showTime": [
+            "2025-02-19T06:00:00.000Z",
+            "2025-03-14T16:00:00.000Z"
+          ],
+          "backgroundColor": "#FFFFFF",
+          "eventCode": {
+            "exposure": "",
+            "close": "",
+            "click": ""
+          },
+          "account": [
+            "person",
+            "vip-hc",
+            "personal-hc",
+            "enterprise-hc",
+            "commercial-hc",
+            "edu"
+          ],
+          "id": "52a8ac25-091c-4568-81a4-e1bf6a4b2080",
+          "closeIconImage": "https://cdn.meeting.tencent.com/pro/MmRmYjVhYzQtMDg4OS00YTg0LWI3OTgtNWViOWRmMDExYzc0",
+          "exposureEvent": "e#homepage#dingbubanner#exposure",
+          "clickEvent": "e#homepage#dingbubanner_dianji#click"
+        },
+        {
+          "id": "62e33b62-2ec2-49be-b859-7491a152037f",
+          "backgroundImage": "https://cdn.meeting.tencent.com/pro/ZDUxYTE2MTYtZGU2NC00NjlmLWEwYzUtZjZkMDJmNjc4MTFj",
+          "mbackgroundImage": "https://cdn.meeting.tencent.com/pro/NDFjODkyNDQtMDg1My00N2E0LTlhZDQtNGMzNDVkMGRlOTVi",
+          "jumpLink": " https://meeting.tencent.com/experience-center/",
+          "mjumpLink": " https://meeting.tencent.com/experience-center/",
+          "backgroundColor": "#FFFFFF",
+          "exposure": "",
+          "clickExposure": "",
+          "page": [
+            "home"
+          ],
+          "account": [
+            "personal-hc",
+            "vip-hc",
+            "enterprise-hc",
+            "commercial-hc",
+            "edu-pro-hc",
+            "edu-hc"
+          ],
+          "exposureEvent": "e#homepage#dingbubanner#exposure",
+          "clickEvent": "e#homepage#dingbubanner_dianji#click",
+          "showTime": [
+            "2025-04-16T16:00:00.000Z",
+            "2025-04-30T15:59:59.000Z"
+          ],
+          "isShow": true
+        },
+        {
+          "id": "090b160e-f3ac-49f8-a0db-86218e014f99",
+          "backgroundImage": "https://cdn.meeting.tencent.com/pro/NjllMGVlMmItYjFkMC00NGNhLThkMDItZjEwNjcyMmI3YjNh",
+          "mbackgroundImage": "https://cdn.meeting.tencent.com/pro/ZTMzZDQ0ZDctODliNC00YzRmLWFmNTAtYmIwOTkxNjZhM2Jh",
+          "jumpLink": "https://meeting.tencent.com/m/magic-act/9fyywwfstthgsqqid7feke9175/index_ee86e.html?ovscroll=0&page=ee86e&__no_magic_qrcode=1",
+          "mjumpLink": "https://meeting.tencent.com/m/magic-act/9fyywwfstthgsqqid7feke9175/index_27f0b.html?ovscroll=0&page=27f0b",
+          "backgroundColor": "#FFFFFF",
+          "exposure": "",
+          "clickExposure": "",
+          "page": [
+            "home",
+            "buy",
+            "help"
+          ],
+          "account": [
+            "personal-hc"
+          ],
+          "exposureEvent": "e#homepage#dingbubanner#exposure",
+          "clickEvent": "e#homepage#dingbubanner_dianji#click",
+          "showTime": [
+            "2026-03-01T16:00:00.000Z",
+            "2026-03-16T15:59:59.000Z"
+          ],
+          "isShow": true,
+          "closeIconImage": "https://cdn.meeting.tencent.com/pro/MTZkYzRmZDAtZDI4NS00NWM1LTk5ZmEtNDEzYWQ2MmIzZjBj"
+        }
+      ]
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activities/entry/show-activity-room?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228897&c_instance_id=5&c_nonce=2XbS8aNt&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=3d41c20a33a58de6b5ea702a54981459&rnds=2XbS8aNt",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "err_detail": "",
+      "msg": "",
+      "data": {
+        "show": false,
+        "entry_title": "",
+        "entry_copy_writing": "",
+        "entry_redirect_path": ""
+      },
+      "nonce": "051319924ef4663830ac74ab051cddda",
+      "timestamp": 1781331230
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/get-user-pay-tag-info?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228898&c_instance_id=5&c_nonce=7P5mHZSw&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=e951bbf10be4b5edf62ef45bec802220&rnds=7P5mHZSw",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "BJAE36tEPa",
+      "trace_id": "7b9c79871f7106304aa8b8d123488519",
+      "timestamp": 1781331230,
+      "data": {
+        "tag_type": 0,
+        "status": 0,
+        "start_time": 0,
+        "end_time": 0,
+        "create_time": 0,
+        "update_time": 0,
+        "status_reason": 0,
+        "user_pro_level": "",
+        "tag_type_version": 0
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/auth-power?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228894&c_instance_id=5&c_nonce=tNxKCxKb&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=70bc97e4694785cd2a8d658182da9fd5&rnds=tNxKCxKb",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "4OjX0M5Svs",
+      "trace_id": "93d606e5feef1c9813d4ea1cba4959b2",
+      "timestamp": 1781331230,
+      "data": {
+        "role_name": "普通成员",
+        "role_code": "NORMAL_ROLE",
+        "role_desc": "普通成员有权使用企业视频会议功能，但无账户管理权限",
+        "role_type": 2,
+        "access_list": [
+          {
+            "service_code": "wechatCloudRecord",
+            "service_name": "",
+            "auth_code": "cloud-record",
+            "auth_name": "开启云录制",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "comments",
+            "service_name": "",
+            "auth_code": "comments-open",
+            "auth_name": "开启互动批注",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "rooms",
+            "service_name": "",
+            "auth_code": "rooms-dashboard-view",
+            "auth_name": "rooms仪表盘查看",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "vote",
+            "service_name": "",
+            "auth_code": "vote-open",
+            "auth_name": "开启投票",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "personalCloudRecording",
+            "service_name": "",
+            "auth_code": "personal-cloudRecording-view",
+            "auth_name": "个人云录制文件查看",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "rooms",
+            "service_name": "",
+            "auth_code": "is_rooms_meeting_enabled",
+            "auth_name": "主页面显示共享屏幕",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "personalCloudRecording",
+            "service_name": "",
+            "auth_code": "personal-cloudRecording-edit",
+            "auth_name": "个人云录制文件编辑",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "webinarAdvancedSecurity",
+            "service_name": "webinar安全",
+            "auth_code": "chat_in_meeting",
+            "auth_name": "会中聊天",
+            "auth_desc": "会中聊天"
+          },
+          {
+            "service_code": "watermark",
+            "service_name": "水印",
+            "auth_code": "meeting-watermark-enable",
+            "auth_name": "有无水印功能（云会议）",
+            "auth_desc": "有无水印功能（云会议）"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "wbn报名",
+            "auth_code": "wbn_enroll_approval",
+            "auth_name": "wbn报名审批",
+            "auth_desc": "wbn报名审批"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_enroll_enable",
+            "auth_name": "报名入口-云会议",
+            "auth_desc": "报名入口-云会议"
+          },
+          {
+            "service_code": "avatarCreateFace",
+            "service_name": "捏脸",
+            "auth_code": "ar_avatar_enable_create_face",
+            "auth_name": "捏脸权限点",
+            "auth_desc": "捏脸权限点"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "meeting-chat-public",
+            "auth_name": "允许公开聊天（云会议）",
+            "auth_desc": "允许公开聊天（云会议）"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_enroll_approval",
+            "auth_name": "云会议报名审批",
+            "auth_desc": "云会议报名审批"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_enroll_disguise",
+            "auth_name": "报名页装扮",
+            "auth_desc": "报名页装扮"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_enroll_question",
+            "auth_name": "云会议报名问卷",
+            "auth_desc": "云会议报名问卷"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "wbn报名",
+            "auth_code": "wbn_enroll_deco_cover",
+            "auth_name": "wbn报名页自定义封面",
+            "auth_desc": "wbn报名页自定义封面"
+          },
+          {
+            "service_code": "togetherModeDiyEdit",
+            "service_name": "同框DIY编辑器",
+            "auth_code": "together-mode-diy-edit",
+            "auth_name": "同框DIY编辑器",
+            "auth_desc": ""
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "waiting-room-move-in",
+            "auth_name": "将成员移动到等候室",
+            "auth_desc": "将成员移动到等候室"
+          },
+          {
+            "service_code": "webinarActivityPlaza",
+            "service_name": "webinar活动广场",
+            "auth_code": "webinar-activity-plaza",
+            "auth_name": "webinar活动广场",
+            "auth_desc": "webinar活动广场"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "export-member",
+            "auth_name": "导出参会成员",
+            "auth_desc": "导出参会成员"
+          },
+          {
+            "auth_code": "bidirection-privilege",
+            "auth_name": "企微腾会互通权限"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "meeting-chat-master",
+            "auth_name": "允许私聊主持人（云会议）",
+            "auth_desc": "允许私聊主持人（云会议）"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_enroll_deco_cover",
+            "auth_name": "云会议报名页自定义封面",
+            "auth_desc": "云会议报名页自定义封面"
+          },
+          {
+            "service_code": "webinarBasicInfo",
+            "service_name": "webinar基础信息",
+            "auth_code": "guest_setting_early_enter_meeting",
+            "auth_name": "嘉宾提前入会",
+            "auth_desc": "嘉宾提前入会"
+          },
+          {
+            "service_code": "webinarAdvancedStyle",
+            "service_name": "webinar样式",
+            "auth_code": "warm_up",
+            "auth_name": "暖场",
+            "auth_desc": "暖场"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "waiting-room-chat-master",
+            "auth_name": "等候室成员私聊主持人",
+            "auth_desc": "等候室成员私聊主持人"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "meeting-waiting-room-chat-master",
+            "auth_name": "等候室成员私聊主持人",
+            "auth_desc": "等候室成员私聊主持人"
+          },
+          {
+            "service_code": "togetherMode",
+            "service_name": "同框模式布局",
+            "auth_code": "together-mode-layout",
+            "auth_name": "同框模式布局",
+            "auth_desc": "同框模式布局"
+          },
+          {
+            "service_code": "breakoutRoom",
+            "service_name": "分组会议",
+            "auth_code": "breakout-room",
+            "auth_name": "使用分组会议",
+            "auth_desc": "使用分组会议"
+          },
+          {
+            "service_code": "webinarAdvancedInviteGuest",
+            "service_name": "webinar高级设置-邀请嘉宾",
+            "auth_code": "guest_setting_by_phone",
+            "auth_name": "手机号嘉宾",
+            "auth_desc": "手机号嘉宾"
+          },
+          {
+            "service_code": "webinarPayRegister",
+            "service_name": "webinar付费报名",
+            "auth_code": "pay-register-view",
+            "auth_desc": "付费报名查看"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "chat-public",
+            "auth_name": "允许公开聊天",
+            "auth_desc": "允许公开聊天"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "wbn报名",
+            "auth_code": "wbn_enroll_enable",
+            "auth_name": "报名入口-webinar",
+            "auth_desc": "报名入口-webinar"
+          },
+          {
+            "service_code": "watermark",
+            "service_name": "水印",
+            "auth_code": "watermark-enable",
+            "auth_name": "允许使用水印",
+            "auth_desc": "允许使用水印"
+          },
+          {
+            "service_code": "live",
+            "service_name": "直播",
+            "auth_code": "live-push-url-customized",
+            "auth_name": "自定义直播推流地址",
+            "auth_desc": "自定义直播推流地址"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "meeting-waiting-room-move-in",
+            "auth_name": "将成员移动到等候室",
+            "auth_desc": "将成员移动到等候室"
+          },
+          {
+            "service_code": "meetingEnroll",
+            "service_name": "云会议报名",
+            "auth_code": "meeting_export_enroll_members",
+            "auth_name": "云会议导出报名人员",
+            "auth_desc": "云会议导出报名人员"
+          },
+          {
+            "service_code": "webinarBasicInfo",
+            "service_name": "webinar基础信息",
+            "auth_code": "book_same_meeting",
+            "auth_name": "预定具有相同配置的会议",
+            "auth_desc": "预定具有相同配置的会议"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "waiting-room-open",
+            "auth_name": "开启等候室",
+            "auth_desc": "开启等候室"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "chat-master",
+            "auth_name": "允许私聊主持人",
+            "auth_desc": "允许私聊主持人"
+          },
+          {
+            "service_code": "webinar",
+            "service_name": "可预订网络研讨会",
+            "auth_code": "webinar-book-open",
+            "auth_name": "可预订网络研讨会",
+            "auth_desc": "预订网络研讨会"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "webinar报名",
+            "auth_code": "enroll_for_export_info",
+            "auth_name": "导出报名信息",
+            "auth_desc": "导出报名信息"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "wbn报名",
+            "auth_code": "wbn_enroll_disguise",
+            "auth_name": "wbn报名页装扮详情",
+            "auth_desc": "wbn报名页装扮详情"
+          },
+          {
+            "service_code": "preMeetingVideo",
+            "service_name": "会前暖场视频",
+            "auth_code": "pre-meeting-video",
+            "auth_name": "会前暖场视频",
+            "auth_desc": "会前暖场视频"
+          },
+          {
+            "service_code": "webinarBasicInfo",
+            "service_name": "webinar基础信息",
+            "auth_code": "rehearsal_preparation_mode",
+            "auth_name": "彩排-准备模式",
+            "auth_desc": "彩排-准备模式"
+          },
+          {
+            "service_code": "webinarBasicInfo",
+            "service_name": "webinar基础信息",
+            "auth_code": "replay_after_meeting",
+            "auth_name": "回放",
+            "auth_desc": "回放"
+          },
+          {
+            "service_code": "meeting",
+            "service_name": "会议管理",
+            "auth_code": "meeting-waiting-room-open",
+            "auth_name": "开启等候室",
+            "auth_desc": "开启等候室"
+          },
+          {
+            "service_code": "webinarAdvancedEnroll",
+            "service_name": "wbn报名",
+            "auth_code": "wbn_enroll_question",
+            "auth_name": "wbn报名问卷",
+            "auth_desc": "wbn报名问卷"
+          }
+        ],
+        "is_use_free_show_tab": false
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/banners/activity-banner?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228901&c_instance_id=5&c_nonce=RHhja4A4&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=21a57fa7b0377b273ab9557d7ff117ae&rnds=RHhja4A4",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": -1002,
+      "message": "banners not met",
+      "nonce": "foLfVbYtdY",
+      "timestamp": 1781331230,
+      "data": ""
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic-nar/saas/is-experiment-user?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331229073&c_instance_id=5&c_nonce=zwwmNtDb&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=295a29f2ccce5c671c5e357a5ae35fdf&rnds=zwwmNtDb",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "49Tyf7QheG",
+      "timestamp": 1781331230,
+      "data": {
+        "is_experiment_user": true
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-ability-logic/profile-business-info?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228902&c_instance_id=5&c_nonce=n8rcrzzG&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=22c1b5b7abc1fce2e2ad40883a6b3e4f&rnds=n8rcrzzG",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "d9BccdcZ7N",
+      "trace_id": "f163a66daafedf304bf7fdffa0a29f95",
+      "timestamp": 1781331230,
+      "data": {
+        "pay_guide": {
+          "content": "5Y2H57qn5LiT5Lia54mI5Y2z5Lqr5LiN6ZmQ5pe25Lya6K6u",
+          "upgrade_btn_text": "56uL5Y2z5Y2H57qn",
+          "upgrade_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2J1eS92aXA/d21fd3Zfd2lkdGg9OTYwJndtX3d2X2hlaWdodD03MjAmd3ZfdWlfc3R5bGU9MTg2"
+        },
+        "account_pay_guide": {},
+        "corp_benefit_info": null,
+        "member_benefit_info": []
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "result": 200,
+      "srcGatewayIp": "30.47.20.49",
+      "serverTime": "1781331230251",
+      "msg": "success:65cb18b0ccd7a1af344ec76d1a940e93"
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "result": 200,
+      "srcGatewayIp": "30.47.19.234",
+      "serverTime": "1781331230251",
+      "msg": "success:f443a19dfbd26aab67ac5c866f6f1207"
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "result": 200,
+      "srcGatewayIp": "30.170.227.64",
+      "serverTime": "1781331230252",
+      "msg": "success:bc257683b7179ad59f8ee6a86f3f82f2"
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://report.meeting.tencent.com/api/data-report-beacon?appkey=00000C2AM539PVHX",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "result": 200,
+      "srcGatewayIp": "30.48.238.162",
+      "serverTime": "1781331230262",
+      "msg": "success:54d551d757e1d73e823a033476817398"
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.rightConfig&key=configNumber&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=EwxTEbGD&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=9d6c87273f372ca27aa6606d22a34fe1&rnds=EwxTEbGD&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "text": "免费版",
+          "value": "personal-hc",
+          "num": "12"
+        },
+        {
+          "text": "个人版(特惠)",
+          "value": "personal-paid-hc",
+          "num": "20"
+        },
+        {
+          "text": "专业版",
+          "value": "pro-hc",
+          "num": "20"
+        },
+        {
+          "text": "专业版组织",
+          "value": "pro-org-hc",
+          "num": "20"
+        },
+        {
+          "text": "付费企业版",
+          "value": "enterprise-hc",
+          "num": "66"
+        },
+        {
+          "text": "商业版",
+          "value": "commercial-hc",
+          "num": "30"
+        },
+        {
+          "text": "免费企业版",
+          "value": "enterprise-free-hc"
+        },
+        {
+          "text": "教育版",
+          "value": "edu-hc"
+        },
+        {
+          "text": "会员版",
+          "value": "vip-hc",
+          "num": "20"
+        },
+        {
+          "text": "会员版-100方",
+          "value": "vip-hc-01",
+          "num": "20"
+        },
+        {
+          "text": "会员版-300方",
+          "value": "vip-hc-03",
+          "num": "20"
+        },
+        {
+          "text": "会员版-500方",
+          "value": "vip-hc-05",
+          "num": "20"
+        },
+        {
+          "text": "教育公益",
+          "value": "vip-edu-welfare"
+        },
+        {
+          "text": "团队",
+          "value": "vip-team",
+          "num": "20"
+        }
+      ]
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/wemeet-cloudrecording-webapi/v1/space?aggregation_fast_recording=0&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=BG8NRMek&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=23e337e1cc590ded07d7cca307877341&rnds=BG8NRMek&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "appid": 200000001,
+      "cloudrecord": {
+        "count": "1",
+        "usedspace": "0"
+      },
+      "code": 0,
+      "corpendtime": "",
+      "free": {
+        "count": "0",
+        "leftspace": "0",
+        "totalspace": "0",
+        "usedspace": "0"
+      },
+      "isdowngradecorp": false,
+      "isfreecorp": false,
+      "leftspace": "1073741824",
+      "meetlog": {
+        "count": "0",
+        "usedspace": "0"
+      },
+      "nonce": "7e8a3a55a7035c9235bae457bab8e8a2",
+      "personalhybridrecordcount": "0",
+      "personalrecordcount": "1",
+      "personalusedspace": "0",
+      "processingspace": "0",
+      "psersonprofess": false,
+      "resourcelimitswitch": 2,
+      "rooms": {
+        "count": "0",
+        "usedspace": "0"
+      },
+      "success": true,
+      "totalspace": "1073741824",
+      "uid": "144115215978250896",
+      "usedspace": "0",
+      "warnning": true
+    }
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/banners/activity-banner-v2?c_os_model=web&c_timestamp=1781331230277&c_instance_id=5&c_nonce=PDZpR8tm&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=4182fae827d08ca40ca67a9850ef640c&rnds=PDZpR8tm&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "post_data": "{\"template_key\":\"homepage-login-reward-activity\"}"
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/web-service/web-config?group=webConfig.configManager.nextWebsite.rightConfig&key=configList&c_os_model=web&c_timestamp=1781331229076&c_instance_id=5&c_nonce=j8Std76T&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=f5e7e467b5da1a677e0b9c3114a7742b&rnds=j8Std76T&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "data": [
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "高清画质",
+          "img": "NzkyNWU4ZGQtMDA5Ny00MjhlLWI2ZDItZTQyNzA5N2RkODkx",
+          "rightId": "9bd3584a-de75-4dc5-a7c2-f25f25163768",
+          "rank": 1
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会议字幕·限时",
+          "img": "YTZkYzczNzYtMTg0YS00OTU4LTkzMDYtZTZiMTU1MTVjZjA3",
+          "rightId": "bdcb2df5-1eef-4c14-9f03-a9c38009ad96",
+          "rank": 2
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "开启视频·30人",
+          "img": "YjQwYTI1NDctYjRiMC00YmFlLTg5OTQtN2VhNzg4NzRlMDVk",
+          "rightId": "795ce32d-8430-42cc-b672-008171a5f119",
+          "rank": 3
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "MjljM2MxOGYtMTM2Zi00ZDk1LWFmNGQtMDVjMTgxMGVhMzBl",
+          "rightId": "de647898-9d79-4ee0-a8f9-d47518cd92c0",
+          "rank": 4
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "YzhiY2IyZTktZjQ2Ni00MmVjLWEwMDMtOWNjODJhYmQ5YzZh",
+          "rightId": "530ac574-9f79-4d5b-892b-a0b1248e5d7e",
+          "rank": 5
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "NjEzNWU2ZjctN2Q1NS00NTQ1LWEyNmMtNDJiNzM1OTQ1MzRl",
+          "rightId": "29cfcee5-b50f-4150-9bcb-f6320103909d",
+          "rank": 6
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "网络研讨会·40分钟",
+          "img": "YmE1OTViM2YtZDQ5Yi00MmY3LWJkNjUtYTU5Nzk1MjA0OWVh",
+          "rightId": "d9ca0793-80f3-42b0-a81a-f26eefab9cdd",
+          "rank": 7
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "NjAwY2U0YmEtOWRjOC00ZDQxLTg1ZGUtMzNmMzI0NWRlMWJm",
+          "rightId": "5b1b9ea9-f835-476a-9320-b9a495fb244e",
+          "rank": 8
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "虚拟背景·基础",
+          "img": "YmU1NzgyMWEtNjA0Ni00OWE1LThmNTItZGVkZjQwMTFiNTM3",
+          "rightId": "6ce8b128-a21f-4dbf-b799-a2b903dad52a",
+          "rank": 9
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "视频边框·基础",
+          "img": "OTQyZmYxYzItZDYzMi00MTgwLWE0ZTItM2NhY2E1YWZhNjdh",
+          "rightId": "0de82a63-f7d9-4345-ae17-84a4fd1cd24c",
+          "rank": 10
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会聚模式·基础",
+          "img": "YzhjMDQ1ZTMtMmI0MS00MTQwLThhYzUtNWE4MTc5NTY1Yzgz",
+          "rightId": "d0da3631-82f0-4918-b018-b8bb627be9c5",
+          "rank": 11
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "会议头饰·基础",
+          "img": "NzgzNmEwMjgtM2YxYi00MTI2LTlkMDAtYzdiOWQ5NWVkZDg5",
+          "rightId": "19b368ad-cd42-4a5e-9b5a-1c373344c9bd",
+          "rank": 12
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "不限时会议",
+          "img": "OWI1NjIxNmEtNWIzOC00NjZhLTg4NzgtZTYxM2IzODgxNGY2",
+          "rightId": "c0e75e9c-cea0-4add-92fc-fcefba034948",
+          "rank": 13
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "300 人会议",
+          "img": "YTZhYjU2NjctYjQxMi00MTRlLTgxNDUtZWM2YTcxNDQ1MGZk",
+          "rightId": "03145b81-5d5a-43df-b916-909fc40f04bb",
+          "rank": 14
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "录制空间·40G",
+          "img": "ZWNhNDExMTEtNmIzZi00ODZhLTk0NzgtZTFiYjAxMWMyMmNm",
+          "rightId": "4bc5d1b0-ed60-43f7-b765-c003ab79a860",
+          "rank": 15
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "NDdiNzA4MWMtMzYwZC00NWQwLWI2NTMtMTc4ODBjZTNmMzA3",
+          "rightId": "0fb62a5c-3fac-4a3f-8062-119fb8600bc3",
+          "rank": 16
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "YTY2ZDdmY2MtNDc0ZC00ZTAyLThmNzItYTU5YzFkOGY3ZjU3",
+          "rightId": "8994ac4b-1271-4a1b-be50-c6cc7c876b89",
+          "rank": 17
+        },
+        {
+          "type": "personal-hc",
+          "right": "myMoreRight",
+          "title": "共享画质·原画",
+          "img": "Y2MxNTkzNjItMjIyNi00N2ZkLTliMmMtY2M1OGZhMjFkNmQz",
+          "rightId": "0c966d75-7ff1-47b2-8f1b-25d5f2af638d",
+          "rank": 18
+        },
+        {
+          "type": "personal-hc",
+          "right": "myRight",
+          "title": "AI小助手",
+          "img": "ZGE3ZWQyNmEtYmFkYi00YzZmLTkxM2QtMGY5MTM2ZjJlMjIw",
+          "rightId": "6ed15b61-45db-422f-a8f6-f5e03169433f",
+          "rank": 19
+        },
+        {
+          "type": "personal-hc",
+          "right": "myMoreRight",
+          "title": "联席主持人",
+          "img": "MDQzZTNkMjUtODNkZC00NmNmLWJkODItZmZmOGYwMzZiN2My",
+          "rightId": "d87b8d03-3a24-47a7-b9d2-56e66d413951",
+          "rank": 20
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "MTA1YzlhYWEtNmM1Mi00ODUyLWI2YWQtNWY1ZDM5MTVmOTUx",
+          "rightId": "19647178-c967-408a-b3c2-8fad21b0cb4f",
+          "rank": 21
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "AI小助手·限时",
+          "img": "MGU0OGRkOTItMWM0Mi00MjYzLWFjOWMtYWE4NDJiNDkyYzJk",
+          "rightId": "b6eb2b6c-7c64-44ac-add6-97be58583c7a",
+          "rank": 22
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "M2JlYmRmMjctYTc4MC00NzAxLWIxODktMDYwYzJhZWJmZmEw",
+          "rightId": "f5e0c48f-8c01-421d-a6b5-314d0df620d7",
+          "rank": 23
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "YWM5ZjQyNjMtYjIzNS00NmZhLTk2MzUtMzNlNTE5NDEwNmUw",
+          "rightId": "b28d4fed-fef6-4d48-8041-14de04f824a3",
+          "rank": 24
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "联席主持人·2位",
+          "img": "NWY2MWM1YjctYTI0ZS00NDkzLWIxNzctMmE3OWEwMWU4NGM0",
+          "rightId": "893f358f-d8c4-4bab-b898-4df09679a36f",
+          "rank": 25
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "NmM0ZDAwY2YtMjY5OS00MmQ5LTg5MGMtOGQ1ZGYzMmE1Zjlm",
+          "rightId": "0f5fe3d4-02d2-45c1-b93a-d36b1db1aadc",
+          "rank": 26
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "开启视频·60人",
+          "img": "MjNmMTJmMjMtYmVhZi00ZGUzLWIwYzMtYmUxZTNjNmRhMTMw",
+          "rightId": "0a4800f9-b5e2-4632-a3f6-a6fc1647bb34",
+          "rank": 27
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "M2M5ZWEzYTgtMmYzZC00OTY3LWI3OWUtNDgyNDg5MTc0YTM0",
+          "rightId": "b76192bc-6485-4bd2-909f-262579531ccd",
+          "rank": 28
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "NTRhNjIzZmUtZDRkNC00ZWYzLWE1OGQtNDUzY2RmOWQ3OGU1",
+          "rightId": "ebce2ed4-faff-4587-bd2a-e960dbcb3621",
+          "rank": 29
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "MjNmMTdlNDQtZTA1Zi00OTEwLWI4ZmUtYzM1NDMwOThjYTc2",
+          "rightId": "7a284ff6-5e11-4dfd-8c15-94500e9f7491",
+          "rank": 30
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "YTZkNGQxODMtNmU3My00OTZhLTkyNjAtNzczNzlmMDE1YzIz",
+          "rightId": "47de5072-6143-4695-b398-93c572cfdbc2",
+          "rank": 31
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "OWVmNmUwOGMtMWUyNy00Nzc5LWE5YTQtYjU1ZTczMjg5ZDIz",
+          "rightId": "e763ecbb-3a65-476a-9498-418e6fb5a081",
+          "rank": 32
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "ZDY1MWU3NGUtYTYzZS00YjlkLThhODQtZDk4ZTMyMDk5OGYz",
+          "rightId": "30022978-094f-4244-b582-181ef4e79723",
+          "rank": 33
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "NDAwZTgyYjYtMmFmOS00OWZjLWE2ZTMtNmVkNTg3ZmYzOTdh",
+          "rightId": "d61dc37f-1d63-4900-b447-eb7d46f48417",
+          "rank": 34
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "ZjJkNjNlNjAtZWI1MS00ZGNiLWEyNGItODIwOTJhM2M1MDNk",
+          "rightId": "134001dc-3d16-4071-aa46-b4d9a2cc7cfd",
+          "rank": 35
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "300 人会议",
+          "img": "OWIxN2VkMWItOTAyOC00YjY3LWFkZTItNDMzZWYzZDdjMTJl",
+          "rightId": "3163dc08-46a5-423b-9de8-58d67fe5ed8a",
+          "rank": 36
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "开启视频·300人",
+          "img": "NGRmNmNkMGUtMzE5NS00ZDQ1LWJhMjEtYTQ0ODllOTRjYWFj",
+          "rightId": "f4a1d1c8-7904-404e-ad8c-f1119cbe8045",
+          "rank": 37
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "网络研讨会·300人",
+          "img": "ZjJmZmMyZDEtN2NkNS00ODM3LWFlOTItMWVkMzM0Njk1NzE1",
+          "rightId": "2159249a-a40d-4ff9-a815-e37d228e8d41",
+          "rank": 38
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "专属客户经理",
+          "img": "ODljMjY4MzgtYzg5Ny00NmYxLTg1OTgtYzdjNmJhMjZkOTM5",
+          "rightId": "26eaba86-8fc7-42cf-aaa3-c7210b49ff74",
+          "rank": 39
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "公对公付款",
+          "img": "N2QwZWY1NWQtNmY4ZC00MzdkLThmNDEtNWIxODAyZmJmZDcw",
+          "isNew": false,
+          "rightId": "b450908e-7e4c-4b64-b78c-57877072a85b",
+          "rank": 40
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myRight",
+          "title": "分组讨论·50组",
+          "img": "NGRiOTJlODQtZmQwNC00OGJmLWFhNGYtMzhjYTEzZmY1MzIy",
+          "isNew": false,
+          "rightId": "2929b224-fa83-47e0-87b9-9d291401cbdb",
+          "rank": 41
+        },
+        {
+          "type": "vip-hc-01",
+          "right": "myMoreRight",
+          "title": "API 对接",
+          "img": "MTcxZTdlOWUtNTlmMy00ZTQ5LTk1NDItZDVmMjYzYTVhZTcw",
+          "isNew": false,
+          "rightId": "06d343ee-c1b5-42dc-8f11-2a7ee52bedbb",
+          "rank": 42
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "NWEwZDRlMjctYWIwNC00YWIzLWFmNTMtODhkZWNlMDJiNTFi",
+          "isNew": false,
+          "rightId": "6a4201c6-3a0f-40c2-97e3-957d8bee9fcb",
+          "rank": 43
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "AI小助手·限时",
+          "img": "NmUzYzUwOTAtZDQ1NC00ZDYwLWEwMGEtMjhjMjg1YzhhN2Mz",
+          "isNew": false,
+          "rightId": "d01ded1c-69bb-401e-bb74-035e02c8c9bf",
+          "rank": 44
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "NDM3NTVjZTMtYjRiYy00ZjYyLTgxYTktNTA2MTBjZDc0YzA3",
+          "isNew": false,
+          "rightId": "aa3737cf-3d8f-4aff-aa43-dbe0a18f7b40",
+          "rank": 45
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "YmRmNjBhMjAtYzdhMC00ZjY0LTgyOTktNWQ2NTIwZTdiY2I1",
+          "isNew": false,
+          "rightId": "0acd215b-89e8-46ad-b7cb-f5663058c40e",
+          "rank": 46
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "联席主持人·2位",
+          "img": "OTliNmJjNTctZjZkMi00MTMyLWFlZjAtMzljYzM5NzczMWJk",
+          "isNew": false,
+          "rightId": "2759ed95-7fe6-43a7-8958-feb4e8b16563",
+          "rank": 47
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "YjE5OTk4M2MtMzg3NS00NDI5LThmODYtZjM3M2Y1MDY1MzUx",
+          "isNew": false,
+          "rightId": "0fd8b1cc-266d-4a24-bf15-b12075dd3003",
+          "rank": 48
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "NjdjNzZmYmEtMjliOS00ZTk1LThlOTEtMWNiM2IxY2UwYTA3",
+          "isNew": false,
+          "rightId": "aa994f39-38cd-4682-b119-f5f2fd48b7c1",
+          "rank": 49
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "开启视频·60人",
+          "img": "ZjNlZGJkZmEtMTExOS00YzZlLWJjNTUtNGI1ZmI5Y2I3NGIy",
+          "isNew": false,
+          "rightId": "aba8373b-4a49-4ee3-bb57-3da93e5d3d10",
+          "rank": 50
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "YjBmODg1NTctODc3My00ZDI0LTliNGMtY2M5M2U3ZjI4NjVi",
+          "isNew": false,
+          "rightId": "82b6b74a-d8b6-4d33-8670-777fbe13943f",
+          "rank": 51
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "MmQzMDIwOTEtMTliNi00ODFlLWJlYTEtYmFiZTJmOTA0OTdi",
+          "isNew": false,
+          "rightId": "adb0209f-352e-4c0d-8fab-da903022bbba",
+          "rank": 52
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "ZmZhYThiNjEtMzM5My00YjRlLTk0MjQtNjg1OTM3Mjk3OGVj",
+          "isNew": false,
+          "rightId": "6bcbe0eb-8f74-45ae-a443-98eb90a53f6c",
+          "rank": 53
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "YzZkNDg5NWMtNmY2MS00MmU3LThkNDUtYjk1ZmUxNDFjMzUz",
+          "isNew": false,
+          "rightId": "8ba00e85-a4eb-4038-9c3e-45d7c27625bb",
+          "rank": 54
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "YmVkNDRlMjctODY5ZC00YTVhLTgzMDQtZTM0NjliYzZkZmM3",
+          "isNew": false,
+          "rightId": "468a5770-d85c-4ef1-99e0-023fe0ac59d5",
+          "rank": 55
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "MzYyZGE1ZjctYjdlMy00YmMwLThkY2ItZGJmNGIwYTFhZWNi",
+          "isNew": false,
+          "rightId": "bb64ef5e-6768-4d3e-a960-0c1069fc13d6",
+          "rank": 56
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "MDFmMjE3NDItYmRkNi00MzNhLWFjOTgtMjRkMzNkOTY1M2Q5",
+          "isNew": false,
+          "rightId": "37fd0142-026b-4dd9-9dc4-f70335b9b01e",
+          "rank": 57
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "300 人会议",
+          "img": "OWRjYjA4ZjEtYzZkNi00YTM0LWI2NDEtYmNkMDk0MmI5YTc0",
+          "isNew": false,
+          "rightId": "e69627c9-78cf-4dc9-bae8-2d301063c03e",
+          "rank": 58
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "开启视频·300人",
+          "img": "NzU0ZGYyMmItMzhkMC00NmYwLThlOGUtN2ZjODM2MmQ5Nzcy",
+          "isNew": false,
+          "rightId": "78cda1eb-ea7b-4347-8336-bcb5eff78376",
+          "rank": 59
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "网络研讨会·300人",
+          "img": "ZjEzN2U5ZDMtZGI2Yy00ZTg1LThhNWQtOTk5OWI5NzkzNDgy",
+          "isNew": false,
+          "rightId": "b96120ed-052b-45a1-a058-60864a4ab6bc",
+          "rank": 60
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "专属客户经理",
+          "img": "ODdkMDYyYmQtMWNlMy00Y2I1LTgxMDUtN2M2ZDE2ZDY0MmU1",
+          "isNew": false,
+          "rightId": "07abb02c-4661-45a8-9e48-9ddacc62ce8d",
+          "rank": 61
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "公对公付款",
+          "img": "ZTBkZmE0ODEtNjQ3ZS00YTJkLWE4YmItODViNWQyNTNiY2Vk",
+          "isNew": false,
+          "rightId": "afe97781-c489-4e82-949d-ea94efdcd4f9",
+          "rank": 62
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "分组讨论·50组",
+          "img": "ODJmNTFmZjEtOWE2Yi00YTRmLTlkYTAtMDAyNTRjY2YwYTFl",
+          "isNew": false,
+          "rightId": "84d46fab-987b-45d0-8e72-11ec1fed64b1",
+          "rank": 63
+        },
+        {
+          "type": "vip-edu-welfare",
+          "right": "myMoreRight",
+          "title": "API 对接",
+          "img": "N2Q5M2ViMGUtMTZiOC00MjgzLTkwYTctMWE4ZGI3MWZhODMx",
+          "isNew": false,
+          "rightId": "e997bac2-1b00-42e9-a16e-a917987e7226",
+          "rank": 64
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "YTgyOWUzYTUtZjY1Ni00MDAwLThhYzEtZDEzZTgxNTVlN2Yx",
+          "isNew": false,
+          "rightId": "72c08cd7-e5ce-4d9e-adff-a70225f1e66a",
+          "rank": 65
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "AI小助手",
+          "img": "MzAzZjczZTAtNTVkNS00YmQ5LWEyNjUtZmNiMGRiMGFlNjE2",
+          "isNew": false,
+          "rightId": "090fe340-2160-4c08-a0d1-06eaab8cd6c2",
+          "rank": 66
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "NTA0Yjg5NzYtYzhlNy00MjkwLTkxMTQtNGUzYTBkYjVlZTIz",
+          "isNew": false,
+          "rightId": "671d466a-683f-4c6b-8a18-4f9129b435a7",
+          "rank": 67
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "YWY5NDkyODUtZjVmYS00MWJiLWJhYWUtNWY3ZDRlYzhmYTY4",
+          "isNew": false,
+          "rightId": "da401980-3bec-41df-8ac5-417d45d4b006",
+          "rank": 68
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "联席主持人·4位",
+          "img": "NzUwODYxZTQtMDgxNi00NjhjLTg4MmEtZjdiYzU2OTA2NmNl",
+          "isNew": false,
+          "rightId": "e5db96b4-201d-4adc-be44-5e7d7be58b03",
+          "rank": 69
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "YmEwZTNlNTktNDQwZi00NmJiLWEwZDktNTAzMDdkZGM1NGNm",
+          "isNew": false,
+          "rightId": "93184050-59c2-498d-af66-258bb274583e",
+          "rank": 70
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "MTlhZDE3NTQtNjMyYy00MmZkLWI1MWYtZTc4ZTFhYjY3ZTI3",
+          "isNew": false,
+          "rightId": "6da7c80e-2add-4586-a414-c77e7522d72e",
+          "rank": 71
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "开启视频·100人",
+          "img": "Njg2YTg4M2ItN2Y3Ny00OGYyLWIyZDAtZTUwNDM3NDg4MjNm",
+          "isNew": false,
+          "rightId": "4910c39d-ea7e-49fa-b0f6-cee885cb8c5c",
+          "rank": 72
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "YjJlODY5NmUtOGFkMS00YTYwLWExMGMtZmQzNjcxM2I0Y2Y0",
+          "isNew": false,
+          "rightId": "b87e02ea-fe75-4eec-8c31-992072407bbf",
+          "rank": 73
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "YzM4ZTQwOGItNWUxYi00OTY1LThjNDQtYmUxNzdhM2YyNjVi",
+          "isNew": false,
+          "rightId": "5a8d2830-b268-47cb-a567-becfbf459f6c",
+          "rank": 74
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "Y2M0YmQ0OGYtZThmMy00Y2JiLTg1MWYtMjM1NGMyYTBhM2Iy",
+          "isNew": false,
+          "rightId": "c732319c-5800-4871-90d5-0d247f9f9869",
+          "rank": 75
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "YWRkZjAwYmMtY2FlYS00MjFjLThiNWItNTRiZDAwOTFkYjU4",
+          "isNew": false,
+          "rightId": "47c57c9a-9c73-457d-bccb-9e1799c3f0c3",
+          "rank": 76
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "MGEzMjE2ZGItZGQ5OC00ZDIwLTllOTItYjA3ODMxZWRkZGMz",
+          "isNew": false,
+          "rightId": "7aee5421-5fdd-4bfa-872a-279d1839a96d",
+          "rank": 77
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "ZDI1NjA2YWItNDI4ZC00NjlhLTkyNjgtNjExYmJmNDA3MTMx",
+          "isNew": false,
+          "rightId": "5de8962f-d34f-4bee-ba24-ec6d93e43b65",
+          "rank": 78
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "Mjk4Njk0MWEtOGE4ZS00Y2Y1LThjOWMtZWE5Yzg2YWY4YzQw",
+          "isNew": false,
+          "rightId": "28cb7461-9a22-4db7-8d1d-4ff964c32bad",
+          "rank": 79
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "300 人会议",
+          "img": "ZmY1MTVkYTYtMTcxMi00NDU0LTg5ZTItMTUzZmI0YzYzYzU0",
+          "isNew": false,
+          "rightId": "97b0c747-7d6b-4ae1-a511-9af27863db63",
+          "rank": 80
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "开启视频·300人",
+          "img": "NDhiMmZlOTEtZmFkYi00YWExLWE4MzAtNjc0OTk2MmQxMjE0",
+          "isNew": false,
+          "rightId": "07ea9953-8b9e-4ea5-b7b9-953e960fcea7",
+          "rank": 81
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "网络研讨会·300人",
+          "img": "MGNiYmIyMjQtMjllNS00Yjg4LTgyMWQtZGI3NDU3OGFiYmQ2",
+          "isNew": false,
+          "rightId": "0c6c4bdc-497f-4270-b634-fad545956e65",
+          "rank": 82
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "专属客户经理",
+          "img": "MmNlMTA5NWMtYjk1ZS00OWY4LTk3NzYtODA5Mjg1MDkxOWE3",
+          "isNew": false,
+          "rightId": "ef93d72c-bcd1-4d2b-9416-144fe4f57580",
+          "rank": 83
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "公对公付款",
+          "img": "MjUzOWQzZDAtOWU2My00MzE3LWI4ZDUtNjM5OWU5YWZmYzJh",
+          "isNew": false,
+          "rightId": "9b49cbf1-98dc-4d13-bcdf-6fd4694a3c24",
+          "rank": 84
+        },
+        {
+          "type": "vip-team",
+          "right": "myRight",
+          "title": "分组讨论·50组",
+          "img": "Njc0MjFhZTQtNzA5NS00ZTRmLWJiNTYtZTRhODIzYmNjMjJj",
+          "isNew": false,
+          "rightId": "81a8ac50-02a2-45d6-91e5-4f24cec9bb21",
+          "rank": 85
+        },
+        {
+          "type": "vip-team",
+          "right": "myMoreRight",
+          "title": "API 对接",
+          "img": "MTY3ZjU3YTUtNzUxYy00OTA4LWJjYjgtYTg2ODk4YWUzODVh",
+          "isNew": false,
+          "rightId": "f7f1c5cc-5853-4921-a630-1e38e60498d1",
+          "rank": 86
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "OTE0ZjhhNzAtNjk0Mi00ZjJiLWE4NzAtZWQ2OTFhZjkzZTEy",
+          "isNew": false,
+          "rightId": "e14b7585-b0aa-467e-becb-ce07ed0a4a86",
+          "rank": 87
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "AI小助手",
+          "img": "YzEwYzBhMWUtNDA2YS00ZjQ2LWFmNWItODI0OThkZTRkNDY1",
+          "isNew": false,
+          "rightId": "97351a05-7ebd-4130-8f90-c65345a2a3ab",
+          "rank": 88
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "MDk5YWVkNDQtMDRlNi00NjRlLWI0NmEtOWUzMTEyOTNjZGRk",
+          "isNew": false,
+          "rightId": "b2cfe7ef-7f73-4d0f-ae39-fadb8d51be54",
+          "rank": 89
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "ZGQzMWNlMTktZmJiMS00Njk2LTkxMDMtNWRhZWQ1MmFjNmNi",
+          "isNew": false,
+          "rightId": "3927fb3a-2e63-466f-80cd-1b9c538d896b",
+          "rank": 90
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "联席主持人·6位",
+          "img": "NmY0NTc1YmItNzI0ZC00YzFiLWE1ZTItNTU0NjU5NTk1MzE3",
+          "isNew": false,
+          "rightId": "66c236d0-984e-47fa-9344-c565b557ed35",
+          "rank": 91
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "NTFiNWNmYzEtMjhiMS00MDNlLWEwOTUtNjcwNWQzN2UzZTFh",
+          "isNew": false,
+          "rightId": "573af1cf-84f3-4e34-9941-22f7b22ee408",
+          "rank": 92
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "YTI0NjkyM2YtM2QzYS00NTU3LTllNDAtNTA3YjQ3MWM3ZWY1",
+          "isNew": false,
+          "rightId": "2fc8db87-ce16-4df9-b994-21ac9f2e35fb",
+          "rank": 93
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "开启视频·300人",
+          "img": "YzY4ZThlNzItMDVhMC00OGVkLWIzNDAtYzA0ZjU2OWM0MDZh",
+          "isNew": false,
+          "rightId": "bfa5549c-c406-44f9-bb5d-25fcffd8a2d2",
+          "rank": 94
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "YTY1ODM1NTAtZGE4MC00ZjA5LTg2NDUtODNkYjg4YmE4MzFh",
+          "isNew": false,
+          "rightId": "13fb2bc6-d5c1-4792-a91b-0428af594a6b",
+          "rank": 95
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "YTJhMjJlZmItYzFiNS00MDJiLTk0MzYtOGU3YzFiNDBmYTMz",
+          "isNew": false,
+          "rightId": "0eac8d84-451f-46e2-b68f-97564597850a",
+          "rank": 96
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "NzExNjgzYTAtNzJjYi00Y2I2LWIwZmMtMmViMGEzYmJjYjJl",
+          "isNew": false,
+          "rightId": "29ea3c10-d87f-49b8-9205-54477efe39ea",
+          "rank": 97
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "NTQwNzhkYTItM2M0My00NWUyLWIyZWEtZjE1ZWNlYjYwMDcy",
+          "isNew": false,
+          "rightId": "dfd1f214-2610-41b0-8e7b-26d6cd9efb00",
+          "rank": 98
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "MzljNzY4NTEtNGNlNi00Y2EyLWExYWEtNDQyY2VmYTBmYjJl",
+          "isNew": false,
+          "rightId": "181383e7-b12b-4148-b272-38d4a5cd3b31",
+          "rank": 99
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "ZTZkZDhiOTItZDE0ZS00OWNhLThiZDMtNGZkYTY5MjNlZDk3",
+          "isNew": false,
+          "rightId": "9ceaf74c-d9da-4ed4-a77e-4a67c9f1d64c",
+          "rank": 100
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "Mzg5YmUxYTMtYWQyOC00ODcyLWEyMzUtMWIwYTBhYTRmMGY5",
+          "isNew": false,
+          "rightId": "511dafe2-b159-4556-bcce-dd3663a7e31b",
+          "rank": 101
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "2000人会议",
+          "img": "ZWQ3YzE0YjUtZGQzMS00ZWJkLTkxNzUtYjEyOTA0OThmNTMz",
+          "isNew": false,
+          "rightId": "094ff87f-e6b2-4554-9de6-110da0beaa7b",
+          "rank": 102
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "录制空间·200G",
+          "img": "ZTFiYmY0MjYtNTRmYS00N2RjLTk2NzItNjIzZTZlNDk5MWM4",
+          "isNew": false,
+          "rightId": "82bb16c0-62c5-492e-9493-9acc811ba3d7",
+          "rank": 103
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "开启视频·1000人",
+          "img": "NjllMDBhODMtNzhmNS00OTgyLTk5MWQtOWRmNDUzMzA0NzE2",
+          "isNew": false,
+          "rightId": "214ce796-91ef-451f-a628-3c514d934b5c",
+          "rank": 104
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "API 对接",
+          "img": "NzIyOTg0YmEtYWY2Ni00MzU5LWE1ZGQtYTRlZTM3YmZjMzgz",
+          "isNew": false,
+          "rightId": "593c4561-0d57-43f8-83cb-76b93eb20688",
+          "rank": 105
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "专属客户经理",
+          "img": "MjYyNWRlZDItOTY5YS00NGEzLWIxYTctYjI0YTcxMzgyNTQ3",
+          "isNew": false,
+          "rightId": "b639f985-a8c2-4b38-bbe3-eee4ce7a0e6f",
+          "rank": 106
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "公对公付款",
+          "img": "MTg2YjQzMjYtZjdjYS00MzYwLWE5NGUtNGQ0MGVlYmRhYjQ0",
+          "isNew": false,
+          "rightId": "5f9c0de6-dec5-4eb3-b82c-7612562b6c3a",
+          "rank": 107
+        },
+        {
+          "type": "vip-hc-03",
+          "right": "myMoreRight",
+          "title": "分组讨论·50组",
+          "img": "ZjBjOGIyMzQtYmRjMi00ZDA3LTg1NzItMTg5MTE2MjFiNjY2",
+          "isNew": false,
+          "rightId": "7d97ec15-3cad-472a-be91-600b3f9f7100",
+          "rank": 108
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "MjIwNWRhMzQtNTgzMS00M2Y1LTg0YTgtODZhODUzMzc5NzE1",
+          "isNew": false,
+          "rightId": "e00c842e-9678-4b49-9495-0e08f77e5843",
+          "rank": 109
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "AI小助手",
+          "img": "M2ZmZGYyNGItNmFjZi00MzdkLTlhZTItYjQxNDA1MTQwMTRm",
+          "isNew": false,
+          "rightId": "171b61e1-939e-4c5d-a4f6-8201181bd583",
+          "rank": 110
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "MzMwMTlmNzgtYmI2NC00ZTg2LWE2YmMtNjdhYjQ4MjY3MGE5",
+          "isNew": false,
+          "rightId": "ae66ab33-302a-4083-80b2-8033d6ff0c7f",
+          "rank": 111
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "MDMyNGQzNDItYjI2OC00ZWQ3LTgyZWYtY2UwMDQzMWJjNDkw",
+          "isNew": false,
+          "rightId": "cb3beaca-fefa-4686-9560-102702a9d0fe",
+          "rank": 112
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "联席主持人·8位",
+          "img": "NWQwODQwNDItMDdkNi00NmNiLWI3NTktMjMzYzJjMGE4MGQ4",
+          "isNew": false,
+          "rightId": "d88e21e7-f412-4727-825a-d7fb8e150d31",
+          "rank": 113
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "YTVhMDc3ZDAtMGUxZi00MTQwLTliMGEtYjkyZmQ3ZjU5NjM4",
+          "isNew": false,
+          "rightId": "a7dee4f2-17a8-48c6-b17a-5e280d35ed38",
+          "rank": 114
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "ZWUzOTNhZGQtNjVkOS00MzJlLWE2MDItMmRlZTVlN2VjYmRh",
+          "isNew": false,
+          "rightId": "209c52a9-29df-477d-b253-3e4351722ad3",
+          "rank": 115
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "开启视频·500人",
+          "img": "MDI0NTJlMmItZmEzNC00MTI2LWJiNDQtZTY1NmIxMTA3MzE0",
+          "isNew": false,
+          "rightId": "823d9eb4-ea3b-43bb-a8a5-3e88174c5ed2",
+          "rank": 116
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "NTU2YTBlM2ItYTA0Yy00YTMxLTliNDMtNDdjZmI3MDBkNTkw",
+          "isNew": false,
+          "rightId": "5e7bd5d8-0b60-495f-9938-1d149dd5d461",
+          "rank": 117
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "NjFmNTljNjktZjc4NS00NzNmLWI4YjYtZjJiNTdjNGVlZDJm",
+          "isNew": false,
+          "rightId": "40cae764-4abe-457b-8069-b1f590c70c99",
+          "rank": 118
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "OTk3MWY0MWItYjdhNC00OGU2LWE5NzUtZmNkYTc3ZTY2ZWUz",
+          "isNew": false,
+          "rightId": "341f5433-0769-4cc3-ad1d-5e33a3930841",
+          "rank": 119
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "ZmIwMjA4NzUtZDlmOS00MGJiLWExOTQtZTdmYjhjYTI3ZTJk",
+          "isNew": false,
+          "rightId": "6e01e970-f7dc-4c15-b113-ab43252e2d25",
+          "rank": 120
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "OWUwMjMwNjItNGI4MC00ODk2LTkzZmEtYWUxYmQ5ZGQxOTA4",
+          "isNew": false,
+          "rightId": "97314fde-e65d-4b62-b418-a01ed9680931",
+          "rank": 121
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "MDE1ZTYyOGItNWFkOS00MDk1LWIwMjYtMjBhZjc4MWZlYjk3",
+          "isNew": false,
+          "rightId": "fcdf72fd-5ce1-4495-b72f-e615d884b880",
+          "rank": 122
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "Mzk5MzIxNmQtZjliZS00NmQ0LWFjYmMtMDNmNGY1OGJiZTIy",
+          "isNew": false,
+          "rightId": "4cb5171b-1a6d-4093-a5ec-10cdc415b413",
+          "rank": 123
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "2000人会议",
+          "img": "ZmQwMmFkMTktYWI4NC00Y2RmLWJmZDItZmQ1YWE1NDI1YTA4",
+          "isNew": false,
+          "rightId": "5e0403a5-2c26-4233-b0fc-db1ad4966c1e",
+          "rank": 124
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "录制空间·200G",
+          "img": "ZjFmYjk1YzktMjg3NC00ZGZmLThjODctODc3YzdmYTFhYmZj",
+          "isNew": false,
+          "rightId": "ed453bc4-fa31-41bd-91c1-df1564d838c9",
+          "rank": 125
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "开启视频·1000人",
+          "img": "NjkzYTkxY2UtZTc5Mi00YTY2LWEzZTItOTE1MWUwNjE3OWMx",
+          "isNew": false,
+          "rightId": "96f50b02-ef13-4ff6-bf8e-db388f46333d",
+          "rank": 126
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "API 对接",
+          "img": "YjQ3YTg5ODItMzcxMC00YjczLTg0YzUtYTFlY2I0YWMzYzY0",
+          "isNew": false,
+          "rightId": "20b548af-4589-4565-86a8-a1c08691507c",
+          "rank": 127
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "专属客户经理",
+          "img": "YjRhZTMzOWYtMDExZC00NTA5LWJmMmUtMWZlMDllMTc4NTg5",
+          "isNew": false,
+          "rightId": "f46f5af7-33a5-4823-ab05-4f0cb05a2244",
+          "rank": 128
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "公对公付款",
+          "img": "NDdmNGJhZTYtZDc3Yi00ODg1LWFkZmUtOTE1NDBmYjVhZDcw",
+          "isNew": false,
+          "rightId": "b259229f-813a-4cf4-b98f-886449a397d9",
+          "rank": 129
+        },
+        {
+          "type": "vip-hc-05",
+          "right": "myMoreRight",
+          "title": "分组讨论·50组",
+          "img": "OGMwMGVmZDctZGViNC00MjUxLWFhMTktMDRiMjI0NzBlNTBk",
+          "isNew": false,
+          "rightId": "ae5e2748-8f79-4f5a-b175-f6eb946754f0",
+          "rank": 130
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "开启视频",
+          "img": "NzBkMmYwMmYtZjQwNy00MjYwLWI5NjUtOTU5MDA5OWE3Y2Yy",
+          "isNew": false,
+          "rightId": "1661eaf6-f564-400c-b1ff-734455ea3c5d",
+          "rank": 131
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "ZGM3MzJlMGMtZTc1MS00YjkwLWE1YTQtZDRkZjYzYzU1ZDFk",
+          "isNew": false,
+          "rightId": "b36a7648-5ef4-4f23-a767-cb1903d17895",
+          "rank": 132
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "MmQxMDE1ZTAtODQxMS00YTdkLTkyZTktOTBhYjQ0OTk3NjQ1",
+          "isNew": false,
+          "rightId": "5504f892-872b-4958-9b75-893f46185a9c",
+          "rank": 133
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "NTIyZWI5YWEtZDZmNS00OTI2LWExODUtZDBkMGI5ZmU3ZmQz",
+          "isNew": false,
+          "rightId": "a8137a55-c144-4ccf-a113-fae48803a050",
+          "rank": 134
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "AI小助手",
+          "img": "Y2E2MTZkMGEtNDljMC00NGUyLTlkMmMtYjE3NmYxOWNmMzkw",
+          "isNew": false,
+          "rightId": "3b4e268a-1b91-4b41-9741-23678fc9ec5e",
+          "rank": 135
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "联席主持人·10位",
+          "img": "Njk2MmZlOTYtMTRjZS00ZmFkLWI3NmQtMjAyYWI1MTNjZGQ2",
+          "isNew": false,
+          "rightId": "08abf40d-c5e3-4089-9b75-d5af9a797811",
+          "rank": 136
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "YzU0MWQyZDItZWU0YS00ZjE4LWE3ZjgtMmM0MTE4MjIwZTll",
+          "isNew": false,
+          "rightId": "dc4fc5d5-3964-4793-b07d-e18afcc26f18",
+          "rank": 137
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "MjZjOGI2ZDMtMTQwNS00YjNjLWFiZmQtMGM0MzExMTQ3OTQw",
+          "isNew": false,
+          "rightId": "fff8727c-5029-4389-b8c7-0796209b2aad",
+          "rank": 138
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "ZTEwMWU0MTUtYzQzOS00ZmVkLTgxMjYtZTJlNzE3MGM0Y2I1",
+          "isNew": false,
+          "rightId": "e83c9b91-1eac-4ed1-92a8-04a815a6cbc4",
+          "rank": 139
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "NTU5YjlkM2YtNDczOC00MWFhLThkMjQtY2JmNGQ1M2ZiMGU1",
+          "isNew": false,
+          "rightId": "b5f57f67-c194-4d49-a82b-43c6f8d6db75",
+          "rank": 140
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "NmVkMGQzOGMtOTY2ZC00YjI1LTllMzktNGI3YTQzNmNjY2I4",
+          "isNew": false,
+          "rightId": "b530dd3f-c273-433b-89dd-7023725d4f0a",
+          "rank": 141
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "ZjRmNzllMWQtNTMzMi00YzFmLTg0NDEtZjYxYjVkMTUzZWMz",
+          "isNew": false,
+          "rightId": "5dd77fba-447e-4954-9a85-fc08b1b95a0e",
+          "rank": 142
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "MjA4NzEwOWMtNWUxZi00YWJlLWExYTQtNjU5ZTgwOWRjNTk4",
+          "isNew": false,
+          "rightId": "32bba37a-4bb3-43db-8fc0-3ca53b931534",
+          "rank": 143
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "网络研讨会·限免",
+          "img": "OTM3NmIzYTgtYmFjMy00OGJlLTg5NTUtYThkMDRmYzE0YmE3",
+          "isNew": false,
+          "rightId": "6af93221-af56-4be5-a1d3-5715aa38fa08",
+          "rank": 144
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "虚拟背景·丰富",
+          "img": "ZGFhZTMwNWMtMTgxNy00MjcyLTgzOTEtYjY4OTkxNDMxM2Jj",
+          "isNew": false,
+          "rightId": "a225d831-fa87-4997-9e1d-2bf38055cd24",
+          "rank": 145
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "视频边框·丰富",
+          "img": "NTFmM2QxYmUtNTE0NS00ZDAwLTkxODItZDM0MWQ3MzdhZWM4",
+          "isNew": false,
+          "rightId": "666b6764-ab6c-4ea5-b866-63ebdde7ab23",
+          "rank": 146
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会聚模式·丰富",
+          "img": "N2NlOWY3OWQtNzY5Yi00ZjJiLTllZjYtNTUxNzBmZGQ4NTJi",
+          "isNew": false,
+          "rightId": "a611ad62-608d-45e7-80d8-1c862a498a3f",
+          "rank": 147
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议头饰·丰富",
+          "img": "NjAyYzBkNmEtOWQwNy00ZGI1LWFhYWItMDNlZjYwNmE0YjNi",
+          "isNew": false,
+          "rightId": "9cf3502a-23cb-44dc-a07b-407e98f5ca1c",
+          "rank": 148
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "Nzg4MGYyZWMtMTcyOC00N2UxLThiNTAtNjg3YmNlOWZjZTc1",
+          "isNew": false,
+          "rightId": "be4f7ecf-637b-4382-bd1e-364f18476d6c",
+          "rank": 149
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "会议封面·自定义",
+          "img": "ZjRjYzQ2MmMtYTc3Yy00MmFkLTk1YzUtMWMxMDEwMGI1NDg1",
+          "isNew": false,
+          "rightId": "21270ed1-e1af-4468-9aaa-483edb21f44e",
+          "rank": 150
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "开启视频",
+          "img": "M2U4YmQxNTMtMjY1OS00MzViLTkwNGQtOWJhZDVmZjFiOGE3",
+          "isNew": false,
+          "rightId": "b6a46917-dc6a-4167-a9a5-2d17417d815d",
+          "rank": 151
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "ZTc3ZDk0OTUtNDQzNi00YjY3LWFkMDAtMzEwNzZiM2ZjNzc5",
+          "isNew": false,
+          "rightId": "a1736f8d-5907-4240-91ae-b4cdd6cae295",
+          "rank": 152
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "OTdlNDIwMGYtOGU0MS00NzU5LTk0ZWMtOTIyY2MxMDA2NTZm",
+          "isNew": false,
+          "rightId": "e2c48ec8-857d-4d62-bff0-d08c70be8667",
+          "rank": 153
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "NTczMWVkMWItYjIwYS00NDA0LWI5ZDQtYWU0OGI5OGRhNWQ3",
+          "isNew": false,
+          "rightId": "e3dc54ff-a23b-42ce-a472-0a5fda8c7da5",
+          "rank": 154
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "联席主持人·50位",
+          "img": "OWFiODYwYjktMWY1MC00YjZhLTlkYTktMjJiN2M0ZjgwNDYx",
+          "isNew": false,
+          "rightId": "0906a08a-4c67-4896-af7b-23e118a1c44a",
+          "rank": 155
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "YWQwOWJhYzYtNTU2NS00NTZkLTg3MDMtYTUwNjA2MDBhNmNl",
+          "isNew": false,
+          "rightId": "9b33746d-5b78-4968-be3b-ae2521397a35",
+          "rank": 156
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "Y2M0MzE1MDItOGU1Yi00OGRkLWE3ODItYjE4NTdiZDhhNTAw",
+          "isNew": false,
+          "rightId": "e8f2731b-0585-4a93-a768-b2c16b2209fb",
+          "rank": 157
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "MGU5YTM1OTEtMGE5MS00NDNmLWE1NzEtOWFiYjQ0M2E4ZDk5",
+          "isNew": false,
+          "rightId": "ddeffc01-c640-4bac-b259-a2a909f7b0b0",
+          "rank": 158
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "MjM4NWNjNGEtNzA2Ny00OTVlLTg5MGUtNTg0ZmQ3MzUzM2Nk",
+          "isNew": false,
+          "rightId": "edc97269-3098-4f12-b509-ef304bf422ed",
+          "rank": 159
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "NDUwMDk0MDQtNTdiMi00OTI4LThlNTktM2IzZDhhYWVlMzQ0",
+          "isNew": false,
+          "rightId": "85b9047a-91a8-4c05-8078-d82060c6a17c",
+          "rank": 160
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "N2QyZjU0YWYtYzRmZC00YTZmLWEzNzQtMWM0NmI3ZDA0YmQ3",
+          "isNew": false,
+          "rightId": "12be8021-cf48-4661-aaf5-dfa71dbff600",
+          "rank": 161
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "OGEwMDM3MWQtYmU3Zi00YTRmLWI1ODAtYzNmNjg0MTA3OTc2",
+          "isNew": false,
+          "rightId": "32c54ff1-87bd-44e9-836f-63bc211c43e3",
+          "rank": 162
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "网络研讨会·限免",
+          "img": "ZmZkYWNlZTktM2ViMS00NzVjLWJlZjEtZGM2YjQ1ZDFhYTBl",
+          "isNew": false,
+          "rightId": "bb841c43-6e79-4302-9999-f090c7cb6d76",
+          "rank": 163
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "虚拟背景·丰富",
+          "img": "ZDA1N2U1ZWItNzBjYi00NjBjLWE4OWEtNzA5NGZlOTE3NzA1",
+          "isNew": false,
+          "rightId": "b9bf2647-aa57-42b2-adae-4a1b695e3f29",
+          "rank": 164
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "视频边框·丰富",
+          "img": "NDFlMTY0MTgtMzc3ZC00Njc4LWJmMTktNDFjOGY3NjkwMjc4",
+          "isNew": false,
+          "rightId": "d25d5f26-11ad-40dd-9f34-2c1c4fa0809e",
+          "rank": 165
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会聚模式·丰富",
+          "img": "N2E4ODJlZWItYTE3Ni00NDAyLWEwOTctODdlN2Y1MmIxOTgx",
+          "isNew": false,
+          "rightId": "c51ea427-fd56-4b08-960e-1688e5277b9b",
+          "rank": 166
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议头饰·丰富",
+          "img": "ZDU4ZjFiMzItOGIwZi00YjA5LTkxZjktZDJiZjNkNzkwMWM1",
+          "isNew": false,
+          "rightId": "4ca5eeee-5a9b-433e-bbef-954e2b2c6a40",
+          "rank": 167
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "MzBkNDY2MjktNmQxMS00YzhiLTk4MDAtOTVkMDVmNGUxZTU1",
+          "isNew": false,
+          "rightId": "dd1c154a-5b60-41c4-89f5-c945f5a8c301",
+          "rank": 168
+        },
+        {
+          "type": "edu-hc",
+          "right": "myRight",
+          "title": "会议封面·自定义",
+          "img": "OGNjNzkxOWItNDZiMS00ZWJmLWFhMzgtYzMyYmI4MGZmYTBj",
+          "isNew": false,
+          "rightId": "50499881-2b03-4979-86db-8181f20ea0b9",
+          "rank": 169
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "开启视频",
+          "img": "ZDhjM2YyOGQtNjJkZi00MjU1LTgyYjgtNDg3YWZkMzEyNjJj",
+          "isNew": false,
+          "rightId": "7fd2cb82-0660-47e3-bc49-899e5973ddf7",
+          "rank": 170
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "ZTljOTdjZGItMjZkYS00NGE3LTg3ZDktZjhmZWUyZjE0MzNm",
+          "isNew": false,
+          "rightId": "b89b2070-b822-4cc7-ad28-e53481fb3dcc",
+          "rank": 171
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "YWM4NWNkZTAtMjlkOC00ZGQxLWE5MDgtMzVhMjBhNmQwMTE2",
+          "isNew": false,
+          "rightId": "6100f496-4e35-4205-b6a3-8277167f71a5",
+          "rank": 172
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "NGI2NTdlNGItMjc5OS00MmYyLWIwYzYtMmU4ZjI2MzBiNTBm",
+          "isNew": false,
+          "rightId": "b758fa0b-64ea-41b6-8aa4-6de6b544c17e",
+          "rank": 173
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "联席主持人·50位",
+          "img": "NzY0NDlhMTMtM2M5ZC00ZDdlLTgxYmEtNWI2YWFkMGJlNThh",
+          "isNew": false,
+          "rightId": "92962a40-a749-49e3-a1d3-4f48deb4351d",
+          "rank": 174
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "MDY4OTAxNDYtMWMwNi00ZjBmLWFjYzUtM2FlZTU4MDI4Mjhl",
+          "isNew": false,
+          "rightId": "0ec7296d-0419-47b3-b498-a661bac53daf",
+          "rank": 175
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "ZWJlYzEzZDUtZTgxMC00ZmZmLWIzOGMtMTMzOWMwZjNmMGY2",
+          "isNew": false,
+          "rightId": "0b7433eb-5d86-4cee-b222-7f0c64d0a98b",
+          "rank": 176
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "MGY4MmExZWItOTYyNy00ZmVjLWIxN2MtMzg5YjkzODUyNzM5",
+          "isNew": false,
+          "rightId": "fc6baaba-b86e-4e2e-b997-0b2f22bb7bbe",
+          "rank": 177
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "YTdhNDY5YzYtNmI1NC00YWZiLWJhZjYtN2EyMTdkNzRmY2M2",
+          "isNew": false,
+          "rightId": "60d67058-610c-4fb1-94eb-5ac4ee16ad51",
+          "rank": 178
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "ZTJjNzUwM2YtOWEzOC00ZTNkLWE1ODEtMDVmYjVjZDhkNzQ3",
+          "isNew": false,
+          "rightId": "14a8bb43-0dd9-4156-9a4d-fc0cdba50e65",
+          "rank": 179
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "YzE4NzYyZTQtOWM3MS00ODY0LTlhZDktYzRmYWQ2MzI1YTIy",
+          "isNew": false,
+          "rightId": "bdbe31d6-0951-4494-b9bd-3f06de7fcbad",
+          "rank": 180
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "NTU1YmVjZDQtY2FmNy00ODk0LWJjNzMtYjYwZjcxY2FlYjY2",
+          "isNew": false,
+          "rightId": "3569d6cd-c20c-4940-b697-c8777b4e5a3a",
+          "rank": 181
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "网络研讨会·限免",
+          "img": "MjAzZjUwN2EtOTVjYS00M2EzLTk1YjMtYTM1ZmJjNzZlODNm",
+          "isNew": false,
+          "rightId": "042a2287-4062-4a2f-abc9-a4436f55292d",
+          "rank": 182
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "虚拟背景·丰富",
+          "img": "NWE3NTQ5ZjUtZDQ5OS00MTcwLWJiN2UtODkzMTM0ZmE1YzAw",
+          "isNew": false,
+          "rightId": "24b2260e-15b9-4116-9fff-05bf6eba47b8",
+          "rank": 183
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "视频边框·丰富",
+          "img": "NzZiYWUwY2EtNzkzNi00YmJhLWI0ZTUtNjU3ZTUzMmQyMTg3",
+          "isNew": false,
+          "rightId": "6c6fbdcc-1d8c-4778-afa7-2556ea6be9f7",
+          "rank": 184
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会聚模式·丰富",
+          "img": "OWRhMzJiMTEtZGM1ZC00NjllLTg3NjgtZGYxZTk0Njk5NmVh",
+          "isNew": false,
+          "rightId": "39db486e-7509-4666-8bca-8e58c718031e",
+          "rank": 185
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议头饰·丰富",
+          "img": "YWQ4NjliMGItODg1NS00ZDE2LTg0YjEtMjdmMzQ1NWIyZGE4",
+          "isNew": false,
+          "rightId": "ddb5f3ea-407e-4d60-863d-0ebd77867ae6",
+          "rank": 186
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "NzIyYjJhMzUtYWNiOS00M2Y0LWEyNjEtNmRlOTk3NDU3NmRi",
+          "isNew": false,
+          "rightId": "705e7ef2-4163-4b4e-817f-bae9bd9c5506",
+          "rank": 187
+        },
+        {
+          "type": "enterprise-hc",
+          "right": "myRight",
+          "title": "会议封面·自定义",
+          "img": "YzJlZTRmNjQtNzM1ZC00YzRhLWE2NTctOWJmZWViZTllNmVk",
+          "isNew": false,
+          "rightId": "551d41aa-f497-4380-ad73-4ec911929565",
+          "rank": 188
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "2000人会议",
+          "img": "MjQ1ZGU4NTMtMjk0NS00NTcwLWEzNGMtN2I0YmJiYjUyMTc2",
+          "isNew": false,
+          "rightId": "4159c2a6-577a-46e5-98b3-8104b3049699",
+          "rank": 189
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "开启视频(1000人)",
+          "img": "ZmNlMDdhZDYtNTQzMS00ZDMxLWFmNTItYTRhY2I1ODk3OWQw",
+          "isNew": false,
+          "rightId": "a901ba63-a123-49d6-8d8d-a3f604341454",
+          "rank": 190
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "录制空间(400G起)",
+          "img": "ZTkyN2E0YTUtZmZjNS00OGNlLThiOTktOTU4YWI5OGUzODY4",
+          "isNew": false,
+          "rightId": "8e512558-14eb-4b2a-a713-8feacb4bf231",
+          "rank": 191
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "专属客户经理",
+          "img": "ZTFmMTA1ZjktMjYxZi00NGJlLWFkNzctYzdjMTJlZDAxZGU0",
+          "isNew": false,
+          "rightId": "cd32c176-ddb3-4762-874c-72c3ec1a1ee2",
+          "rank": 192
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "对公汇款",
+          "img": "MGY2NjMwMjUtMWMzNS00YjJjLTg4MmYtNjcxMGZiODI3Mjc0",
+          "isNew": false,
+          "rightId": "3cd4b049-fdfd-4e0b-9025-ac5b6cf44a31",
+          "rank": 193
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "便捷开票",
+          "img": "MzgyYmU1NjYtZjU5My00ZjIwLTk2NGUtNzQwYmFkNjJjY2Q3",
+          "isNew": false,
+          "rightId": "e8b71dea-cccb-43f9-91d4-8f39d4aa20c2",
+          "rank": 194
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "继承离职员工会议资产",
+          "img": "YmI5ZjU2NmQtNjU1ZS00Mjc1LTg4YjUtNjM0ZmE2N2QxMWY0",
+          "isNew": false,
+          "rightId": "b67f3c3e-7216-49b5-a5bb-7c1627c1465c",
+          "rank": 195
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "多账号统一管理",
+          "img": "ODNjZTI3Y2MtNGI1Yy00NDYxLTkzYTQtYWI3YWEzYmE3N2U0",
+          "isNew": false,
+          "rightId": "12552436-b430-4bad-8ddc-a0b27416b543",
+          "rank": 196
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "第三方直播推流",
+          "img": "YTYwZWRjNDUtNzkyYS00M2Q1LTk0OGYtY2NkZjk2MGZjMmUw",
+          "isNew": false,
+          "rightId": "3c64fd83-7bb0-497e-ae40-6bcb723bff12",
+          "rank": 197
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "分组讨论(50)",
+          "img": "OTlhYTg3ZWQtOGE0Ny00OTMxLThlMDgtYjA4NjYxNDhjYmRk",
+          "isNew": false,
+          "rightId": "c8046283-d841-4d8d-a37e-61b64637c03b",
+          "rank": 198
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "联席主持人(10位)",
+          "img": "YzgzMmM1MWYtNWI3OS00NDg4LWIwMWItZmE0ZTZmODI2Njkx",
+          "isNew": false,
+          "rightId": "9490e3f0-6529-4a2d-b0e4-064eab2d6774",
+          "rank": 199
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "自定义布局(20+)",
+          "img": "NjRjMzdhMmMtOGY3YS00ZjQ0LTk1ZTYtZjRmMTA4YzU2MzM3",
+          "isNew": false,
+          "rightId": "7580fa30-5e48-4f8a-9492-ef3335496d0f",
+          "rank": 200
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "统一虚拟背景",
+          "img": "MTM1YzBlZWEtMjI0Zi00YjQ0LWFlNTItYmRhNGUyMWNmYjI3",
+          "isNew": false,
+          "rightId": "e7b8697a-7e73-47f3-94ae-dc1db96e8a24",
+          "rank": 201
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "定制水印内容",
+          "img": "M2QzOWM0MDctNmIwMC00YTQyLWEyMGUtNzAxOTRmNWFlOTUz",
+          "isNew": false,
+          "rightId": "a927165b-5b0a-470a-afca-b2ebdb373680",
+          "rank": 202
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "人工同传",
+          "img": "ZjVjNmQxYjAtZmM3Ni00OWMyLWFkMGUtMjA1ZmI3YTFlYWI5",
+          "isNew": false,
+          "rightId": "1581ff0b-1736-4ddc-969b-ecb15fb9a57f",
+          "rank": 203
+        },
+        {
+          "type": "commercial-hc",
+          "right": "myRight",
+          "title": "组织管理",
+          "img": "MmM1ZTZhYTItMWU4ZS00NjFiLTk3ZmUtMjY4MjY2NzBmMzJm",
+          "isNew": false,
+          "rightId": "04270aa9-e757-480e-b4d8-3abc7cb14a75",
+          "rank": 204
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "AI小助手Pro·限免",
+          "img": "YjExYjYyZDUtNTZlNi00YmNhLTlmYTktMDlmNThjNjA3ZDMy",
+          "isNew": true,
+          "rightId": "05b67676-c2ac-4cf3-a796-e8be61da60f8",
+          "rank": 205
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "身份外显信息",
+          "img": "ZWE3YmI4ZmUtMDVhNS00YmY3LTk3NzEtMjc1ZmJlOTNhNzA4",
+          "isNew": false,
+          "rightId": "6f3f2f93-de31-4ac5-9f1d-febcb9a8b837",
+          "rank": 206
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "NDQwZjkxNzItNzA4NC00MGM4LWJjMzUtMjk2OTU3YmE5MGM1",
+          "isNew": false,
+          "rightId": "d222ae29-1d9d-426b-8522-87a3b578362d",
+          "rank": 207
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "ZjVmYjg4MTEtYzViNS00MzcwLWIyOTMtY2E1OWVjNzQ2MjIy",
+          "isNew": false,
+          "rightId": "efabeae0-8617-41ec-949d-23e7295c6132",
+          "rank": 208
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "OTBhNTNhZjYtMDQ5OC00OWE3LWE5YmQtYzhlYjRhNmMwNGQ4",
+          "isNew": false,
+          "rightId": "e9216863-da36-4278-abee-0723811e239f",
+          "rank": 209
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "联席主持人·4位",
+          "img": "MDg3OTI3YjYtOTg3MS00OTc5LWExYjgtMTFlMGEzMWViOGUy",
+          "isNew": false,
+          "rightId": "3493adf8-c971-4e71-811c-1be9b887a76e",
+          "rank": 210
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "NjcwZjE3OGEtYWQxYS00OGRmLTllNGItMDYzZGMwNDBjYWM2",
+          "isNew": false,
+          "rightId": "d44c4d11-959a-47af-8895-514f9b9bc323",
+          "rank": 211
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "YTQ1ZmVlNjktNzQyMS00M2E1LTlhOWQtZTYwZDgwYjk1NWQw",
+          "isNew": false,
+          "rightId": "db95c955-a99b-4faf-aed2-4fa60f8f07a9",
+          "rank": 212
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "开启视频·100人",
+          "img": "YWQ3NTVlOTMtOGJlNy00MzM3LTg4MGQtOTk2YjE1MjQxMThi",
+          "isNew": false,
+          "rightId": "ae6bd90e-61e4-4ca2-965e-01e75daa0186",
+          "rank": 213
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "MTFmOWYzYjktNWM0Yi00MDlkLTg4YzItNDQ1M2YyMDQxYzRl",
+          "isNew": false,
+          "rightId": "0feb0e68-2d0e-477f-b6a4-5fa7f4706f55",
+          "rank": 214
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "OWJkYTUyNWItZDAyOS00NWViLThhZTItN2ZiNWU0ZDdjYzU5",
+          "isNew": false,
+          "rightId": "fbac93d4-620b-4b9d-8cef-08c5790c58f1",
+          "rank": 215
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "NzkwNDZkZGYtNjA4Yy00NzU5LWFlYzYtZGFjODY1ZmQ0MGE0",
+          "isNew": false,
+          "rightId": "b5f78510-41da-4871-acc9-49b212524238",
+          "rank": 216
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "NjE4NjVkMmYtZmE2YS00ZWJmLTlkZjMtYmNkYTlkYjdjODA4",
+          "isNew": false,
+          "rightId": "9078cdc3-d7a4-4f3d-a405-1d6e7d83a9d2",
+          "rank": 217
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "NmU4MTI3YWQtMTY0MS00ZDM0LWEwZTYtMWVlZTJmNjI5NGY5",
+          "isNew": false,
+          "rightId": "33e2ff96-9b6f-4a71-af49-90b08f7f706c",
+          "rank": 218
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "网络研讨会",
+          "img": "ZjUyMDcyM2QtYjQxYi00MjIwLWJjNjgtMzA4NGVmMTFmZTg2",
+          "isNew": false,
+          "rightId": "6e48605e-de29-4a71-a72b-3580521c5b3f",
+          "rank": 219
+        },
+        {
+          "type": "pro-hc",
+          "right": "myRight",
+          "title": "分组讨论",
+          "img": "YTgxNDkxNmItNjFkMi00YmJjLTgxMmMtY2IzNDBmNDM5ZWE1",
+          "isNew": false,
+          "rightId": "00497a9d-546e-4975-8fd3-364ab9ce5360",
+          "rank": 220
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "AI小助手Pro·限免",
+          "img": "NWMwYmVjYTItZDViZi00MGZlLTgwNGUtZDY1ZTU3Zjc3N2Fm",
+          "isNew": false,
+          "rightId": "f6063b07-4f44-4f80-913f-990532e28f2e",
+          "rank": 221
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "身份外显信息",
+          "img": "ZmIxOGE3ZjQtOWNiZi00NzFmLWFlZDUtM2IwMTcwZDUxNDdm",
+          "isNew": false,
+          "rightId": "9f4208e5-582c-4286-ab29-eab5d891693e",
+          "rank": 222
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "多端入会",
+          "img": "YmYyOTE3MjktZTY3NS00ODg5LWJkNGUtMzAxYTg0OTc0MzI3",
+          "isNew": false,
+          "rightId": "19a36af8-6bf0-4675-b4b5-e2994eaccedf",
+          "rank": 223
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "智能录制",
+          "img": "NWZhZmViMjMtMTlkNC00YTc5LThkYzMtYjExNDlhNDU3Nzli",
+          "isNew": false,
+          "rightId": "caa89f64-4d64-4282-b2ca-347d805af027",
+          "rank": 224
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "共享画质·原画",
+          "img": "NzJjYzYzNTctZjc4Ny00NThmLTk2NWItNWM1MDJjMjg2YjM2",
+          "isNew": false,
+          "rightId": "51edfc56-c6fc-4146-889c-391738c1a665",
+          "rank": 225
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "联席主持人·4位",
+          "img": "MjVlN2U2YmEtZjg5My00N2Y4LWExYjktMWQ5YmI2MjYxN2Nh",
+          "isNew": false,
+          "rightId": "63f80720-e29f-4cc1-9133-0f2862df78f3",
+          "rank": 226
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "会议字幕",
+          "img": "YjIxOGQ0MDItMWNiNi00ZWVhLWIxMzgtMzg5ZDFjNWI0N2E1",
+          "isNew": false,
+          "rightId": "13928894-96b1-4902-b3cb-3314859714eb",
+          "rank": 227
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "实时转写",
+          "img": "ZDJkYjQ2YjItOTFiMy00MjBkLTk0YzAtMjhmYjVjY2M2MjNl",
+          "isNew": false,
+          "rightId": "0eb3d68e-5226-40d2-acdc-0727b8ef9ce3",
+          "rank": 228
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "开启视频·100人",
+          "img": "Mjc5MDEzYWItYTUxZi00MWE2LTliMmItZjgxOTFhNDhjNTMy",
+          "isNew": false,
+          "rightId": "2e82fa5f-5c94-407d-8fbc-63bf852e5739",
+          "rank": 229
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "多排水印",
+          "img": "NmM3YmQwMTMtZjhmOS00MzkxLTkyODItMjQ0YjBkOTVjNTU1",
+          "isNew": false,
+          "rightId": "c48bb3d0-95fd-482c-9949-acfcf4ee4aa7",
+          "rank": 230
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "超清画质",
+          "img": "YzFlNTE4ZmQtYjhmYy00OTMyLTljYjMtZmVlMjhkNDdmMGNj",
+          "isNew": false,
+          "rightId": "894942b7-de27-4f8d-9339-94c5829cfa96",
+          "rank": 231
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "会议白板",
+          "img": "MDk0ZTQ2ZTEtZmM5Mi00NTRmLTk4NjUtMDk4MzBmYmRmN2Zk",
+          "isNew": false,
+          "rightId": "d2ee442a-1363-4dae-b3e8-4b8724651638",
+          "rank": 232
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "会议批注",
+          "img": "ZGYwM2UzNzktNmRmZi00OWMzLWE5YjItYTFjYzEzOWQ5Nzcw",
+          "isNew": false,
+          "rightId": "8c72713d-b426-4dc6-9062-a4b23d13f21c",
+          "rank": 233
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "特邀会议",
+          "img": "OGU2ZDZjZDQtMDY5Ny00MTkwLTlkZTQtZDdjYWRlNTgzOGZk",
+          "isNew": false,
+          "rightId": "6cb4ae9d-83db-4afb-8ef0-b6399433fb00",
+          "rank": 234
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "会议等候室",
+          "img": "YmQxYzljMTctZjZlOS00NGJiLThiOWEtZDc0ZGNkZjgyMTAw",
+          "isNew": false,
+          "rightId": "b12bf4fe-8705-4ec0-a46c-7e30087f204f",
+          "rank": 235
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "网络研讨会·限时",
+          "img": "ZjAwNDBhYzctZTU2Ni00Nzc2LTk1NjEtNGUyNzNlNGJiMjVj",
+          "isNew": false,
+          "rightId": "bb096a44-abc3-4db7-8ea8-79cd08943794",
+          "rank": 236
+        },
+        {
+          "type": "pro-org-hc",
+          "right": "myRight",
+          "title": "分组讨论·50组",
+          "img": "YzI2ZmY5NDktZTFmMy00Y2ZhLTk3ZWEtOTBjNWQ0NjU3N2E1",
+          "isNew": false,
+          "rightId": "7fa2a90d-c987-4fa4-823c-76aaef0cc9bd",
+          "rank": 237
+        }
+      ]
+    }
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331230372&c_instance_id=5&c_nonce=iDs3iEwn&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-CN&c_district=0&trace-id=2f4547bbcf573a33091ba2be210f7fdf&rnds=iDs3iEwn",
+    "method": "GET",
+    "post_data": null
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic-nar/sass/to-sass?c_os_model=web&c_timestamp=1781331230373&c_instance_id=5&c_nonce=jQMejbTA&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=186098f282890c7ab63c810014be1c04&rnds=jQMejbTA&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "post_data": "{\"corp_category\":11,\"scene\":\"\",\"instance_id\":21}"
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/banners/activity-banner-v2?c_os_model=web&c_timestamp=1781331230277&c_instance_id=5&c_nonce=PDZpR8tm&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=4182fae827d08ca40ca67a9850ef640c&rnds=PDZpR8tm&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": -1002,
+      "message": "banner not config",
+      "nonce": "fDm6Uv894X",
+      "timestamp": 1781331230,
+      "data": ""
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-webapi/v2/corp/corp/corp-pay-tag?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331230372&c_instance_id=5&c_nonce=iDs3iEwn&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-CN&c_district=0&trace-id=2f4547bbcf573a33091ba2be210f7fdf&rnds=iDs3iEwn",
+    "method": "GET",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "server": "ability_logic-formal",
+      "nonce": "jf88qb7jqX",
+      "trace_id": "f87cbd552eaf409c4fa61a11d2659341",
+      "timestamp": 1781331230,
+      "data": {
+        "tag_type": 15,
+        "tag_type_version": 0,
+        "order_id": "",
+        "status": 0,
+        "create_time": "",
+        "start_time": "",
+        "end_time": "",
+        "corp_id": "200000001",
+        "account_corp_id": "504789436",
+        "order_resource_id": "",
+        "channel": 0,
+        "pay_type": 2,
+        "modify_time": "",
+        "status_reason": 0,
+        "end_time_timestamp": "",
+        "is_poc": false,
+        "is_offline_pay": false,
+        "is_in_announcement": false,
+        "buy_model": 1,
+        "corp_type": 0,
+        "pay_guide_type": 0,
+        "pay_source": 0,
+        "user_meeting_online_member": 100,
+        "base_meeting_online_member": 100,
+        "user_pay_tag": {
+          "tag_type": 0,
+          "status": 0,
+          "start_time": "0",
+          "end_time": "0",
+          "create_time": "0",
+          "update_time": "0",
+          "status_reason": 0,
+          "is_highest_level": 0,
+          "pro_level": 0,
+          "tag_type_version": 0
+        },
+        "resources": [
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "assistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 0,
+            "size": "0",
+            "resource_code": "webinarAssistHostLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 2,
+            "size": "2",
+            "resource_code": "breakoutRoomCountLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 30,
+            "size": "30",
+            "resource_code": "videoUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 100,
+            "size": "100",
+            "resource_code": "audioUpstreamLimit",
+            "resource_limit_switch": 2
+          },
+          {
+            "size_int": 1073741824,
+            "size": "1073741824",
+            "resource_code": "cloudRecordCosStorageSize",
+            "resource_limit_switch": 2
+          }
+        ],
+        "pro_resource": [
+          {
+            "resource_code": "time_unlimited",
+            "member_limit": 2,
+            "time_limit": -1,
+            "free_limit": 0,
+            "is_show_expansion": true,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "MuS6uuS4jemZkOaXtuS8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          },
+          {
+            "resource_code": "hostAccount100",
+            "member_limit": 100,
+            "time_limit": 2400,
+            "free_limit": 0,
+            "is_show_expansion": false,
+            "expansion_url": "",
+            "expansion_toast": "",
+            "description": "My0xMDDkurrpmZDml7Y0MOWIhumSn+S8muiurg==",
+            "desc_head": "",
+            "desc_tail": ""
+          }
+        ],
+        "promotion_card_number": 0,
+        "join_before_limit_type": {
+          "0": "100"
+        },
+        "recycle_policy": "3",
+        "advance-card-pay": "",
+        "user_tips": {
+          "remaining_card_tips": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "auto_use_tips": "5q+P5byg5Y2h5Y+v5Li65Lya6K6u5bu26ZW/MuWwj+aXtu+8jOWPr+WPoOWKoOS9v+eUqOOAguiDveWQpuiHquWKqOS9v+eUqOWKoOaXtuWNoeS7peS8muiuruWunumZheWPrOW8gOaXtueahOaVsOmHj+S4uuWHhuOAgg==",
+          "title_tips": "6LaF6L+HMuS6uuWwhuiHquWKqOi9rOS4ujQw5YiG6ZKf6ZmQ5pe25Lya6K6u",
+          "before_recycled_content": "",
+          "card_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2Vudmlyb25tZW50YWwtaW50ZWdyYWwvZW50ZXI=",
+          "schedule_host_account_tips": "5pyA5aSa5pSv5oyBMTAw5Lq65Y+C5Lya77yM5Lya6K6u5Lq65pWw6LaF6L+HMuS6uuaXtu+8jOWQr+WKqDQw5YiG6ZKf6ZmQ5pe244CC",
+          "schedule_host_account_btn": "5Y2H57qn6IO95Yqb",
+          "schedule_btn_link_url": "",
+          "schedule_webinar_tips": "5pyA5aSa5pSv5oyBMTDlkI3lmInlrr7lkowxMDDlkI3op4LkvJflj4LkvJrvvIzpmZDml7Y0MOWIhumSn+OAgg==",
+          "schedule_remaining_card": "5pys5pyI5Ymp5L2Z5Yqg5pe25Y2hMOW8oA==",
+          "is_show_expansion": false,
+          "schedule_host_account_jump_url": "aHR0cHM6Ly9tZWV0aW5nLnRlbmNlbnQuY29tL3YyL2J1eS92aXA/d21fd3Zfd2lkdGg9OTYwJndtX3d2X2hlaWdodD03MjAmd3ZfdWlfc3R5bGU9MTg2",
+          "schedule_host_account_jump_url_type": 2,
+          "schedule_limited_number_tips": "",
+          "schedule_limited_number_btn_txt": "",
+          "schedule_limited_number_jump_url": "",
+          "quick_meeting_tips": "",
+          "quick_meeting_btn_txt": "",
+          "quick_meeting_jump_url": ""
+        },
+        "rooms_resource": null,
+        "rooms_user_tips": {
+          "limit_meeting_tips": ""
+        },
+        "expire_tips": "NotNeed",
+        "is_qywechat_corp": false,
+        "corp_life_cycle": "normal",
+        "account_tag": {
+          "account_type": "",
+          "account_desc": ""
+        },
+        "corp_source": "unknown",
+        "business_end_time": "",
+        "user_type": "1",
+        "business_model": 0
+      }
+    }
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic/dianshi/send-dianshi-voucher?c_os_model=web&c_timestamp=1781331230509&c_instance_id=5&c_nonce=TwFJD8yT&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=22a1990ab59f00fc7902cff74e5009a4&rnds=TwFJD8yT&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "post_data": "{\"send_type\":\"vip-center\"}"
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic-nar/sass/to-sass?c_os_model=web&c_timestamp=1781331230373&c_instance_id=5&c_nonce=jQMejbTA&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=186098f282890c7ab63c810014be1c04&rnds=jQMejbTA&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "gO37egrcGw",
+      "timestamp": 1781331230,
+      "data": {
+        "code": "",
+        "corp_id": "200000001",
+        "uid": "",
+        "uin": "303030178198",
+        "uin_unionid": "372164424",
+        "admin_type": 0,
+        "corp_category": 11,
+        "sale_platform": "",
+        "user_type": 1,
+        "uin_list": [
+          {
+            "code": "",
+            "corp_id": "200000001",
+            "uid": "",
+            "uin": "303030178198",
+            "uin_unionid": "372164424",
+            "admin_type": 0,
+            "corp_category": 11,
+            "sale_platform": "",
+            "user_type": 1
+          },
+          {
+            "code": "",
+            "corp_id": "301129056",
+            "uid": "",
+            "uin": "303030166585",
+            "uin_unionid": "372153972",
+            "admin_type": 0,
+            "corp_category": 1,
+            "sale_platform": "",
+            "user_type": 2
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/login-logic/login/can-change-account?c_os=web&c_os_version=1&c_os_model=web&c_timestamp=1781331228896&c_instance_id=5&c_nonce=YsNSRBiB&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=1&c_lang=zh-CN&c_district=0&trace-id=d51831ee8e27fcd047eb7a2ed972484e&rnds=YsNSRBiB",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "63f79e9d8607095b289acb10a45a298d",
+      "timestamp": 1781331230,
+      "server": "login_logic-formal",
+      "data": {
+        "is_can_change_account": true
+      }
+    }
+  },
+  {
+    "type": "request",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/activity/homepage-activities?c_os_model=web&c_timestamp=1781331230703&c_instance_id=5&c_nonce=jdTGnhm2&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=bdbfa71d9585306536d83ccc073676f3&rnds=jdTGnhm2&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "post_data": "{\"uin\":\"303030178198\"}"
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/pay-logic/dianshi/send-dianshi-voucher?c_os_model=web&c_timestamp=1781331230509&c_instance_id=5&c_nonce=TwFJD8yT&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=22a1990ab59f00fc7902cff74e5009a4&rnds=TwFJD8yT&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "ykDnUt0cHr",
+      "timestamp": 1781331230,
+      "data": {
+        "is_have_voucher": true,
+        "vip_duration": 1,
+        "is_hit_send_retention": false,
+        "send_wechat_retention_state": 0,
+        "send_dianshi_retention_state": 0
+      }
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://meeting.tencent.com/wemeet-tapi/v2/activity-logic/activity/homepage-activities?c_os_model=web&c_timestamp=1781331230703&c_instance_id=5&c_nonce=jdTGnhm2&c_os=web&c_os_version=Mozilla%252F5.0%2520(Macintosh%253B%2520Intel%2520Mac%2520OS%2520X%252010_15_7)%2520AppleWebKit%252F537.36%2520(KHTML%252C%2520like%2520Gecko)%2520Chrome%252F149.0.0.0%2520Safari%252F537.36&c_app_id=200000001&c_account_corp_id=504789436&c_app_version=&c_lang=zh-cn&c_district=0&trace-id=bdbfa71d9585306536d83ccc073676f3&rnds=jdTGnhm2&c_app_uid=144115215978250896&c_platform=0&c_token=",
+    "method": "POST",
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "success",
+      "nonce": "XKPw6XmYnb",
+      "timestamp": 1781331230,
+      "data": {}
+    }
+  }
+]

@@ -1,0 +1,21 @@
+# 自动生成报告
+# 版本: SPB_V2.2.19_20260703_hotn
+# 源文件: SPB_V2.2.19_20260703_hotn.xlsx
+# 模块: CLI, DLL, Table, HisRunTable, HisTable, Proc, ProcAdd, TableDevelop, UpgradeRemark, Remark, Init
+
+# Task编号 (共 1 项):
+JZJYPT-T202607604
+
+# Task编号详细
+JZJYPT-T202607604 关于大宗盘后固定价格交易的补充需求  史立彬-108497
+
+# === DLL (共 3 项) ===
+lbm_list = ['lbm_periphery', 'lbm_stk', 'lbm_unicounter']
+
+lbm_periphery
+lbm_stk
+lbm_unicounter
+
+# === init (共 1 项) ===
+init_data_T202607077_slb.sql
+

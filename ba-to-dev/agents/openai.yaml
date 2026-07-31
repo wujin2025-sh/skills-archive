@@ -1,0 +1,4 @@
+interface:
+  display_name: "BA-to-Dev"
+  short_description: "Convert business requirements to structured R&D Markdown"
+  default_prompt: "将以下业务需求转换为可直接指导研发与测试的结构化 Markdown 文档"

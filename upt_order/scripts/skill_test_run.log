@@ -1,0 +1,147 @@
+[INFO] 目标日期: 2026-06-05 17:00~20:00
+
+[参数] 变更系统搜索关键词: '98chuangxin'
+[模式] 识别为：98chuangxin
+[CONSOLE] error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+[CONSOLE] error: Failed to load resource: the server responded with a status of 404 (Not Found)
+[CONSOLE] error: onDispatchError of type = fetchFlowTemplateInfo ResponseError: http error
+    at https://www.gtht.com.cn/flowweb/umi.25205237.js:1:5043907
+[CONSOLE] error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+[CONSOLE] error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+[CONSOLE] error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+[CONSOLE] verbose: [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o
+[PAGE ERROR] Failed to execute 'transaction' on 'IDBDatabase': A version change transaction is running.
+[登录] 页面检测: {"needsLogin": true, "reason": "login_form"}
+[登录] 检测到登录页面，执行登录...
+[登录] 完成 → https://www.gtht.com.cn/login.html?href=%2Fflowweb%2FEOA%2FEOA117%3Ffirst%3DA0001%26second%3DB0005
+[CONSOLE] log: Event
+  ✓ 变更分类已保护: '(空)'
+
+=======================================================
+[8] 变更系统搜索: "创新" ...
+=======================================================
+  触发变更系统Cascader: clicked_cascader_search
+  🎯 变更系统最终选择: 应用/全业务交易平台/低延时交易系统(虚拟)/低延时交易系统(创新域)
+
+--- 标题 → 低延时交易系统98创新域2026XXXX版本运维服务变更单 ---
+
+--- 开始时间: 2026-06-05 17:00 ---
+  picker: '2026-06-05 17:00' ✅
+
+--- 结束时间: 2026-06-05 20:00 ---
+  picker: '2026-06-05 20:00' ✅
+
+--- 紧急度 → 非紧急 ---
+
+--- 是否补单 → 否 ---
+
+=======================================================
+[7] 变更事由 → '常规版本升级'...
+  事由: ok
+
+--- 实施负责人 → 108728 (弹窗搜索树) ---
+
+--- 工程号 → 弹窗选择 'NGTP持续建设' ---
+  ✓ 工程号已处理
+
+--- 系统版本号 → 弹窗级联选择 ---
+
+--- 预估时间 → 10分钟至30分钟 ---
+
+--- 回退用时 → 30分钟内 ---
+
+--- 系统中断时间 → 无中断 ---
+
+--- 是否停机 → 是 ---
+
+--- 需求类型 → 普通业务功能 ---
+
+--- 实施复杂度 → 跨系统 ---
+
+--- 变更组件 → ['核心交易组件', 'BOS相关组件'] ---
+
+--- 影响业务功能 → ['交易系统实时交易'] ---
+
+--- 影响用户范围 → ['1万人以下投资者,多个部门'] ---
+
+  🪟 变更系统信息: 查找「新增」按钮...
+    按钮搜索: proximity:vert=45 horiz=1118 btn=新增
+[CONSOLE] log: [Object, Object, Object, Object]
+    弹窗诊断: {"labels":["*系统名称：","应用 / 全业务交易平台 / 低延时交易系统(虚拟) / 低延时交易系统(创新域)","*系统级别：","系统运维负责人：","*主系统/灾备：","*对应CMDB维护组名称：","*变更文件：","*cmdb变更部位：","变更部位：","*变更方式：","备注："],"ths":[],"hasTable":0}
+    弹窗字段[0] 主系统/灾备 -> 选择 主系统
+      触发: select_clicked
+      选择: selected:主系统
+    弹窗字段[1] CMDB维护组名称 -> 选择 低延时交易系统(创新域)
+      触发: select_clicked
+      选择: selected:低延时交易系统(创新域)
+    弹窗字段[2] 变更文件 -> 见制品信息
+      结果: ok_formitem:变更文件
+    弹窗字段[3] cmdb变更部位 -> 选择 不适用
+      触发: select_clicked
+      选择: selected:不适用
+    弹窗字段[4] 变更部位 -> 见制品信息包名
+      结果: ok_formitem:变更部位
+    弹窗字段[5] 变更方式 -> 选择 新增 (1/2)
+      触发: select_clicked
+      选择: selected:新增
+    弹窗字段[5] 变更方式 -> 选择 替换 (2/2)
+      触发: select_clicked
+      选择: selected:替换
+    确定: confirmed:确 定
+[22] 变更方案 → 新增 → 填写任务/操作步骤/序列/角色/处理人...
+
+  🪟 变更方案: 查找「新增」按钮...
+    按钮搜索: proximity:vert=45 horiz=1041 btn=新增
+    弹窗诊断: {"labels":["*任务：","*操作步骤：","*序列：","*角色：","*处理人：","*部门：","备注："],"ths":[],"hasTable":0}
+    弹窗字段[0] 任务 -> 选择 变更任务
+      触发: select_clicked
+      选择: selected:变更任务
+    弹窗字段[1] 操作步骤 -> 升级版本
+      结果: ok_formitem:操作步骤
+    弹窗字段[2] 序列 -> 1
+      结果: ok_formitem:序列
+    弹窗字段[3] 角色 -> 选择 主实施负责人
+      触发: select_clicked
+      选择: selected:主实施负责人
+    弹窗字段[4] 处理人 -> 弹出树勾选 108728
+      输入搜索词: no_top_modal
+      树勾选结果: no_top_modal
+      确定关闭选人弹窗: no_top_modal
+    确定: confirmed:确 定
+
+  🪟 回退计划: 查找「新增」按钮...
+    按钮搜索: proximity:vert=45 horiz=1041 btn=新增
+    弹窗诊断: {"labels":["*任务：","*操作步骤：","*序列：","*角色：","*处理人：","*部门：","备注："],"ths":[],"hasTable":0}
+    弹窗字段[0] 回退策略 -> 选择 全部回退
+      触发: clicked_first_select/3
+      选择: no_option_matched:全部回退
+    弹窗字段[1] 回退条件 -> 变更后系统出现异常，经开发、运维共同评估需要整体回退
+      结果: ok_fallback[1]/4
+    弹窗字段[2] 回退步骤 -> 回退至上一版本
+      结果: ok_fallback[2]/4
+    确定: confirmed:确 定
+
+  🪟 应急计划: 查找「新增」按钮...
+    按钮搜索: proximity:vert=45 horiz=1041 btn=新增
+    弹窗诊断: {"labels":["*任务：","*操作步骤：","*序列：","*角色：","*处理人：","*部门：","备注："],"ths":[],"hasTable":0}
+    弹窗字段[0] 异常场景 -> 选择 升级验证失败
+      触发: clicked_first_select/3
+      选择: no_option_matched:升级验证失败
+    确定: confirmed:确 定
+
+--- 成功标准 → 升级验证成功 ---
+
+--- 版本地址 → http://10.120.188.223:8082/artifactory/jyxt-NGTP-Generic-Prod-Local/929698PROD/2026XXXX
+http://10.120.188.223:8082/artifactory/jyxt-NGTP-Generic-Prod-Local/85PROD/2026XXXX ---
+
+=======================================================
+[保存] 点击底部「保存」按钮...
+=======================================================
+  ✅ 方法1 TreeWalker click 成功!
+
+[验证截图] 完整表单状态已保存: /Users/wujin/.workbuddy/skills/升级单/scripts/eoa117_verify.png
+  📄 JSON 报告已写入: /Users/wujin/.workbuddy/skills/升级单/scripts/eoa117_report.json
+
+🎉 EOA117 表单通用自动填报完成!
+
+浏览器将在 60 秒后关闭，请在此期间确认保存结果...

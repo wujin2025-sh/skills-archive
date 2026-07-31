@@ -1,0 +1,49 @@
+{
+  "jzjy": {
+    "name": "集中交易系统",
+    "search_keyword": "集中交易系统",
+    "cmdb_team": "集中交易团队",
+    "project_no_search": "集中交易",
+    "time_window": {"start": "17:30", "end": "23:30"},
+    "engineers": [
+      {"name": "张永军", "code": "108728"},
+      {"name": "张博闻", "code": "111483"},
+      {"name": "宋倩", "code": "114322"}
+    ],
+    "components": ["数据库", "核心交易组件"]
+  },
+  "cszx": {
+    "name": "交易参数中心",
+    "search_keyword": "交易参数管理后台",
+    "cmdb_team": "参数中心团队",
+    "project_no_search": "参数中心",
+    "time_window": {"start": "17:30", "end": "23:30"},
+    "engineers": [
+      {"name": "张颖", "code": "116748"},
+      {"name": "张博闻", "code": "111483"}
+    ],
+    "components": ["数据库", "核心交易组件"]
+  },
+  "95xinchuang": {
+    "name": "95信创域系统",
+    "search_keyword": "信创",
+    "cmdb_team": "信创工程团队",
+    "project_no_search": "NGTP持续建设",
+    "time_window": {"start": "17:00", "end": "20:00"},
+    "engineers": [
+      {"name": "张永军", "code": "108728"}
+    ],
+    "components": ["核心交易组件", "BOS相关组件"]
+  },
+  "98chuangxin": {
+    "name": "98创新域系统",
+    "search_keyword": "创新",
+    "cmdb_team": "创新工程团队",
+    "project_no_search": "NGTP持续建设",
+    "time_window": {"start": "17:00", "end": "20:00"},
+    "engineers": [
+      {"name": "张永军", "code": "108728"}
+    ],
+    "components": ["核心交易组件", "BOS相关组件"]
+  }
+}

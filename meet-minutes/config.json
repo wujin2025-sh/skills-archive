@@ -1,0 +1,25 @@
+{
+  "_说明": "会议转纪要技能跨平台配置文件。Windows/macOS/Linux 通用，首次使用时按实际路径修改。",
+  "csv_path": "人员部门对应关系表.csv",
+  "csv_search_dirs": [
+    "",
+    "data",
+    "config",
+    "会议纪要"
+  ],
+  "save_path": "/Volumes/Macintosh HD_Data/obsidian/300_Resources/会议纪要/",
+  "req_analysis_path": "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/",
+  "save_path_windows_example": "C:\\Users\\用户名\\Obsidian-Notes\\会议纪要\\",
+  "save_path_macos_example": "/Users/用户名/Obsidian-Notes/会议纪要/",
+  "file_naming": "YYYYMMDD-会议-{主题}.md",
+  "auto_save": true,
+  "platform_note": "所有路径支持绝对路径和相对路径（相对于工作区根目录）。Windows 使用反斜杠或正斜杠均可。",
+  "mail": {
+    "url": "https://mail.gtht.com/",
+    "username": "wujin@gtht.com",
+    "password": "ENC:gAAAAABqHmercTl2TEdKj6oHx4tUeCdiK7fXMloI8AScWgRegDRy_lI5J39dYU3ojTShTflgjDuprBOjrl4Xfz26Z-0g7AaRLA==",
+    "default_recipient": "",
+    "draft_mode": "fast",
+    "note": "邮件草稿保存配置。draft_mode: fast=极速无界面（推荐），full=完整Playwright交互（含收件人下拉）。发件人自动为 username。"
+  }
+}

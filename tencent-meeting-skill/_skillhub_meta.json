@@ -1,0 +1,23 @@
+{
+  "name": "腾讯会议",
+  "installedAt": 1780366425197,
+  "source": "marketplace",
+  "version": "1.0.12",
+  "skillId": "skill_2053084099650080768",
+  "examples_zh": [
+    "帮我约明天下午3点的团队会议",
+    "获取上周五全员大会的录制文件",
+    "查看今天会议的AI智能纪要"
+  ],
+  "examples_en": [
+    "Schedule a team meeting for tomorrow at 3pm",
+    "Get the recording from last Friday's all-hands",
+    "Show me the AI notes from today's meeting"
+  ],
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-meeting-skill.png",
+  "iconLocalPath": "/Users/wujin/.workbuddy/skills/tencent-meeting-skill/_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-meeting-skill.png",
+  "skillName": "tencent-meeting-skill",
+  "description_zh": "腾讯会议管理助手，支持预约/创建/修改/取消会议、查询录制与转写、获取AI智能纪要",
+  "description_en": "Tencent Meeting assistant for scheduling, managing meetings, querying recordings, transcripts & AI summaries"
+}

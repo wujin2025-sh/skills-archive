@@ -1,0 +1,92 @@
+[
+  {
+    "name": "ww_lang",
+    "value": "cn,zh",
+    "domain": ".work.weixin.qq.com",
+    "path": "/",
+    "expires": 1783921282.930242,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "wwopen.open.sid",
+    "value": "wII2oKjT8cdA23kDv8yQzvwCYc3ZVrhGdTM1Tt8x-zWc3b8but9jGQzVQBAei0Q6YpKtD3aIVBeR9ccJ9XRskvg",
+    "domain": ".work.weixin.qq.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "landing_url",
+    "value": "https://meeting.tencent.com/user-center/my-record",
+    "domain": "meeting.tencent.com",
+    "path": "/",
+    "expires": 1812865284,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "landing_path",
+    "value": "https://meeting.tencent.com/user-center/my-record",
+    "domain": "meeting.tencent.com",
+    "path": "/",
+    "expires": 1812865284,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "landing_referralurl",
+    "value": "",
+    "domain": "meeting.tencent.com",
+    "path": "/",
+    "expires": 1812865284,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "landing_referraldomain",
+    "value": "",
+    "domain": "meeting.tencent.com",
+    "path": "/",
+    "expires": 1812865284,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "web_uid",
+    "value": "84298965-63f9-40b9-a25e-82acabc7c13e",
+    "domain": "meeting.tencent.com",
+    "path": "/",
+    "expires": 1815889284.333391,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga_RPMZTEBERQ",
+    "value": "GS2.1.s1781329286$o1$g0$t1781329286$j60$l0$h0",
+    "domain": ".tencent.com",
+    "path": "/",
+    "expires": 1815889286.240662,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_ga",
+    "value": "GA1.1.293824366.1781329286",
+    "domain": ".tencent.com",
+    "path": "/",
+    "expires": 1815889286.242184,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  }
+]

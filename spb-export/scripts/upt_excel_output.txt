@@ -1,0 +1,44 @@
+# 自动生成报告
+# 版本: SPB_V2.2.19_20260703_hotn
+# 源文件: SPB_V2.2.19_20260703_hotn_upt.xlsx
+# 模块: CLI, DLL, Table, HisRunTable, HisTable, Proc, ProcAdd, TableDevelop, UpgradeRemark, Remark, Init
+
+# Task编号 (共 6 项):
+JZJYPT-T202504812
+JZJYPT-T202607015
+JZJYPT-T202607077
+JZJYPT-T202607080
+JZJYPT-T202607136
+JZJYPT-T202607604
+
+# Task编号详细
+JZJYPT-T202504812 调整X侧沪深主板风险警示股票价格涨跌幅限制比例  史立彬-108497
+JZJYPT-T202607015 【配合测试】关于支持上交所场内基金收盘集合竞价的相关系统改造需求  厉凌杰-112945
+JZJYPT-T202607077 上交所主板风险警示股票、科创板改革交易机制调整改造  史立彬-108497
+JZJYPT-T202607080 深交所主板风险警示股票、创业板改革交易机制调整改造  史立彬-108497
+JZJYPT-T202607136 【低延时】盘后固定价格卖出支持同标被转的需求  厉凌杰-112945
+JZJYPT-T202607604 关于大宗盘后固定价格交易的补充需求  史立彬-108497
+
+# === DLL (共 5 项) ===
+lbm_list = ['lbm_periphery', 'lbm_stk', 'lbm_unicounter', 'lbm_per', 'lbm_rprt']
+
+lbm_periphery
+lbm_stk
+lbm_unicounter
+lbm_per
+lbm_rprt
+
+# === ProcUpd (有效 3 条, 跳过 3 条) ===
+proc_list.append(['shilibinJZJYPT-T202504812', [['nb_setshzqinfo_2023','add_proc_sh_stkinit.sql'],['up_set_stkinit_sh_cpjcxx','add_proc_sh_stkinit.sql'],['up_set_stockinfo_v5','add_proc_v5.sql']]])
+proc_list.append(['shilibinJZJYPT-T202607077', [['up_com_withdraw','order.sql'],['nb_chk_fundid','yh_order.sql'],['nb_chk_secuid','yh_order.sql']]])
+proc_list.append(['lilingjieJZJYPT-T202607136', [['up_com_creditreturn','returnfund.sql'],['up_com_ordercall','order.sql'],['up_com_ordercall_rzrq','order.sql']]])
+
+# === 备注 (共 3 项) ===
+交易所仿真环境未就绪
+交易所新规，必须7月6日实施
+交易新规，要求6月份份上线
+
+# === init (共 2 项) ===
+init_data_T202607077_slb.sql
+init_data_T202504812_slb.sql
+
