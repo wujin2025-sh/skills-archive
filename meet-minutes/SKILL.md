@@ -4,9 +4,10 @@ description: 将会议语音转写记录与《人员部门对应关系表》整�
 agent_created: true
 version: 2.17
 read_when:
-  - User provides meeting transcript and asks to generate meeting minutes or email
-  - User mentions 会议纪要, 会议记录, 会议转纪要, meeting minutes, meet-minutes
+  - User provides meeting transcript or audio file (.m4a, .mp3, .wav) and asks to generate meeting minutes or email
+  - User mentions 会议纪要, 会议记录, 会议转纪要, 音频转纪要, meeting minutes, meet-minutes
   - User says /会议转纪要 with optional date and/or demand_id (e.g. 会议转纪要 20260722 R2607090120)
+  - User passes an audio file path (e.g. 交易系统兼容性问题讨论.m4a) asking to generate meeting minutes
   - User says /meet-minutes with optional date and/or demand_id (e.g. meet-minutes 20260722 R2607090120)
   - User mentions demand_id or demand number (e.g. R2607090120) when generating meeting minutes
   - User says 发邮件 after meeting minutes have been generated
@@ -143,15 +144,17 @@ Step 4.5: 录制列表为空时的处理策略：
         - 最多重试 3 次，每次间隔 30 秒
 
 Step 5: 对每个 record_file_id 获取内容（按优先级，性能优化）：
-        a. 【优先·最快】Bash 调用 tmeet CLI（1 次调用获取全部）：
+        a. 【自动化触发优先】先调用 Playwright 自动化脚本（`activate_recording.py`）搜索会议号并自动点击“录制/查看/AI纪要”激活转写，确保腾讯云服务端启动转码与文本渲染。
+        b. 【优先·最快】Bash 调用 tmeet CLI（1 次调用获取全部）：
            Bash: tmeet record transcript-get --record-file-id "<id>" --pid "0" --compact
            → 一次性返回全部段落（无论多少段都只调用 1 次）
-           → 如成功，跳过 Step 5b/5c/5d
-        b. 【降级】如 CLI 执行失败，再调用 get_smart_minutes(record_file_id)
-        c. 【兜底】如智能纪要为空，才调用 get_transcripts_details
-           ⚠️ 禁止先 get_transcripts_paragraphs 再遍历 pid（性能瓶颈）
-           ⚠️ 仅在 CLI 和智能纪要都失败时，才用此降级方案
-        d. 若录制文件有密码 → 提示用户输入 pwd
+           → 如成功，跳过 Step 5c/5d
+        c. 【降级·AI纪要】如录制列表为空或 CLI 抓取失败，自动调用 AI 智能纪要接口：
+           Bash: tmeet record smart-minutes --record-file-id "<id>" --compact
+           或:   tmeet record search --query-field smart_minutes --query "<关键词/会议号>" --compact
+           → 直接获取腾讯会议 AI 编译的智能总结与待办
+        d. 【纯净真实性保障】会议纪要内容必须 100% 严格以【腾讯会议】转写/AI纪要原文为唯一事实依据，严禁混入或关联本地 Obsidian 需求单中未经会议提及的任何虚构或补充内容。
+        e. 若录制文件有密码 → 提示用户输入 pwd
 
 Step 6: 自动读取《人员部门对应关系表》
         从 config.json 读取 csv_path，在工作区根目录查找 CSV 文件
@@ -160,19 +163,22 @@ Step 6: 自动读取《人员部门对应关系表》
         ⚠️ macOS 路径示例:   /Users/用户名/WorkBuddy/会议纪要/人员部门对应关系表.csv
         构建 人员→部门 映射字典
 
-Step 7: 将抓取数据（会议信息 + 转写内容 + 参会人 + 部门映射）
+Step 7: 将抓取数据（会议信息 + 转写内容 / AI纪要 + 参会人 + 部门映射）
         传入 Phase 1 流程，按模板生成会议纪要
 
 Step 8: 将生成的会议纪要保存为 Markdown 文件（详见 Phase 2）
 ```
 
-### 0.4 错误处理
+### 0.4 错误处理与他人发起会议（Host Context & Permissions）
 
-| 错误场景 | 处理方式 |
+| 错误/异常场景 | 处理方式与自动化策略 |
 |---------|---------|
 | tmeet connector 未连接 | 提示"请先连接腾讯会议（tmeet）connector"，终止 |
 | 当日无已结束会议 | 提示"当日无已结束的腾讯会议"，终止 |
-| 会议无录制/转写 | 先改用 `--meeting-code` 重试；仍为空则改用 `record list --start --end` 按时间范围搜索；仍为空则三次重试（间隔 3s+5s）；均失败则检查 `meeting get` 返回的 `hosts` 字段是否含 `cli_*` (CLI bot)，如是则提示"CLI bot 主持的会议 API 不返回录制，请手动提供转写" |
+| **他人发起的会议：无录制/查看权限** | 自动检测 `is_host: false`，若调用录制 API 返回权限不足，**自动触发 tmeet 场景 8 流程**：调用 `apply_record_permission_prepare` 生成预览，提示用户："检测到该会议由 [主持人] 发起，无查看权限。是否一键向其提交申请？" 确认后 commit。 |
+| **他人发起的会议：参会人接口 9042 错** | 非主持人调用 `get_meeting_participants` 报 9042 权限错时，自动降级为**发言人提取算法**：从 `get_smart_minutes` 或段落转写提取 `speaker_name` 列表，查字典映射部门，并自动标注会议主持人。 |
+| **录制激活超时 / 无录制文件** | **自动尝试直接获取 AI 智能纪要（`tmeet record smart-minutes`）**；若 API 均不可用，自动与本地需求单 `meet-to-req` 精确合并，保证纪要闭环生成。 |
+| **隐私/网络限制下的 `--paste` 降级模式** | 用户使用 `/meet-minutes R2607090120 --paste` 或粘贴外部语音转写文本时，直接跳过 API 抓取，但仍自动执行“生成标准纪要 ➔ 归档 MD ➔ 融回需求单 ➔ 存 Coremail 草稿”全流程。 |
 | 智能纪要为空 | 自动降级到转写全文 |
 | 转写全文也为空 | 标注"（会议内容不可用）"，仅输出会议基本信息和参会人员 |
 | 人员 CSV 文件不存在 | 使用 workspace memory 中已缓存的部门映射；如均无，参会人只列名不分组 |
@@ -214,9 +220,14 @@ Step 8: 将生成的会议纪要保存为 Markdown 文件（详见 Phase 2）
 - 强制空行：每一个大标题、每一个业务模块（1. 2.）、每一个部门人员列表之后，必须额外增加一个空行（即输出两个换行符 `\n\n`），确保视觉上不拥挤。
 - 正文段落首行必须使用两个全角空格（　　）缩进。
 
-#### 4. 内容提炼准则
+#### 4. 内容提炼与防错红线
 
-- 会议时间：优先使用 Phase 0 抓取的实际时间；回退到从转写文件名（如 20260423084721）和最后发言时间戳推算。
+- **唯一事实依据原则（防错红线 4）**：纪要二、会议内容必须 100% 严格以【腾讯会议】原始转写 / AI 纪要为唯一事实依据。严禁擅自混入或关联本地 Obsidian 需求单中未经会议提及的任何虚构或补充内容。
+- **自动化激活优先**：对于无录制文件/按需生成的会议，必须优先调用 `activate_recording.py` 在 `user-meeting-list/ended` 页面自动搜索并点击“前往查看/录制/AI纪要”启动云端渲染转码。
+- **后续待办（三、后续待办）格式化规范**：
+  - 格式范例：`请 **[牵头方部门]** 负责完成 [具体任务描述]。 @[责任人A]、@[责任人B]`
+  - 规范要求：部门加粗且名称后**禁止附带括号包含姓名**；任务描述**不得使用中括号 `[...]` 包裹**；末尾空格后接 `@责任人`。
+- 会议时间：优先使用 Phase 0 抓取的实际时间；回退到从转写文件名和最后发言时间戳推算。
 - 外部机构统一泛化为"同业"或"某券商"。
 - 严禁负面词汇，统一转化为"架构演进"、"系统效能提升"等正面表述。
 - 如遇冲突，以会议最终达成的口径为准。
@@ -261,9 +272,9 @@ Step 8: 将生成的会议纪要保存为 Markdown 文件（详见 Phase 2）
 
 **三、后续待办**
 
-　　请 **[牵头方部门]** 配合 **[配合方部门]** 完成/评估 [具体产出物]。 @[责任人A]、@[责任人B]
+　　请 **[牵头方部门]** 配合 **[配合方部门]** 完成 具体产出物描述。 @[责任人A]、@[责任人B]
 
-　　请 **[牵头方部门]** 负责评估/推进 [具体任务]。 @[责任人C]
+　　请 **[牵头方部门]** 负责完成 具体任务描述。 @[责任人C]
 
 顺祝商祺！
 ```
@@ -300,7 +311,8 @@ YYYYMMDD-会议-会议主题.md
 **提取规则**：
 - `YYYYMMDD`：会议日期（Phase 0 抓取的日期，或 Phase 1 从文本中提取的日期）
 - `会议`：固定前缀
-- `会议主题`：从 `get_meeting` 返回的 `subject` 字段，或从用户提供的转写文本标题中提取
+- `会议主题`：优先提取会议具体业务议题。
+  - **泛化/默认主题自动替换规则（重要红线）**：若原始会议主题为通用占位名称（如 `XXX发起的预定会议`、`XXX的快速会议`、`预定会议`、`快速会议` 等），**必须自动基于会议录制转写/AI纪要实际讨论的的核心业务要点，精炼重构为具体明确的业务主题**（如：`盘后大宗定价买入申报价低于收盘价透支问题研讨与热补丁修复`），使文件名及 YAML 属性中的 `topic` 能够真实精准反映会议内容。
   - 超过 50 字时截断前 50 字
   - 移除文件名非法字符：`/ \ : * ? " < > |` → 替换为 `-`
   - 移除多余空格，合并连续短横线为单个 `-`

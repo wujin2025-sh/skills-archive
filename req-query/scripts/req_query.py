@@ -14,8 +14,24 @@ import asyncio
 import argparse
 from playwright.async_api import async_playwright
 
+def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
+    """解密存储在代码中的加密密码"""
+    if not enc_str.startswith('ENC:'):
+        return enc_str
+    kp = os.path.expanduser(key_path)
+    if not os.path.exists(kp):
+        return enc_str
+    try:
+        from cryptography.fernet import Fernet
+        with open(kp, 'rb') as f:
+            key = f.read()
+        fern = Fernet(key)
+        return fern.decrypt(enc_str[4:].encode('utf-8')).decode('utf-8')
+    except Exception:
+        return enc_str
+
 USERNAME = "125360"
-PASSWORD = "wujin@1124"
+PASSWORD = decrypt_password("ENC:gAAAAABqS3nG3HaebAdXuA4oG2aGH1N93TKWM0WvB9czGsKVsKccervTuVmO8qIYLf-yuYBL2X-El9OOHp4W7HhUY3Yeg39rkg==")
 LOGIN_URL = "https://fintech.gtht.com.cn/kjpt/user/login"
 DETAIL_URL_TEMPL = "https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={}&templateId=8888&flag=1"
 
@@ -72,9 +88,13 @@ async def get_demand_details(page, demand_id, skip_stories=False):
     if "login" in page.url.lower():
         return None, [], {}
 
-    # 若为极速模式，仅留 50ms JS 就绪缓冲
+    # 若需要 Story，等表格数据渲染就绪
     if not skip_stories:
-        await asyncio.sleep(0.1)
+        try:
+            await page.wait_for_selector('.ant-table-tbody .ant-table-row', timeout=6000)
+            await asyncio.sleep(0.2)
+        except Exception:
+            pass
 
     data = await page.evaluate("""({demandId, skipStories}) => {
         const fullText = document.body.innerText || '';

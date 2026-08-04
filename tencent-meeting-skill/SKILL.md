@@ -14,7 +14,7 @@ metadata:
     category: tencent
     tencentTokenMode: custom
     tokenUrl: https://mcp.meeting.tencent.com/mcp/wemeet-open/v1
-    emoji: "\U0001F4C5"
+    emoji: "📅"
 display_name: "腾讯会议"
 display_name_en: "Tencent Meeting"
 description_zh: "腾讯会议管理助手，支持预约/创建/修改/取消会议、查询录制与转写、获取AI智能纪要"
@@ -57,9 +57,10 @@ icon: "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-meeting
 - **跨时区**：用户提供非默认时区时间时，调用 `convert_timestamp` 须传 `timezone` 参数，返回的 `parsed_time_unix` 已是正确 UTC 时间戳，**禁止二次转换**；用户明确指定时区时，调用所有相关工具**必须**传入对应 `timezone` 参数
 - **时间输出格式**：`2026年3月25日 15:00` 或 `3月25日 下午3点`
 
-### 敏感操作
+### 敏感操作与权限处理
 
-- 修改或取消会议前，**必须向用户展示会议信息并确认**后再执行
+- 修改或取消会议前，**必须向用户展示会议信息并确认**后再执行（仅限于本人发起的会议）。
+- **他人发起的会议（非 Host）**：若查询录制/转写/智能纪要时遇到“录制权限不足”错误，系统将**自动触发场景 8 的权限申请流程**；若获取参会人遇到 `9042` 错误，应降级从发言人转构列表或智能纪要提取。
 - 录制权限申请提交前（`apply_record_permission_commit`），**必须先调用 `apply_record_permission_prepare` 获取预览信息并向用户完整展示**（会议主题、录制所有者、申请人、申请类型等），获得用户明确同意后再调用 commit 工具；详见场景8
 - 提交反馈（`submit_feedback`）前，**必须按场景7的二次确认流程获得用户明文同意**后再调用；反馈内容**严禁包含未脱敏的隐私信息**，详见 `references/privacy_policy.md`
 - 无法查询到会议时，先确认会议号正确性或是否为本人创建

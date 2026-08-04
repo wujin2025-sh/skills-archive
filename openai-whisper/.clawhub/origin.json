@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "registry": "https://clawhub.ai",
+  "slug": "openai-whisper",
+  "ownerHandle": "steipete",
+  "installedVersion": "1.0.0",
+  "installedAt": 1785464933568,
+  "artifact": {
+    "kind": "archive",
+    "sha256": "ca27f72133a6022fea099dc849a5dc0d4503e5029ba4e6e8a97ea80225aea4b4",
+    "integrity": "sha256-yif3ITOmAi/qCZ3ISaXcDUUD5QKbpOboqX6oAiWupLQ="
+  },
+  "skillFile": {
+    "path": "SKILL.md",
+    "sha256": "f9fadf134b6de49d55ffae904b2c75f5b7035f37ffa96394b19de648bdef9e0f"
+  }
+}

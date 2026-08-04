@@ -2,25 +2,13 @@
 # EOA 草稿箱 UAT验收自动提交技能 (通用极速版)
 # 可通过命令行参数配置过滤文种和接收处理人
 
-import json, time, traceback, sys, os, io
+import json, time, traceback, sys, os, io, re
 import argparse
 from playwright.sync_api import sync_playwright
 
 # 终端输出编码强制 UTF-8
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-
-
-# 引入公共 SDK
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-COMMON_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..', 'common'))
-if COMMON_DIR not in sys.path:
-    sys.path.append(COMMON_DIR)
-
-try:
-    from workbuddy_vault import decrypt_secret
-except ImportError:
-    def decrypt_secret(s): return s
 
 
 class EOADraftSubmitter:
@@ -38,7 +26,7 @@ class EOADraftSubmitter:
             
         self.username = self.config["account"]["username"]
         raw_password = self.config["account"].get("PASSWORD", self.config["account"].get("password", ""))
-        self.password = decrypt_secret(raw_password)
+        self.password = self._decrypt_password(raw_password)
         self.viewport = self.config["browser"]["viewport"]
         self.home_url = self.config["platform"].get("home_url", "https://www.gtht.com.cn/home.html")
         
@@ -47,27 +35,32 @@ class EOADraftSubmitter:
         self.headless = headless
         self.slow_mo = slow_mo
         
-        # Session 复用路径与黑名单持久化路径
-        self.session_file = os.path.join(SCRIPT_DIR, ".fintech_session.json")
-        self.failed_file = os.path.join(SCRIPT_DIR, ".eoa_failed_drafts.json")
+        # Session 复用路径
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.session_file = os.path.join(script_dir, ".fintech_session.json")
 
-    def _load_failed_drafts(self):
-        """加载持久化失败黑名单"""
-        if os.path.exists(self.failed_file):
-            try:
-                with open(self.failed_file, "r", encoding="utf-8") as f:
-                    return set(json.load(f))
-            except Exception:
-                pass
-        return set()
-
-    def _save_failed_drafts(self, failed_set):
-        """保存失败黑名单到持久化文件"""
+    def _decrypt_password(self, enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
+        if not enc_str.startswith('ENC:'):
+            return enc_str
+        kp = os.path.expanduser(key_path)
+        if not os.path.exists(kp):
+            print(f"❌ 密钥文件不存在: {kp}")
+            print("   请重新配置 config.json 中的 password（填写明文密码）。")
+            sys.exit(1)
         try:
-            with open(self.failed_file, "w", encoding="utf-8") as f:
-                json.dump(list(failed_set), f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+            from cryptography.fernet import Fernet
+        except ImportError:
+            print("❌ 缺少依赖: pip install cryptography")
+            sys.exit(1)
+        with open(kp, 'rb') as f:
+            key = f.read()
+        fern = Fernet(key)
+        try:
+            return fern.decrypt(enc_str[4:].encode('utf-8')).decode('utf-8')
+        except Exception as e:
+            print(f"❌ 密码解密失败（密钥不匹配）: {e}")
+            print("   请重新配置 config.json 中的 password（填写明文密码）。")
+            sys.exit(1)
 
     def safe_wait(self, page, t=2000):
         try: page.wait_for_load_state("networkidle", timeout=t)
@@ -675,12 +668,199 @@ class EOADraftSubmitter:
                 
         return False
 
-    def process_draft_detail(self, page):
+    def check_fintech_acceptor(self, page, demand_id):
+        """访问金融科技平台，查询该需求在平台上的受理人信息"""
+        print(f"  正在金融科技平台查询需求 {demand_id} 的受理人...")
+        ctx = page.context
+        pg_fintech = ctx.new_page()
+        try:
+            url = f"https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1"
+            pg_fintech.goto(url, wait_until="domcontentloaded", timeout=15000)
+            
+            # 等待内容加载
+            try:
+                pg_fintech.wait_for_function(
+                    r"(id) => document.body.innerText.includes(id) && (document.body.innerText.includes('受理人') || document.body.innerText.includes('提出人'))",
+                    arg=demand_id,
+                    timeout=8000
+                )
+            except Exception as e:
+                print(f"  ⚠️ 等待金融科技平台加载超时: {e}")
+                
+            # 评估获取受理人信息
+            result = pg_fintech.evaluate(r"""(demandId) => {
+                const fullText = document.body.innerText || '';
+                const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
+                
+                function extractVal(label) {
+                    const idx = lines.findIndex(l => l.startsWith(label) || l === label);
+                    if (idx !== -1 && idx + 1 < lines.length) {
+                        return lines[idx + 1];
+                    }
+                    return '';
+                }
+                
+                const handler = extractVal('受理人');
+                if (!handler) {
+                    return { found: false };
+                }
+                
+                const parts = handler.split(/[,，、]/).map(p => p.trim());
+                let hasWujin = false;
+                let isMain = false;
+                
+                for (const part of parts) {
+                    if (part.includes('吴进')) {
+                        hasWujin = true;
+                        if (part.includes('主')) {
+                            isMain = true;
+                        }
+                    }
+                }
+                
+                return { found: true, handler: handler, hasWujin: hasWujin, isMain: isMain };
+            }""", demand_id)
+            
+            if result and result.get('found'):
+                return result.get('isMain'), result.get('handler')
+            else:
+                return False, "Not Found"
+        except Exception as err:
+            print(f"  ⚠️ 查询金融科技平台遭遇异常: {err}")
+            return False, "Error"
+        finally:
+            try: pg_fintech.close()
+            except: pass
+
+    def check_is_main_acceptor(self, page, timeout_ms=6000, demand_id=None):
+        """检查当前登录用户是否是该需求的'主受理人'"""
+        if demand_id:
+            is_main, handler = self.check_fintech_acceptor(page, demand_id)
+            if handler not in ("Not Found", "Error"):
+                return is_main, f"Fintech platform ({handler})"
+                
+        print("  正在检查是否是'主受理人' (本地 EOA 详情页备份检查)...")
+        start_time = time.time()
+        
+        while (time.time() - start_time) < (timeout_ms / 1000.0):
+            frames = [page] + page.frames
+            for frame in frames:
+                try:
+                    result = frame.evaluate(r"""() => {
+                        // 1. 寻找文本为 "受理人" 的元素 (去除冒号和空格)
+                        const labels = Array.from(document.querySelectorAll('td, th, .ant-form-item-label, label, span, div'))
+                            .filter(el => {
+                                const text = el.textContent.trim().replace(/[:：\s]/g, '');
+                                return text === '受理人';
+                            });
+                            
+                        if (labels.length === 0) return null;
+                        
+                        // 2. 遍历 label，寻找关联的值元素
+                        for (const lbl of labels) {
+                            let valEl = null;
+                            if (lbl.tagName === 'TD' || lbl.tagName === 'TH') {
+                                valEl = lbl.nextElementSibling;
+                            }
+                            if (!valEl) {
+                                let parent = lbl.parentElement;
+                                for (let i = 0; i < 3; i++) {
+                                    if (!parent) break;
+                                    const control = parent.querySelector('.ant-form-item-control, .ant-form-item-control-wrapper');
+                                    if (control) {
+                                        valEl = control;
+                                        break;
+                                    }
+                                    if (parent.nextElementSibling) {
+                                        valEl = parent.nextElementSibling;
+                                        break;
+                                    }
+                                    parent = parent.parentElement;
+                                }
+                            }
+                            if (valEl) {
+                                const text = valEl.textContent.trim();
+                                const children = Array.from(valEl.querySelectorAll('*')).concat([valEl]);
+                                let wujinNode = null;
+                                for (const child of children) {
+                                    if (child.children.length === 0 && child.textContent.includes('吴进')) {
+                                        wujinNode = child;
+                                        break;
+                                    }
+                                }
+                                if (wujinNode) {
+                                    let isMain = false;
+                                    if (wujinNode.textContent.includes('主')) {
+                                        isMain = true;
+                                    }
+                                    if (!isMain) {
+                                        let sib = wujinNode.nextElementSibling;
+                                        if (sib && (sib.textContent.includes('主') || sib.className.includes('main') || sib.className.includes('primary') || sib.className.includes('tag'))) {
+                                            isMain = true;
+                                        }
+                                    }
+                                    if (!isMain) {
+                                        let p = wujinNode.parentElement;
+                                        if (p) {
+                                            const tags = Array.from(p.querySelectorAll('*')).filter(el => el.textContent.trim() === '主' || el.className.includes('tag') && el.textContent.includes('主'));
+                                            if (tags.length > 0) {
+                                                isMain = true;
+                                            }
+                                        }
+                                    }
+                                    return { found: true, isMain: isMain, text: text };
+                                }
+                            }
+                        }
+                        
+                        // 兜底模糊搜索
+                        for (const lbl of labels) {
+                            let parent = lbl.parentElement;
+                            for (let i = 0; i < 3; i++) {
+                                if (!parent) break;
+                                const text = parent.textContent.trim();
+                                if (text.includes('吴进') && text.includes('主')) {
+                                    const otherNames = text.replace('受理人', '').replace('吴进', '').replace('主', '').replace(/[\s,，、(（)）]/g, '');
+                                    if (otherNames.length < 5) {
+                                        return { found: true, isMain: true, text: text };
+                                    }
+                                }
+                                parent = parent.parentElement;
+                            }
+                        }
+                        return { found: true, isMain: false };
+                    }""")
+                    
+                    if result and result.get('found'):
+                        return result.get('isMain'), result.get('text', '')
+                except:
+                    pass
+            time.sleep(0.2)
+            
+        print("  ⚠️ 未能定位到 '受理人' 字段，默认判定为非主受理人")
+        return False, "Not Found"
+
+    def process_draft_detail(self, page, title_text=None):
         """处理草稿详情页的点击提交及选人表单提交"""
         print("  等待详情页渲染组件...")
         if not self.wait_for_submit_button(page, 4000):
              print("  ⚠ 详情页加载较慢或未检测到'提交'按钮，尝试强行继续...")
         
+        # 提取需求编号 (例如 R2606150089)
+        demand_id = None
+        if title_text:
+            match = re.search(r'R\d{10}', title_text)
+            if match:
+                demand_id = match.group(0)
+                
+        # 增加主受理人验证
+        is_main, acceptor_text = self.check_is_main_acceptor(page, 6000, demand_id)
+        print(f"  👉 需求受理人内容: '{acceptor_text.strip()}' | 是否主受理人: {is_main}")
+        
+        if not is_main:
+            print("  ℹ 当前用户 '吴进' 不是该需求的 '主受理人'，跳过不提交。")
+            return False
+            
         # 1. 点击详情页的 "提交" 按钮
         if not self.click_toolbar_button(page, "提交"):
             print("  ❌ 未能在详情页找到/点击 '提交' 按钮")
@@ -754,9 +934,7 @@ class EOADraftSubmitter:
                 
             # 4. 循环迭代提交草稿
             processed_count = 0
-            failed_titles = self._load_failed_drafts()
-            if failed_titles:
-                print(f"  ℹ️ 已加载持久化失败跳过黑名单 ({len(failed_titles)} 条)")
+            failed_titles = set()
             
             while True:
                 drafts = self.get_draft_titles_info(pg)
@@ -782,7 +960,7 @@ class EOADraftSubmitter:
                         new_page = popup_info.value
                         new_page.wait_for_load_state("load")
                         
-                        success = self.process_draft_detail(new_page)
+                        success = self.process_draft_detail(new_page, title_text)
                         try: new_page.close()
                         except: pass
                         
@@ -792,7 +970,7 @@ class EOADraftSubmitter:
                         time.sleep(0.5)
                         self.safe_wait(pg, 2000)
                         
-                        success = self.process_draft_detail(pg)
+                        success = self.process_draft_detail(pg, title_text)
                         
                         # 重回草稿重新过滤
                         self.navigate_to_drafts(pg)
@@ -811,8 +989,7 @@ class EOADraftSubmitter:
                     self.select_document_type(pg)
                 else:
                     failed_titles.add(title_text)
-                    self._save_failed_drafts(failed_titles)
-                    print(f"  ⚠️ '{title_text}' 提交失败/跳过 (已写入持久化黑名单)")
+                    print(f"  ⚠️ '{title_text}' 提交失败/跳过")
                     
                 time.sleep(0.5)
 

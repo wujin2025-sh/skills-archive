@@ -74,12 +74,22 @@ def load_mail_credentials():
 
 def md_to_html(md: str) -> str:
     """Minimal Markdown to HTML converter to preserve spacing, bolding and breaks"""
+    stripped = md.lstrip()
+    if stripped.startswith("<") or "<html" in md.lower() or "<table" in md.lower():
+        return md
     html = md
     html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
     html = html.replace("  ", "&nbsp;&nbsp;")
     html = html.replace("\n\n", "<div><br></div>")
     html = html.replace("\n", "<br>")
     return html
+
+def parse_clean_email(recipient_str):
+    """提取干净的邮箱地址或姓名邮箱组合"""
+    m = re.search(r'<([^>]+)>', recipient_str)
+    if m:
+        return m.group(1).strip()
+    return recipient_str.strip()
 
 def find_in_all_frames(page, selector, timeout=5000):
     """Find a selector across the main page and all sub-frames, returning the element and its frame"""
@@ -103,71 +113,36 @@ def find_in_all_frames(page, selector, timeout=5000):
     return None, None
 
 def insert_body(page, body_text):
-    """Instantly insert HTML body into Coremail editor without slow keyboard typing"""
+    """Instantly insert HTML body into Coremail editor using KindEditor official API or fallback"""
     html = md_to_html(body_text)
     js_html = json.dumps(html)
-    inserted = False
 
-    def _is_editor_body(fr):
-        try:
-            return fr.evaluate("""() => {
-                const d = document;
-                return (d.designMode === 'on') ||
-                       (d.body && d.body.contentEditable === 'true') ||
-                       (d.querySelector('[contenteditable="true"]') !== null);
-            }""")
-        except:
-            return False
-
-    def _write_body(fr):
-        try:
-            fr.evaluate(f"""
-                (() => {{
-                    const d = document;
-                    if (d.designMode === 'on') {{
-                        d.open();
-                        d.write({js_html});
-                        d.close();
-                    }} else if (d.body && d.body.contentEditable === 'true') {{
-                        d.body.innerHTML = {js_html};
-                        d.body.dispatchEvent(new Event("input", {{bubbles:true}}));
-                    }} else {{
-                        const ed = d.querySelector('[contenteditable="true"]');
-                        if (ed) {{
-                            ed.innerHTML = {js_html};
-                            ed.dispatchEvent(new Event("input", {{bubbles:true}}));
-                        }}
-                    }}
-                }})()
-            """)
-            return True
-        except:
-            return False
-
-    # Check existing frames first
-    for idx, fr in enumerate(page.frames):
-        if fr == page:
-            continue
-        if _is_editor_body(fr):
-            if _write_body(fr):
-                print(f"    [+] Body written in iframe #{idx} instantly.")
-                return True
-
-    # Polling wait if not ready
     for attempt in range(15):
         for idx, fr in enumerate(page.frames):
-            if fr == page:
-                continue
-            if _is_editor_body(fr):
-                if _write_body(fr):
-                    print(f"    [+] Body written in iframe #{idx} (attempt {attempt+1}).")
-                    inserted = True
-                    break
-        if inserted:
-            break
+            try:
+                res = fr.evaluate(f"""() => {{
+                    if (window.KindEditor && window.KindEditor.instances && window.KindEditor.instances.length > 0) {{
+                        window.KindEditor.instances[0].html({js_html});
+                        if (window.KindEditor.instances[0].sync) window.KindEditor.instances[0].sync();
+                        return true;
+                    }}
+                    const ed = document.querySelector('.ke-edit-textarea, [contenteditable="true"], [contenteditable=""], [contenteditable]');
+                    if (ed) {{
+                        ed.innerHTML = {js_html};
+                        ed.dispatchEvent(new Event("input", {{bubbles:true}}));
+                        ed.dispatchEvent(new Event("change", {{bubbles:true}}));
+                        return true;
+                    }}
+                    return false;
+                }}""")
+                if res:
+                    print(f"    [+] Body written via KindEditor API / DOM in frame #{idx}.")
+                    return True
+            except:
+                pass
         page.wait_for_timeout(300)
 
-    return inserted
+    return False
 
 def main():
     parser = argparse.ArgumentParser(description="Coremail Draft Saver & Email Sender Utility")
@@ -175,6 +150,7 @@ def main():
     parser.add_argument("--body-file", required=True, help="Path to plain text email body file")
     parser.add_argument("--recipients", default="", help="Email recipients (comma/space/semicolon separated)")
     parser.add_argument("--cc", default="", help="Email CC recipients (comma/space/semicolon separated)")
+    parser.add_argument("--attachments", "--attachment", "-a", default="", help="Attachment files (comma or semicolon separated)")
     parser.add_argument("--send", action="store_true", help="Send the email immediately instead of saving as draft")
     args = parser.parse_args()
 
@@ -242,23 +218,41 @@ def main():
             "locale": "zh-CN"
         }
         
-        if os.path.exists(STORAGE_STATE) and os.path.getsize(STORAGE_STATE) > 100:
-            print("🔑 Loading active session state...")
-            context_opts["storage_state"] = STORAGE_STATE
-            
+        # Force fresh login every time to prevent stale session expiry popup
+        if os.path.exists(STORAGE_STATE):
+            try:
+                os.remove(STORAGE_STATE)
+                print("🧹 Cleared stale session state for clean login.")
+            except:
+                pass
+
         context = browser.new_context(**context_opts)
         page = context.new_page()
 
         try:
             # Step 1: Open webmail (fast commit)
             print("[1] Opening mail.gtht.com...")
-            page.goto(url, wait_until="commit", timeout=10000)
+            page.goto(url, wait_until="commit", timeout=15000)
             page.wait_for_timeout(1000)
 
-            # Check if login form is visible
-            uid_input = page.query_selector("input#uid")
+            # Check if login form or expired modal is visible
+            print("[2] Performing fresh login...")
+            btn_relogin = page.query_selector('button:has-text("重新登录"), a:has-text("重新登录"), .btn-relogin')
+            if btn_relogin:
+                try:
+                    btn_relogin.click(force=True)
+                    page.wait_for_timeout(1000)
+                except:
+                    pass
+
+            for _ in range(10):
+                uid_input = page.query_selector("input#uid, input[name='uid']")
+                if uid_input:
+                    break
+                page.wait_for_timeout(300)
+
+            uid_input = page.query_selector("input#uid, input[name='uid']")
             if uid_input:
-                print("[2] Session expired. Performing fresh login...")
                 uid_input.fill(email)
                 page.fill("input#password", password)
 
@@ -268,10 +262,12 @@ def main():
 
                 # Submit form instantly by pressing Enter
                 page.keyboard.press("Enter")
-                print("    Submitted login form.")
+                print("    Submitted login form successfully.")
+            else:
+                print("    [!] Login form not found directly, proceeding to check compose button...")
 
             # Dynamically wait for login completion by searching for compose button in all frames
-            print("    Waiting for email page to load...")
+            print("    Waiting for mailbox page to load...")
             compose_btn = None
             for attempt in range(25):
                 compose_btn, btn_frame = find_in_all_frames(page, SEL_COMPOSE, timeout=1000)
@@ -283,10 +279,9 @@ def main():
                 raise Exception("Timed out waiting for mail page to load (Compose button not found)")
             print("✅ Mailbox loaded successfully!")
 
-            # If we performed login, save the new session state
-            if uid_input:
-                context.storage_state(path=STORAGE_STATE)
-                print("💾 Saved fresh session state.")
+            # Save the new session state
+            context.storage_state(path=STORAGE_STATE)
+            print("💾 Saved fresh session state.")
 
             # Step 2: Click Compose with retry loop
             print("[3] Clicking compose...")
@@ -322,7 +317,7 @@ def main():
             # Step 3: Fill Details
             print("[5] Filling details...")
             
-            # Fill To
+            # Fill To (Tag-by-Tag Mode for 100% Recipient Coverage)
             if recipients:
                 to_el = compose_frame.query_selector(SEL_TO)
                 if to_el:
@@ -330,17 +325,16 @@ def main():
                         to_el.focus()
                     except Exception as fe:
                         print(f"    Failed to focus to_el: {fe}")
-                    for r in recipients:
-                        print(f"    Typing recipient: {r}")
-                        try:
-                            to_el.focus()
-                        except:
-                            pass
-                        compose_frame.keyboard.type(r, delay=30)
-                        compose_frame.wait_for_timeout(800)
-                        compose_frame.keyboard.press("Enter")
-                        compose_frame.wait_for_timeout(400)
-                    print(f"    Filled To: {recipients}")
+                    
+                    clean_to_emails = [parse_clean_email(r) for r in recipients]
+                    print(f"    Adding {len(clean_to_emails)} recipient emails into Coremail...")
+                    for idx, email_addr in enumerate(clean_to_emails):
+                        compose_page.keyboard.press("Escape")
+                        compose_page.wait_for_timeout(50)
+                        compose_page.keyboard.type(email_addr + ";", delay=3)
+                        compose_page.wait_for_timeout(100)
+                    compose_page.keyboard.press("Enter")
+                    print(f"    ✅ Successfully added all {len(clean_to_emails)} recipients!")
             else:
                 print("    Skipped To field (no recipient provided)")
 
@@ -348,34 +342,22 @@ def main():
             if cc_recipients:
                 cc_el = compose_frame.query_selector(SEL_CC)
                 if not cc_el or not cc_el.is_visible():
-                    # Click Add CC button
                     btn_cc = compose_frame.query_selector('a:has-text("添加抄送"), span:has-text("添加抄送"), a:has-text("抄送"), span:has-text("抄送")')
                     if not btn_cc:
                         btn_cc = compose_page.query_selector('a:has-text("添加抄送"), span:has-text("添加抄送"), a:has-text("抄送"), span:has-text("抄送")')
                     if btn_cc:
                         print("    Clicking '添加抄送' link...")
                         btn_cc.click()
-                        compose_frame.wait_for_timeout(500)
+                        compose_page.wait_for_timeout(500)
                 
                 cc_el = compose_frame.query_selector(SEL_CC)
                 if cc_el:
-                    try:
-                        cc_el.focus()
-                    except:
-                        pass
-                    for r in cc_recipients:
-                        print(f"    Typing CC: {r}")
-                        try:
-                            cc_el.focus()
-                        except:
-                            pass
-                        compose_frame.keyboard.type(r, delay=30)
-                        compose_frame.wait_for_timeout(800)
-                        compose_frame.keyboard.press("Enter")
-                        compose_frame.wait_for_timeout(400)
-                    print(f"    Filled CC: {cc_recipients}")
-                else:
-                    print("    [WARN] CC input field not found/visible after trying to show it.")
+                    clean_cc_emails = [parse_clean_email(r) for r in cc_recipients]
+                    for idx, email_addr in enumerate(clean_cc_emails):
+                        compose_page.keyboard.type(email_addr + ";", delay=3)
+                        compose_page.wait_for_timeout(30)
+                    compose_page.keyboard.press("Enter")
+                    print(f"    Filled CC field with {len(cc_recipients)} recipients.")
 
             # Fill Subject
             subj_el.fill(subject)
@@ -397,6 +379,52 @@ def main():
             if not body_written:
                 raise Exception("Failed to write email body")
 
+            # Upload Attachments
+            if args.attachments:
+                att_paths = [a.strip() for a in re.split(r'[;；,]+', args.attachments) if a.strip()]
+                valid_atts = [os.path.abspath(a) for a in att_paths if os.path.exists(a)]
+                if valid_atts:
+                    print(f"    [+] Uploading {len(valid_atts)} attachment(s)...")
+                    file_input = compose_frame.query_selector('input[type="file"]')
+                    if not file_input:
+                        for fr in compose_page.frames:
+                            fi = fr.query_selector('input[type="file"]')
+                            if fi:
+                                file_input = fi
+                                break
+                    if file_input:
+                        file_input.set_input_files(valid_atts)
+                        compose_page.wait_for_timeout(1500)
+                        print(f"    ✅ Successfully uploaded attachment(s): {[os.path.basename(a) for a in valid_atts]}")
+                    else:
+                        print("    ⚠️ Could not find file input for attachments")
+
+            # Helper to check and handle session expired popup
+            def handle_expired_session(pg):
+                btn_relogin = pg.query_selector('button:has-text("重新登录"), a:has-text("重新登录"), .btn-relogin')
+                if not btn_relogin:
+                    # check in all frames
+                    for f in pg.frames:
+                        btn_relogin = f.query_selector('button:has-text("重新登录"), a:has-text("重新登录")')
+                        if btn_relogin:
+                            break
+                if btn_relogin:
+                    print("⚠️ [Session Expired Popup] Detected '会话已过期，请重新登录'! Re-authenticating...")
+                    try:
+                        btn_relogin.click(force=True)
+                        pg.wait_for_timeout(1500)
+                    except:
+                        pass
+                    
+                    pwd_el = pg.query_selector("input#password, input[type='password']")
+                    if pwd_el:
+                        pwd_el.fill(password)
+                        pg.keyboard.press("Enter")
+                        pg.wait_for_timeout(2000)
+                        print("    Submitted fresh login credentials.")
+                        return True
+                return False
+
             # Step 4: Save Draft or Send
             if args.send:
                 print("[6] Sending email...")
@@ -409,15 +437,19 @@ def main():
                 else:
                     raise Exception("Failed to find send button")
                 
-                # Wait for send confirmation
-                compose_page.wait_for_timeout(3000)
+                # Check session expiration
+                compose_page.wait_for_timeout(1500)
+                if handle_expired_session(compose_page):
+                    compose_page.wait_for_timeout(1500)
+                    send_btn = compose_frame.query_selector('a:has-text("发送"), button:has-text("发送"), span:has-text("发送")')
+                    if send_btn:
+                        send_btn.click(force=True)
+                        
+                compose_page.wait_for_timeout(2000)
                 compose_page.screenshot(path=os.path.join(OUT_DIR, "coremail_final.png"))
                 print("[7] ✅ Done! Email successfully sent.")
             else:
                 print("[6] Saving draft...")
-                compose_frame.keyboard.press("Control+s")
-                compose_page.wait_for_timeout(1000)
-
                 save_btn = compose_frame.query_selector('a:has-text("存草稿"), button:has-text("存草稿"), span:has-text("存草稿")')
                 if not save_btn:
                     save_btn = compose_page.query_selector('a:has-text("存草稿"), button:has-text("存草稿"), span:has-text("存草稿")')
@@ -425,9 +457,20 @@ def main():
                 if save_btn:
                     save_btn.click(force=True)
                     print("    Clicked save draft button")
+                else:
+                    compose_frame.keyboard.press("Control+s")
 
-                # Wait for save confirmation
                 compose_page.wait_for_timeout(1500)
+                
+                # Check session expiration
+                if handle_expired_session(compose_page):
+                    compose_page.wait_for_timeout(1500)
+                    save_btn = compose_frame.query_selector('a:has-text("存草稿"), button:has-text("存草稿"), span:has-text("存草稿")')
+                    if save_btn:
+                        save_btn.click(force=True)
+                        print("    Re-clicked save draft button after re-login.")
+                        compose_page.wait_for_timeout(2000)
+
                 compose_page.screenshot(path=os.path.join(OUT_DIR, "coremail_final.png"))
                 print("[7] ✅ Done! Final draft successfully saved.")
 

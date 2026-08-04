@@ -9,8 +9,9 @@ SVN 需求号/任务号差异检查脚本
   3. 支持多线程并发（ThreadPoolExecutor）查询，极大缩减多编号比对耗时。
   4. 通过指定合理的分支版本区间（如最近 20000 个版本）来保证查询高性能。
   5. 分析并找出“UAT 仓库提交记录晚于生产仓库（或生产中未包含，或被回退）”的编号。
-  6. 输出控制台摘要表格，并在输出目录中生成详细比对报告。
-  7. 不做任何代码修改或合并，仅做差异检查。
+  6. 支持区分不同的分支系统（集中交易 jzjy / 参数中心 cszx）。
+  7. 输出控制台摘要表格，并在输出目录中生成详细比对报告。
+  8. 不做任何代码修改或合并，仅做差异检查。
 """
 
 import subprocess
@@ -25,9 +26,13 @@ import concurrent.futures
 from collections import defaultdict
 from datetime import datetime
 
-# 默认仓库配置
-DEFAULT_UAT_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/spbsrc_uat_2024"
-DEFAULT_PROD_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/Produce"
+# 默认仓库配置 (集中交易 jzjy 与参数中心 cszx 统一分支配置)
+JZJY_UAT_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/spbsrc_uat_2024"
+JZJY_PROD_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/Produce"
+
+CSZX_UAT_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/02Trunk_jygl_prod/jygl_uat_2024"
+CSZX_PROD_URL = "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/02Trunk_jygl_prod/jygl_prod_s"
+
 DEFAULT_SVN_USERNAME = ""
 DEFAULT_SVN_PASSWORD = ""
 DEFAULT_RANGE_SIZE = 20000  # 默认扫描的版本区间大小
@@ -65,8 +70,8 @@ def _decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
         return enc_str
 
 class Config:
-    UAT_URL = DEFAULT_UAT_URL
-    PROD_URL = DEFAULT_PROD_URL
+    UAT_URL = ""
+    PROD_URL = ""
     SVN_USERNAME = DEFAULT_SVN_USERNAME
     SVN_PASSWORD = DEFAULT_SVN_PASSWORD
     SVN_EXECUTABLE = ""
@@ -335,8 +340,9 @@ def check_single_id(search_id, head_rev):
 def main():
     parser = argparse.ArgumentParser(description="SVN 需求号/任务号分支差异检查工具")
     parser.add_argument("-d", "--data-text", help="要检查的编号文本，可以是逗号/空格/换行分隔，或文件路径。也可通过 stdin 传入")
-    parser.add_argument("-s", "--uat-url", default=DEFAULT_UAT_URL, help=f"UAT 仓库 URL，默认: {DEFAULT_UAT_URL}")
-    parser.add_argument("-t", "--prod-url", default=DEFAULT_PROD_URL, help=f"生产仓库 URL，默认: {DEFAULT_PROD_URL}")
+    parser.add_argument("-sys", "--system", default="jzjy", choices=["jzjy", "cszx"], help="业务系统分支，支持 jzjy (集中交易) 或 cszx (参数中心)，默认: jzjy")
+    parser.add_argument("-s", "--uat-url", default=None, help="UAT 仓库 URL，如不指定则根据 --system 自动选择")
+    parser.add_argument("-t", "--prod-url", default=None, help="生产仓库 URL，如不指定则根据 --system 自动选择")
     parser.add_argument("-u", "--svn-username", default=DEFAULT_SVN_USERNAME, help="SVN 用户名 (macOS 默认使用 Keychain, 可传空)")
     parser.add_argument("--svn-password", default=DEFAULT_SVN_PASSWORD, help="SVN 密码 (可传入 ENC: 加密密码)")
     parser.add_argument("--svn-executable", default="", help="手动指定 svn 命令路径")
@@ -347,9 +353,21 @@ def main():
 
     args = parser.parse_args()
 
+    # 根据系统分支动态选择默认的仓库 URL
+    if args.system == "cszx":
+        default_uat = CSZX_UAT_URL
+        default_prod = CSZX_PROD_URL
+        sys_title = "CSZX 参数中心 SVN"
+        report_prefix = "cszx_svn_check"
+    else:
+        default_uat = JZJY_UAT_URL
+        default_prod = JZJY_PROD_URL
+        sys_title = "SVN"
+        report_prefix = "svn_check"
+
     # 初始化配置
-    Config.UAT_URL = args.uat_url
-    Config.PROD_URL = args.prod_url
+    Config.UAT_URL = args.uat_url if args.uat_url else default_uat
+    Config.PROD_URL = args.prod_url if args.prod_url else default_prod
     Config.SVN_USERNAME = args.svn_username
     Config.SVN_PASSWORD = _decrypt_password(args.svn_password)
     Config.SVN_EXECUTABLE = args.svn_executable
@@ -402,7 +420,7 @@ def main():
             print("[WARN] 获取 HEAD 版本号失败，将退回全量历史查询")
 
     print("=" * 75)
-    print(f"SVN 差异并发检查启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{sys_title} 差异并发检查启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"UAT  仓库: {Config.UAT_URL}")
     print(f"生产 仓库: {Config.PROD_URL}")
     print(f"待检查编号数: {len(target_ids)} | 并发数: {Config.MAX_WORKERS}")
@@ -439,9 +457,9 @@ def main():
                 # 打印单项进度反馈
                 stat_desc = status_log_map.get(res['status'], res['status'])
                 if res['status'] == "NEWER_IN_UAT":
-                    print(f" -> 检查完毕: {search_id:<20} | 状态: {stat_desc:<16} | 待同步数: {len(res['newer_commits'])}")
+                     print(f" -> 检查完毕: {search_id:<20} | 状态: {stat_desc:<16} | 待同步数: {len(res['newer_commits'])}")
                 else:
-                    print(f" -> 检查完毕: {search_id:<20} | 状态: {stat_desc:<16}")
+                     print(f" -> 检查完毕: {search_id:<20} | 状态: {stat_desc:<16}")
             except Exception as e:
                 print(f" -> [ERROR] 检查 {search_id} 失败: {e}")
 
@@ -455,7 +473,7 @@ def main():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     print("\n" + "=" * 80)
-    print("差异检查执行汇总")
+    print(f"{sys_title} 差异检查执行汇总")
     print("=" * 80)
     print(f"{'编号/需求号':<24} | {'UAT最新版本':<12} | {'生产最新版本':<12} | {'对比状态':<18}")
     print("-" * 80)
@@ -476,9 +494,9 @@ def main():
     print(f"汇总统计: 待发布(UAT较新): {stats['NEWER_IN_UAT']} | 已同步: {stats['UP_TO_DATE']} | 其他异常: {stats['NOT_FOUND_ANYWHERE'] + stats['NOT_FOUND_IN_UAT']}")
     print("=" * 80)
 
-    report_file = os.path.join(Config.OUTPUT_DIR, f"svn_check_report_{ts}.md")
+    report_file = os.path.join(Config.OUTPUT_DIR, f"{report_prefix}_report_{ts}.md")
     with open(report_file, "w", encoding="utf-8") as f:
-        f.write(f"# SVN 分支差异检查报告\n\n")
+        f.write(f"# {sys_title} 分支差异检查报告\n\n")
         f.write(f"- **检查时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"- **UAT 仓库**: `{Config.UAT_URL}`\n")
         f.write(f"- **生产仓库**: `{Config.PROD_URL}`\n\n")
@@ -518,9 +536,9 @@ def main():
         if newer_count == 0:
             f.write("✓ 没有发现任何待发布的 UAT 差异记录，所有编号均已同步至生产或两边均无记录。\n")
 
-    summary_file = os.path.join(Config.OUTPUT_DIR, f"svn_check_summary_{ts}.txt")
+    summary_file = os.path.join(Config.OUTPUT_DIR, f"{report_prefix}_summary_{ts}.txt")
     with open(summary_file, "w", encoding="utf-8") as f:
-        f.write(f"SVN CHECK SUMMARY - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"{sys_title.upper()} CHECK SUMMARY - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("=" * 70 + "\n")
         f.write(f"UAT较新(待发布): {stats['NEWER_IN_UAT']}\n")
         f.write(f"已同步最新:      {stats['UP_TO_DATE']}\n")

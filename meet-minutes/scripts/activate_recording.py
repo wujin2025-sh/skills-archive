@@ -158,13 +158,13 @@ def activate_recording_playwright(
         print("  [I] 打开腾讯会议录制管理页...")
         try:
             page.goto(
-                "https://meeting.tencent.com/user-center/my-record",
+                "https://meeting.tencent.com/user-center/meeting-record",
                 wait_until="networkidle",
                 timeout=30000,
             )
         except Exception as e:
             print(f"  [W] 页面加载超时: {e}")
-            page.goto("https://meeting.tencent.com/user-center/my-record", timeout=60000)
+            page.goto("https://meeting.tencent.com/user-center/meeting-record", timeout=60000)
 
         current_url = page.url
         print(f"  [I] 当前 URL: {current_url}")
@@ -183,7 +183,7 @@ def activate_recording_playwright(
 
             # 等待用户手动登录
             try:
-                page.wait_for_url("**/my-record**", timeout=120000)
+                page.wait_for_url("**/meeting-record**", timeout=120000)
                 print("  [✓] 登录成功！")
                 # 保存登录态
                 context.storage_state(path=storage_path)

@@ -144,3 +144,32 @@ async def find_nearest_element_2d(
         "weightX": weight_x
     })
     return res
+
+
+async def fill_antd_datepicker(page, input_selector: str, date_str: str, modal_title_selector: Optional[str] = None) -> bool:
+    """
+    Ant Design React DatePicker 通用赋值与遮罩防拦截处理算子：
+    1. 键盘输入日期 YYYY-MM-DD 并按 Enter 触发 React 状态绑定；
+    2. 主动点击 Modal Title 或空白区域触发失焦 (blur)，收起 .ant-picker-dropdown 遮罩层以防拦截后续按钮点击。
+    """
+    try:
+        input_elem = page.locator(input_selector).first
+        await input_elem.click()
+        select_all_key = "Meta+A" if sys.platform == "darwin" else "Control+A"
+        await page.keyboard.press(select_all_key)
+        await page.keyboard.press("Backspace")
+        await page.keyboard.type(date_str)
+        await page.keyboard.press("Enter")
+        TimeWrapper.sleep(0.5)
+
+        if modal_title_selector:
+            modal_title = page.locator(modal_title_selector).first
+            if await modal_title.is_visible(timeout=1000):
+                await modal_title.click()
+        else:
+            await page.mouse.click(10, 10)
+        TimeWrapper.sleep(0.3)
+        return True
+    except Exception as e:
+        print(f"[rpa_dom_utils] fill_antd_datepicker warning: {e}")
+        return False

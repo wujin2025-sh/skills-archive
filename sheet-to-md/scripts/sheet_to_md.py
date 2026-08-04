@@ -54,11 +54,11 @@ except ImportError:
     _HAS_SYNC_UTILS = False
 
 if not _HAS_SYNC_UTILS:
-    DEFAULT_MD_DIR = "/Users/wujin/0000WorkFiles/myobsidian/Obsidian-Notes/需求分析/"
+    DEFAULT_MD_DIR = "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/"
     DEFAULT_DEPT_CSV = "/Volumes/Macintosh HD_Data/WorkBuddy/会议纪要/人员部门对应关系表.csv"
     MCP_PORTER_PATH = "/Users/wujin/.npm-global/bin/mcporter"
 else:
-    DEFAULT_MD_DIR = get_path("md_dir_sheet_to_md", "/Users/wujin/0000WorkFiles/myobsidian/Obsidian-Notes/需求分析/")
+    DEFAULT_MD_DIR = get_path("md_dir_sheet_to_md", "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/")
     DEFAULT_DEPT_CSV = get_path("dept_csv", "/Volumes/Macintosh HD_Data/WorkBuddy/会议纪要/人员部门对应关系表.csv")
     MCP_PORTER_PATH = get_path("mcporter", "/Users/wujin/.npm-global/bin/mcporter")
 
