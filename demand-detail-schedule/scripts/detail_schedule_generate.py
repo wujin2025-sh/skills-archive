@@ -54,9 +54,9 @@ STORY_ACTUAL_END_MAP = {
 def check_credentials_prompt(script_dir):
     """检查 config.json 中是否配置了工号与密码，未配置时给予友好、详细的提示"""
     config_paths = [
+        os.path.join(os.getcwd(), "config.json"),
         os.path.join(script_dir, "config.json"),
-        os.path.join(os.path.dirname(script_dir), "config.json"),
-        os.path.join(os.getcwd(), "config.json")
+        os.path.join(os.path.dirname(script_dir), "config.json")
     ]
     found_config = None
     cfg = {}
@@ -81,7 +81,7 @@ def check_credentials_prompt(script_dir):
     )
 
     if is_missing:
-        target_path = found_config if found_config else os.path.join(script_dir, "config.json")
+        target_path = found_config if found_config else os.path.join(os.getcwd(), "config.json")
         print("\n" + "=" * 75)
         print("⚠️  [配置提醒] 尚未配置金融科技平台账号凭证 (config.json)")
         print("-" * 75)
@@ -103,9 +103,9 @@ def load_external_config(script_dir):
     global DEMAND_SUBTITLE_MAP, STORY_ACTUAL_END_MAP
     check_credentials_prompt(script_dir)
     config_paths = [
+        os.path.join(os.getcwd(), "config.json"),
         os.path.join(script_dir, "config.json"),
-        os.path.join(os.path.dirname(script_dir), "config.json"),
-        os.path.join(os.getcwd(), "config.json")
+        os.path.join(os.path.dirname(script_dir), "config.json")
     ]
     for cp in config_paths:
         if os.path.exists(cp):
@@ -243,68 +243,79 @@ def determine_story_phase_level(status_name):
 
     return 1
 
-def compute_phase_status_by_date(end_date_str):
-    clean_date = clean_date_str(end_date_str)
-    if clean_date == "--":
-        return "--"
-    
-    try:
-        dt = datetime.strptime(clean_date, "%Y-%m-%d")
-        delta_days = (dt.date() - CURRENT_DATE.date()).days
-        if dt.date() < CURRENT_DATE.date():
-            return "🚨 已逾期"
-        elif 0 <= delta_days <= 3:
-            if delta_days == 0:
-                return "⚠️ 今天到期"
-            else:
-                return f"⚠️ 临近到期 ({delta_days}天)"
-        else:
-            return "正常"
-    except Exception:
-        return "正常"
-
-def compute_phase_status(phase_name, end_date_str, phase_level):
-    if phase_level == -1:
+def compute_phase_status(phase_name, end_date_str, phase_level, raw_status=""):
+    """
+    根据用户指令彻底废除“正常”等模糊统称，严格按照以下标准规范输出：
+    开发 (dev): 已完成 | 待开发 | 开发中 | 待排期
+    SIT/UAT (sit/uat): 已完成 | 待自测 | 自测中 | 自测待排期 | --
+    """
+    if phase_level == -1 or "终止" in str(raw_status):
         return "🛑 已终止"
-    if phase_level == 4:
-        return "✅ 已完成"
 
-    res = compute_phase_status_by_date(end_date_str)
+    clean_end = clean_date_str(end_date_str)
+    rs = str(raw_status or "").strip()
 
     if phase_name == 'dev':
-        if phase_level > 1:
+        if phase_level >= 2 or phase_level == 4:
             return "✅ 已完成"
+        if clean_end == "--":
+            return "待排期"
+        
+        # 处于开发阶段 (phase_level == 1)
+        if any(k in rs for k in ("开发中", "进行中", "开发进行", "coding", "Coding", "SIT前开发")):
+            return "开发中"
+        elif any(k in rs for k in ("待开发", "待处理", "需求池", "待领用", "待分析", "分析中")):
+            return "待开发"
         else:
-            return "⚠️ 未排期" if res == "--" else res
+            return "开发中"
 
     elif phase_name == 'sit':
-        if phase_level > 2:
+        if phase_level >= 3 or phase_level == 4:
             return "✅ 已完成"
         elif phase_level == 2:
-            return "⚠️ 未排期" if res == "--" else res
+            if clean_end == "--":
+                return "自测待排期"
+            if any(k in rs for k in ("SIT测试中", "SIT自测中", "测试中", "自测中", "测试进行中")):
+                return "自测中"
+            else:
+                return "待自测"
         else:
             return "--"
 
     elif phase_name == 'uat':
-        if phase_level > 3:
+        if phase_level == 4:
             return "✅ 已完成"
         elif phase_level == 3:
-            return "⚠️ 未排期" if res == "--" else res
+            if clean_end == "--":
+                return "自测待排期"
+            if any(k in rs for k in ("UAT自测中", "UAT测试中", "测试中", "自测中", "测试进行中")):
+                return "自测中"
+            else:
+                return "待自测"
         else:
             return "--"
 
     elif phase_name == 'delivery':
-        return "⚠️ 未排期" if res == "--" else res
+        if phase_level == 4:
+            return "✅ 已完成"
+        if clean_end == "--":
+            return "待排期"
+        return "按期推进"
 
-    return res
+    return "--"
 
-def compute_overdue_days(planned_end, actual_end):
-    """计算实际结束相比预计结束超出的天数"""
-    if not planned_end or not actual_end or planned_end == "--" or actual_end == "--":
+def compute_overdue_days(planned_end, actual_end, status_str=""):
+    """计算实际结束相比预计结束超出的天数，或当前日期相比预计结束超出的天数"""
+    if not planned_end or planned_end == "--":
         return 0
     try:
         dt_plan = datetime.strptime(planned_end, "%Y-%m-%d")
-        dt_act = datetime.strptime(actual_end, "%Y-%m-%d")
+        if actual_end and actual_end != "--":
+            dt_act = datetime.strptime(actual_end, "%Y-%m-%d")
+        elif "已完成" not in status_str and status_str != "--" and "已终止" not in status_str:
+            dt_act = CURRENT_DATE
+        else:
+            return 0
         delta = (dt_act.date() - dt_plan.date()).days
         return delta if delta > 0 else 0
     except Exception:
@@ -312,13 +323,13 @@ def compute_overdue_days(planned_end, actual_end):
 
 def format_phase_status_html(status_str, planned_end, actual_end):
     badge = f'<span class="badge {get_badge_class(status_str)}">{status_str}</span>'
-    days = compute_overdue_days(planned_end, actual_end)
+    days = compute_overdue_days(planned_end, actual_end, status_str)
     if days > 0:
-        badge += f'<br><span style="font-size: 11px; color: #b91c1c; font-weight: 500; display: block; margin-top: 2px;">逾期{days}天</span>'
+        badge += f'<br><span style="font-size: 11px; color: #b91c1c; font-weight: 600; display: block; margin-top: 2px;">逾期{days}天</span>'
     return badge
 
 def format_phase_status_md(status_str, planned_end, actual_end):
-    days = compute_overdue_days(planned_end, actual_end)
+    days = compute_overdue_days(planned_end, actual_end, status_str)
     if days > 0:
         return f"{status_str}<br><span style='color:#b91c1c;'>逾期{days}天</span>"
     return status_str
@@ -328,7 +339,7 @@ def is_risk_story(story):
     判定 Story 是否属于需在风险提醒表中展示的风险项。
     规则：
     1. 若 开发相关、SIT测试、UAT自测 三个环节的状态均为 '✅ 已完成'，一律彻底过滤掉，不在风险列表中显示。
-    2. 若存在任何活跃环节为 '已逾期'、'临近到期'、'今天到期' 或 '未排期'，判定为风险 Story 予以展示。
+    2. 只要三个环节存在任何未完成项，全量包含展示。
     """
     dev_st = story.get("dev_status", "")
     sit_st = story.get("sit_status", "")
@@ -338,12 +349,7 @@ def is_risk_story(story):
     if dev_st == "✅ 已完成" and sit_st == "✅ 已完成" and uat_st == "✅ 已完成":
         return False
 
-    phases = [dev_st, sit_st, uat_st, story.get("overall_status", "")]
-    for ps in phases:
-        if "已逾期" in ps or "临近" in ps or "今天" in ps or "未排期" in ps:
-            return True
-
-    return False
+    return True
 
 def get_badge_class(status_str):
     if "已完成" in status_str:
@@ -352,10 +358,14 @@ def get_badge_class(status_str):
         return "badge-terminated"
     elif "已逾期" in status_str:
         return "badge-overdue"
-    elif "临近" in status_str or "今天" in status_str or "未排期" in status_str:
+    elif "开发中" in status_str or "自测中" in status_str or "推进中" in status_str:
+        return "badge-in-progress"
+    elif "待开发" in status_str or "待自测" in status_str:
+        return "badge-pending"
+    elif "待排期" in status_str or "自测待排期" in status_str or "未排期" in status_str:
         return "badge-warning"
-    elif status_str == "正常":
-        return "badge-normal"
+    elif status_str == "--":
+        return "badge-muted"
     else:
         return "badge-muted"
 
@@ -390,15 +400,15 @@ def load_demand_data_from_cache(demand_ids, script_dir):
 
             dev_owner = parse_owner(r.get("devManagePerson"))
             dev_end = clean_date_str(r.get("devAssessDateEnd"))
-            dev_status = compute_phase_status('dev', dev_end, phase_level)
+            dev_status = compute_phase_status('dev', dev_end, phase_level, status)
 
             sit_owner = parse_owner(r.get("sitTestManagePerson"))
             sit_end = clean_date_str(r.get("sitTestAssessDateEnd"))
-            sit_status = compute_phase_status('sit', sit_end, phase_level)
+            sit_status = compute_phase_status('sit', sit_end, phase_level, status)
 
             uat_owner = parse_owner(r.get("uatTestManagePerson"))
             uat_end = clean_date_str(r.get("uatTestAssessDateEnd"))
-            uat_status = compute_phase_status('uat', uat_end, phase_level)
+            uat_status = compute_phase_status('uat', uat_end, phase_level, status)
 
             small_deliver = clean_date_str(r.get("smallDeliverDate"))
             large_deliver = clean_date_str(r.get("largeDeliverDate"))
@@ -800,11 +810,12 @@ def generate_html(data_list, output_path, project_name, only_risk=True, show_pla
 
   <div class="legend-bar">
     <strong>图例说明：</strong>
-    <span class="badge badge-overdue">🚨 已逾期</span>
-    <span class="badge badge-warning">⚠️ 临近到期 (≤3天) / 未排期</span>
     <span class="badge badge-done">✅ 已完成</span>
-    <span class="badge badge-normal">正常</span>
-    <span class="badge badge-muted">-- 未排期</span>
+    <span class="badge badge-in-progress">开发中 / 自测中</span>
+    <span class="badge badge-pending">待开发 / 待自测</span>
+    <span class="badge badge-warning">待排期 / 自测待排期</span>
+    <span class="badge badge-overdue">🚨 逾期提醒</span>
+    <span class="badge badge-muted">-- 未开启</span>
   </div>
 </div>
 

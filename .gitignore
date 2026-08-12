@@ -1,0 +1,12 @@
+.DS_Store
+*.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.fintech_session.json
+.disable_to_model_invocation_migration.json
+meet-minutes.zip
+wide-table-query/scripts/downloads/
+proposed-schedule-confirm/scripts/*.html
+proposed-schedule-confirm/scripts/*.md
+proposed-schedule-confirm/scripts/__pycache__/

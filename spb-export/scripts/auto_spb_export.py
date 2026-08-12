@@ -26,6 +26,7 @@ import sys
 import re
 import time
 import shutil
+import json
 from datetime import datetime
 
 import openpyxl
@@ -36,6 +37,8 @@ from playwright.sync_api import sync_playwright
 
 def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
     """解密存储在代码中的加密密码"""
+    if not enc_str or not isinstance(enc_str, str):
+        return ""
     if not enc_str.startswith('ENC:'):
         return enc_str
     kp = os.path.expanduser(key_path)
@@ -50,22 +53,69 @@ def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
     except Exception:
         return enc_str
 
+def load_credentials():
+    username = os.environ.get("PLATFORM_USERNAME") or os.environ.get("FINTECH_USERNAME") or ""
+    password = os.environ.get("PLATFORM_PASSWORD") or os.environ.get("FINTECH_PASSWORD") or ""
+    platform_url = os.environ.get("PLATFORM_URL") or "https://fintech.gtht.com.cn"
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_root = os.path.dirname(script_dir)
+
+    config_paths = [
+        os.path.join(os.getcwd(), "config.json"),
+        os.path.join(skill_root, "config.json"),
+        os.path.join(script_dir, "config.json"),
+        "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/config.json",
+        os.path.expanduser("~/.workbuddy/config.json"),
+    ]
+
+    for p in config_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    creds = json.load(f)
+                    u = str(creds.get("username", "")).strip()
+                    p_plain = str(creds.get("password", "")).strip()
+                    p_enc = str(creds.get("password_encrypted", "")).strip()
+                    url_val = str(creds.get("platform_url", "")).strip()
+
+                    if url_val:
+                        platform_url = url_val.rstrip("/")
+                    if u and u not in ("YOUR_USERNAME", "你的工号") and not username:
+                        username = u
+
+                    if not password:
+                        if p_plain and p_plain not in ("YOUR_PASSWORD", "YOUR_PLAIN_PASSWORD", "你的登录密码", "密码"):
+                            password = p_plain
+                        elif p_enc:
+                            dec = decrypt_password(p_enc)
+                            if dec:
+                                password = dec
+                if username and password:
+                    break
+            except Exception:
+                pass
+
+    if not username or not password:
+        print("❌ [配置缺失错误] 未找到有效的科技平台登录凭据 (USERNAME / PASSWORD)", file=sys.stderr)
+
+    return username, password, platform_url
+
 
 # ============================================================
 #  配置区域
 # ============================================================
 BASE_VERSION = "SPB_V2.2.19"
 
-USERNAME = "125360"
-PASSWORD = decrypt_password("ENC:gAAAAABqS3nG3HaebAdXuA4oG2aGH1N93TKWM0WvB9czGsKVsKccervTuVmO8qIYLf-yuYBL2X-El9OOHp4W7HhUY3Yeg39rkg==")
+USERNAME, PASSWORD, PLATFORM_URL = load_credentials()
 
 TARGET_URL = (
-    "https://fintech.gtht.com.cn/kjpt/OnlineGrid"
+    f"{PLATFORM_URL}/kjpt/OnlineGrid"
     "?tableId=1588040959688577024"
     "&tableName=%E9%9B%86%E4%B8%AD%E4%BA%A4%E6%98%93%E5%B9%B3%E5%8F%B0%E6%8C%81%E7%BB%AD%E5%BB%BA%E8%AE%BE%E9%A1%B9%E7%9B%AE"
 )
 
-LOGIN_URL = "https://fintech.gtht.com.cn/kjpt/user/login"
+LOGIN_URL = f"{PLATFORM_URL}/kjpt/user/login"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 EXPORT_DIR = SCRIPT_DIR

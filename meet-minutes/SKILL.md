@@ -430,13 +430,15 @@ Step 8: 纪要输出到对话框后，立即执行：
 #### 极速模式（fast_draft.py v2.0，首选）
 
 ```
-Step 1: 确定内容来源
-        → 当前会话中最近一次生成的会议纪要（含邮件主题和正文）
-        → 如无纪要缓存，提示"请先生成会议纪要"
+Step 1: 确定内容来源（以归档 MD 文件为准，重要红线）
+        → 必须优先直接读取 Phase 2 保存/修改后的最新会议纪要 `.md` 文件（绝对路径 `{save_path}/{文件名}.md`）
+        → 确保用户在 Obsidian/编辑器中对 `.md` 文件所做的任何人工修改均能在邮件草稿中 100% 准确生效
+        → 从 `.md` 文件中解析提取「邮件主题：【会议纪要】...」作为邮件主题
+        → 剥离 YAML frontmatter（--- ... ---）后将正文写入临时文件 /tmp/meeting_body_YYYYMMDD.txt
 
 Step 2: 准备参数
-        a. --subject: 提取邮件主题行（「邮件主题：【会议纪要】...」）
-        b. --body-file: 将纪要正文（去除 YAML frontmatter）写入临时文件 /tmp/meeting_body_YYYYMMDD.txt
+        a. --subject: 提取到的最新邮件主题行
+        b. --body-file: 写入的最新纪要正文临时文件 /tmp/meeting_body_YYYYMMDD.txt
         c. --config: 技能目录下的 config.json 绝对路径
         d. --recipients: 参会人姓名（逗号分隔，自动逐字输入+下拉框选择）
 

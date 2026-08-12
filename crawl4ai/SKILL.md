@@ -9,6 +9,10 @@ description: AI驱动的网页抓取框架，用于从网站提取结构化数�
 
 Crawl4ai 是一个 AI 驱动的网页抓取框架，旨在高效地从网站提取结构化数据。它将传统 HTML 解析与 AI 能力结合，可以轻松处理动态 JavaScript 内容、智能提取文本，并清洗结构化复杂网页的数据。
 
+> [!IMPORTANT]
+> **默认保存路径规范**：使用本技能提取/生成的 Markdown (.md) 文件，默认必须归档保存至目录：
+> `/Volumes/Macintosh HD_Data/obsidian/300_Resources/html文件/`
+
 ## 何时使用本技能
 
 当需要执行以下操作时使用：

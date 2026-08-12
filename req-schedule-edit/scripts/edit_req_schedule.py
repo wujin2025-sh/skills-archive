@@ -107,10 +107,8 @@ def load_credentials():
             except Exception:
                 pass
 
-    if not username:
-        username = "125360"
-    if not password:
-        password = "wujin@1124"
+    if not username or not password:
+        print("❌ [配置缺失错误] 未找到有效的科技平台登录凭据 (USERNAME / PASSWORD)", file=sys.stderr)
 
     return username, password, platform_url
 
@@ -174,34 +172,22 @@ async def fill_date_input(page, modal, selector, target_date):
     await inp.scroll_into_view_if_needed()
     await inp.evaluate("el => el.removeAttribute('readonly')")
     await inp.click()
-    await page.wait_for_timeout(300)
+    await page.wait_for_timeout(500)
     
     is_mac = sys.platform == "darwin"
     await page.keyboard.press("Meta+A" if is_mac else "Control+A")
     await page.keyboard.press("Backspace")
-    await page.keyboard.type(target_date, delay=30)
+    await page.keyboard.type(target_date, delay=50)
     await page.wait_for_timeout(300)
     await page.keyboard.press("Enter")
-    await page.wait_for_timeout(300)
+    await page.wait_for_timeout(500)
     
-    dropdown = page.locator(".ant-picker-dropdown:not(.ant-picker-dropdown-hidden)").last
-    if await dropdown.count() > 0:
-        cell = dropdown.locator(f'td[title="{target_date}"], .ant-picker-cell-selected').first
-        if await cell.count() > 0 and await cell.is_visible():
-            try:
-                is_disabled = await cell.evaluate("el => el.classList.contains('ant-picker-cell-disabled')")
-                if not is_disabled:
-                    await cell.click(timeout=2000)
-                    await page.wait_for_timeout(300)
-                else:
-                    await page.keyboard.press("Enter")
-                    await page.wait_for_timeout(300)
-            except Exception:
-                await page.keyboard.press("Enter")
-                await page.wait_for_timeout(300)
-        else:
-            await page.keyboard.press("Enter")
-            await page.wait_for_timeout(300)
+    # 关闭下拉框并触发 blur 使得 React 状态同步
+    try:
+        await modal.locator('.ant-modal-title').click(force=True)
+    except Exception:
+        pass
+    await page.wait_for_timeout(1000)
     
     val = await inp.input_value()
     return val
@@ -268,12 +254,17 @@ async def modify_demand_schedule(demand_id, target_date, online_date=None, heade
             }
 
         print("[交互] 点击「修改排期」按钮...")
-        await btn.click()
-        await page.wait_for_timeout(1500)
+        try:
+            await btn.click(timeout=5000)
+        except Exception as e:
+            print(f"[交互] 常规点击受阻 ({e})，尝试使用 JS 模拟点击...")
+            await btn.evaluate("node => node.click()")
 
         # 5. 定位“需求排期确认”弹窗
         modal = page.locator('.ant-modal-content').last
-        if await modal.count() == 0:
+        try:
+            await modal.wait_for(state="visible", timeout=5000)
+        except Exception:
             print("[错误] 未弹出「需求排期确认」弹窗！")
             await browser.close()
             return {
@@ -295,14 +286,19 @@ async def modify_demand_schedule(demand_id, target_date, online_date=None, heade
         v2_old = await inp2.input_value() if await inp2.count() > 0 else ""
         print(f"[当前值] 需求预计交付验收时间: {v1_old} | 需求预计上线时间: {v2_old}")
 
-        # 6. 修改日期输入框 (必须优先修改「需求预计上线时间」，再修改「需求预计交付验收时间」)
-        print(f"[修改] 优先填入「需求预计上线时间」-> {online_date}")
+        # 6. 修改日期输入框 (自适应顺序调整以绕过前端最大/最小日期范围校验)
+        print(f"[修改] 尝试 Order 1: 先填上线时间 ({online_date})，再填交付验收时间 ({target_date})...")
         v2_new = await fill_date_input(page, modal, sel2, online_date)
         await page.wait_for_timeout(300)
-
-        print(f"[修改] 接着填入「需求预计交付验收时间」-> {target_date}")
         v1_new = await fill_date_input(page, modal, sel1, target_date)
         await page.wait_for_timeout(300)
+
+        if v1_new != target_date or v2_new != online_date:
+            print(f"[修改] Order 1 未能完全生效（当前值: {v1_new} | {v2_new}），尝试 Order 2: 先填交付验收时间，再填上线时间...")
+            v1_new = await fill_date_input(page, modal, sel1, target_date)
+            await page.wait_for_timeout(300)
+            v2_new = await fill_date_input(page, modal, sel2, online_date)
+            await page.wait_for_timeout(300)
 
         print(f"[新设定值] 需求预计交付验收时间: {v1_new} | 需求预计上线时间: {v2_new}")
 

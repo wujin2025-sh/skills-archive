@@ -1,7 +1,7 @@
 ---
 name: trade-deduction
 description: >-
-  证券与金融交易场景的动态数据推演与需求漏洞挖掘工具。支持融资融券、一户两地、融冻管控、预冻结代扣税、货基混用、高流通市值、维保比联动及T+1清算等场景。演算资金余额、可用资金、融冻占用、融冻款金额、融资负债、维持担保比例等核心指标；展示递推算式与数值变化，支持 Multi-Case 多分支对比与强平/滑点二次校验，自动识别边界溢出与倒挂漏洞并输出规范化修正方案。
+  证券与金融交易场景的动态数据推演与需求漏洞挖掘工具。支持结合集中交易生产源码图谱 DB (/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db) 逆向核对算法逻辑。支持融资融券、一户两地、融冻管控、预冻结代扣税、货基混用、高流通市值、维保比联动及T+1清算等场景。演算资金余额、可用资金、融冻占用、融冻款金额、融资负债、维持担保比例等核心指标；展示递推算式与数值变化，支持 Multi-Case 多分支对比与强平/滑点二次校验，自动识别边界溢出与倒挂漏洞并输出规范化修正方案。生成的推演 MD 文档默认自动存盘至 /Volumes/Macintosh HD_Data/obsidian/100_Projects/交易推演 目录。
   Triggers: 交易推演、推演需求、交易数据推演、动态推演、数据变化推演、需求漏洞推演、维保比推演、代扣税推演、清算推演、漏洞挖掘、trade-deduction、/trade-deduction。
 ---
 
@@ -44,6 +44,31 @@ description: >-
     - 当账户维保比 $< 110\%$ 触发系统强制平仓时，豁免常规「持仓市值 $\le$ 融冻占用则拦截卖出」的管控；强平所得资金全额回流融券受限资金池扣减占用，不得挪用于清偿其他负债，避免逻辑死锁。
 12. **成交回报二次校验 (滑点风险防范)**：
     - 在行情剧烈波动场景中，包含「委托价预推演」与「成交价实际推演」二次校验对比，防止出现“委托时合规放行、成交后跌价导致资金漏项”的漏洞。
+13. **生产系统代码图谱 (graph.db) 事实优先法则**：
+    - 当推演公式存在争议或需校验现行系统实际表现时，以集中交易系统生产源码图谱数据库（`/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db`）及 C++/C/SQL 实际实现作为**第一权威事实依据**。
+    - 可结合 `explore-codebase` 与 `reverse-engineering-business-logic` 技能查询代码图谱，精确提取现行生产的阈值、计算公式与异常控制流。
+
+---
+
+## 核心交易清算与三段式资金划拨决策流程图
+
+```mermaid
+flowchart TD
+    subgraph CoreRule["核心资金划拨与风控决策逻辑"]
+        Start(["卖出 / 还款 / 变现交易动作"]) --> CheckFL{"维保比 < 110%<br/>触发强制平仓?"}
+        
+        CheckFL -- "是 (强平特例分支)" --> ExecFL["豁免常规拦截<br/>强平变现资金全额回流融券受限资金池"]
+        
+        CheckFL -- "否 (常规交易分支)" --> CheckTax{"扣税日/行权日<br/>需预冻结代扣税?"}
+        CheckTax -- "是" --> TaxFirst["最高优先级: 划拨资金预冻结代扣税<br/>(代扣税优先级 > 债务抵偿说明)"] --> CheckCoverage
+        CheckTax -- "否" --> CheckCoverage{"卖出后高流通持仓市值<br/>>= 融冻占用?"}
+        
+        CheckCoverage -- "否 (存在缺口 Δ)" --> ReleaseFreeze["第一优先级: 划拨变现资金 Δ<br/>优先释放融冻占用 ➔ 回转融冻款金额"] --> PayDebt
+        CheckCoverage -- "是 (覆盖充足)" --> PayDebt["第二优先级: 划拨变现资金<br/>清偿对应标的融资/融券负债"]
+        
+        PayDebt --> FreeCash["第三优先级: 剩余资金全额划入<br/>账户自有可用现金"]
+    end
+```
 
 ---
 
@@ -51,7 +76,7 @@ description: >-
 
 ```mermaid
 flowchart TD
-    Step1["Step 1: 提取初始状态与交易序列"] --> Step2["Step 2: 构建推演指标矩阵 (分离账户级/证券级)"]
+    Step1["Step 1: 提取初始状态、交易序列与源码图谱事实 (基于 graph.db 校验现行逻辑)"] --> Step2["Step 2: 构建推演指标矩阵 (分离账户级/证券级)"]
     Step2 --> Step3["Step 3: 逐步算式递推演算 (含计算公式代入)"]
     Step3 --> Step4["Step 4: 维保比 (维持担保比例) 联动检测"]
     Step4 --> Step5["Step 5: 强制平仓特例分支校验"]
@@ -59,6 +84,28 @@ flowchart TD
     Step6 --> Step7["Step 7: 多分支对比 (Multi-Case)"]
     Step7 --> Step8["Step 8: 漏洞识别与需求优化输出"]
     Step8 --> Step9["Step 9: 上下游技能联动 (ba-to-dev / meet-to-req)"]
+```
+
+---
+
+## 上下游技能协同与数据流向图 (Skill Integration Pipeline)
+
+```mermaid
+flowchart LR
+    subgraph Upstream["上游: 需求捕获与代码图谱"]
+        A["原始需求 / 口语描述"] --> B["demand-detective<br/>(Grill-me 访谈 / 语料重构)"]
+        G["集中交易生产源码图谱 DB<br/>(/Project/jzjy/spbsrc/.code-review-graph/graph.db)"] --> C
+    end
+
+    subgraph CoreEngine["核心: 沙盘推演引擎"]
+        B --> C["/trade-deduction (本 Skill)<br/>• 初始矩阵 & 交易序列<br/>• 维保比 / 强平 / 滑点二次校验<br/>• Multi-Case 多分支方案对比<br/>• 结合 graph.db 逆向核对代码算式<br/>• 存盘至 /100_Projects/交易推演/"]
+    end
+
+    subgraph Downstream["下游: 规范反写与交付"]
+        C --> D["ba-to-dev<br/>(写入技术实现伪代码与漏洞审计)"]
+        C --> E["meet-to-req<br/>(融入需求 MD 评审纪要)"]
+        D --> F["md-to-sheet / 排期确认<br/>(写入在线大宽表与进度跟踪)"]
+    end
 ```
 
 ---
@@ -162,15 +209,19 @@ flowchart TD
 
 - **下游联动 $\rightarrow$ `ba-to-dev`**：
   推演完成后，可提示用户："是否将推演表与漏洞结论自动写入 `ba-to-dev` 研发文档的「三、（三）伪代码与边界推演」及「四、逻辑漏洞审计」？"
+- **自动存盘与规范目录**：
+  生成的推演报告默认自动存盘至 `/Volumes/Macintosh HD_Data/obsidian/100_Projects/交易推演/<YYYYMMDD-交易推演-纯中文需求名>.md`，顶部包含 YAML `created` 与 `updated` 元数据。
 - **下游联动 $\rightarrow$ `meet-to-req`**：
   若推演结论源于评审会议，可调用 `meet-to-req` 融合进需求 MD 的评审纪要中。
-- **上游联动 $\leftarrow$ `demand-detective`**：
-  当 `demand-detective` 发现规则包含复杂资金/市值计算时，自动推荐使用 `/trade-deduction` 进行数据演绎。
+- **上游联动 $\leftarrow$ `demand-detective` & 生产代码图谱**：
+  当 `demand-detective` 发现规则包含复杂资金/市值计算，或需校验生产现行逻辑时，自动调用 `/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db` 逆向核对源码算式后再执行数据演绎。
 
 ---
 
 ## 推演质量自检清单 (Post-Deduction Checklist)
 
+- [ ] 推演 MD 报告已默认保存至 `/Volumes/Macintosh HD_Data/obsidian/100_Projects/交易推演/`
+- [ ] 涉及生产算法的争议规则，已基于 `/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db` 源码图谱逆向核对
 - [ ] 每个单元格包含算式 + 数值双展现，无裸数字
 - [ ] 账户级指标与证券级指标严格分行显示
 - [ ] 融冻占用与融冻款金额变动方向相反且金额闭环

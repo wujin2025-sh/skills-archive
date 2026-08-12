@@ -12,10 +12,13 @@ import os
 import re
 import asyncio
 import argparse
+import json
 from playwright.async_api import async_playwright
 
 def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
     """解密存储在代码中的加密密码"""
+    if not enc_str or not isinstance(enc_str, str):
+        return ""
     if not enc_str.startswith('ENC:'):
         return enc_str
     kp = os.path.expanduser(key_path)
@@ -30,10 +33,57 @@ def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
     except Exception:
         return enc_str
 
-USERNAME = "125360"
-PASSWORD = decrypt_password("ENC:gAAAAABqS3nG3HaebAdXuA4oG2aGH1N93TKWM0WvB9czGsKVsKccervTuVmO8qIYLf-yuYBL2X-El9OOHp4W7HhUY3Yeg39rkg==")
-LOGIN_URL = "https://fintech.gtht.com.cn/kjpt/user/login"
-DETAIL_URL_TEMPL = "https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={}&templateId=8888&flag=1"
+def load_credentials():
+    username = os.environ.get("PLATFORM_USERNAME") or os.environ.get("FINTECH_USERNAME") or ""
+    password = os.environ.get("PLATFORM_PASSWORD") or os.environ.get("FINTECH_PASSWORD") or ""
+    platform_url = os.environ.get("PLATFORM_URL") or "https://fintech.gtht.com.cn"
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_root = os.path.dirname(script_dir)
+
+    config_paths = [
+        os.path.join(os.getcwd(), "config.json"),
+        os.path.join(skill_root, "config.json"),
+        os.path.join(script_dir, "config.json"),
+        "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/config.json",
+        os.path.expanduser("~/.workbuddy/config.json"),
+    ]
+
+    for p in config_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    creds = json.load(f)
+                    u = str(creds.get("username", "")).strip()
+                    p_plain = str(creds.get("password", "")).strip()
+                    p_enc = str(creds.get("password_encrypted", "")).strip()
+                    url_val = str(creds.get("platform_url", "")).strip()
+
+                    if url_val:
+                        platform_url = url_val.rstrip("/")
+                    if u and u not in ("YOUR_USERNAME", "你的工号") and not username:
+                        username = u
+
+                    if not password:
+                        if p_plain and p_plain not in ("YOUR_PASSWORD", "YOUR_PLAIN_PASSWORD", "你的登录密码", "密码"):
+                            password = p_plain
+                        elif p_enc:
+                            dec = decrypt_password(p_enc)
+                            if dec:
+                                password = dec
+                if username and password:
+                    break
+            except Exception:
+                pass
+
+    if not username or not password:
+        print("❌ [配置缺失错误] 未找到有效的科技平台登录凭据 (USERNAME / PASSWORD)", file=sys.stderr)
+
+    return username, password, platform_url
+
+USERNAME, PASSWORD, PLATFORM_URL = load_credentials()
+LOGIN_URL = f"{PLATFORM_URL}/kjpt/user/login"
+DETAIL_URL_TEMPL = f"{PLATFORM_URL}/kjpt/DemandManage/details?demandId={{}}&templateId=8888&flag=1"
 
 WORKSPACE = "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理"
 SESSION_FILE = os.path.join(WORKSPACE, ".fintech_session.json")
@@ -57,44 +107,50 @@ def _clean(s):
         return ""
     return re.sub(r"\s+", " ", str(s)).strip()
 
-async def ensure_login(context, page):
-    if os.path.exists(SESSION_FILE):
-        return
+async def _do_login(page, context):
     await page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
     await page.wait_for_selector('input[placeholder*="工号"]', timeout=8000)
     await page.locator('input[placeholder*="工号"]').fill(USERNAME)
-    await page.locator('input[placeholder*="密码"]').fill(PASSWORD)
-    await page.locator('button:has-text("提 交")').click()
+    await page.locator('input[placeholder*="密码"], input[type="password"]').fill(PASSWORD)
+    submit_btn = page.locator('button.ant-btn-primary, button:has-text("Submit"), button:has-text("提 交"), button:has-text("登录")').first
+    await submit_btn.click()
     await page.wait_for_load_state("domcontentloaded", timeout=30000)
+    await asyncio.sleep(2)
+    os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
     try:
         await context.storage_state(path=SESSION_FILE)
     except Exception:
         pass
 
-async def get_demand_details(page, demand_id, skip_stories=False):
+async def ensure_login(context, page):
+    if os.path.exists(SESSION_FILE):
+        return
+    await _do_login(page, context)
+
+async def get_demand_details(page, demand_id, skip_stories=False, context=None):
     url = DETAIL_URL_TEMPL.format(demand_id)
     await page.goto(url, wait_until="domcontentloaded", timeout=15000)
     
-    # 极速等待：若开启 --no-story，仅需等待需求基本文案就绪，极速秒切
-    try:
-        await page.wait_for_function(
-            f"(id) => document.body.innerText.includes(id) && (document.body.innerText.includes('提出人') || document.body.innerText.includes('需求提交人'))",
-            arg=demand_id,
-            timeout=3000 if skip_stories else 5000
-        )
-    except Exception:
-        pass
-
     if "login" in page.url.lower():
-        return None, [], {}
+        if os.path.exists(SESSION_FILE):
+            try:
+                os.remove(SESSION_FILE)
+            except Exception:
+                pass
+        if context:
+            await _do_login(page, context)
+            await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        if "login" in page.url.lower():
+            return None, [], {}
 
-    # 若需要 Story，等表格数据渲染就绪
     if not skip_stories:
         try:
             await page.wait_for_selector('.ant-table-tbody .ant-table-row', timeout=6000)
-            await asyncio.sleep(0.2)
         except Exception:
             pass
+
+    # 等待顶部卡片异步渲染
+    await asyncio.sleep(0.8)
 
     data = await page.evaluate("""({demandId, skipStories}) => {
         const fullText = document.body.innerText || '';
@@ -183,6 +239,42 @@ async def get_demand_details(page, demand_id, skip_stories=False):
             content = contentMatch[1].trim();
         }
 
+        let expDate = '';
+        const labels = Array.from(document.querySelectorAll('*')).filter(el => el.children.length === 0 && el.textContent.includes('期望上线时间'));
+        for (const lbl of labels) {
+            const parentText = lbl.parentElement?.innerText || lbl.parentElement?.textContent || '';
+            const labelPos = parentText.indexOf('期望上线时间');
+            if (labelPos !== -1) {
+                const subStr = parentText.substring(labelPos, labelPos + 100);
+                const dm = subStr.match(/([0-9]{4}[-/][0-9]{2}[-/][0-9]{2})/);
+                if (dm) {
+                    expDate = dm[1];
+                    break;
+                }
+            }
+        }
+        if (!expDate) {
+            const m = fullText.match(/期望上线时间[\\s\\S]{1,50}?([0-9]{4}[-/][0-9]{2}[-/][0-9]{2})/);
+            if (m) expDate = m[1];
+        }
+        if (!expDate) expDate = '未设定';
+
+        const attachments = [];
+        const attElements = document.querySelectorAll('.ant-upload-list-item, a[href*="download"], a[href*="attachment"], .attachment-name, .file-name');
+        attElements.forEach(el => {
+            const text = el.textContent?.trim() || '';
+            const href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
+            if (text && text.length > 2 && !attachments.some(a => a.name === text)) {
+                attachments.push({ name: text, href });
+            }
+        });
+
+        let attachmentText = '';
+        const attSecMatch = fullText.match(/(?:附件说明|附件列表|需求附件|附件文件)([\\s\\S]*?)(?=OA审批|关联设计需求|设计需求|评论|修改记录|$)/i);
+        if (attSecMatch) {
+            attachmentText = attSecMatch[1].trim();
+        }
+
         return {
             info: {
                 '编号': demandId,
@@ -193,9 +285,11 @@ async def get_demand_details(page, demand_id, skip_stories=False):
                 '提出人': rName,
                 '提出部门': rDept,
                 '受理人': hName,
-                '期望上线时间': '2026-08-07（预计上线：2026-07-10）',
+                '期望上线时间': expDate,
                 '需求背景': background,
-                '需求内容': content
+                '需求内容': content,
+                '附件列表': attachments,
+                '附件说明文案': attachmentText
             },
             stories,
             colMap
@@ -248,6 +342,21 @@ def format_demand(info, stories=None, col_map=None):
         lines.append(info['需求内容'])
         lines.append("")
 
+    atts = info.get('附件列表', [])
+    att_text = info.get('附件说明文案', '')
+    if atts or att_text:
+        lines.append("#### **【附件列表与说明】**")
+        if atts:
+            lines.append("**需求挂载附件文件列表：**")
+            for a in atts:
+                link = f" ({a['href']})" if a.get('href') else ""
+                lines.append(f"- 📎 `{a['name']}`{link}")
+            lines.append("")
+        if att_text:
+            lines.append("**附件说明与提取文本：**")
+            lines.append(att_text)
+            lines.append("")
+
     if stories is not None:
         ci = _build_col_index(col_map) if col_map else STORY_COL_FALLBACK
 
@@ -299,7 +408,7 @@ async def run(demand_id, headed, output, skip_stories=False):
         page1 = await context.new_page()
 
         await ensure_login(context, page1)
-        info, stories, col_map = await get_demand_details(page1, demand_id, skip_stories=skip_stories)
+        info, stories, col_map = await get_demand_details(page1, demand_id, skip_stories=skip_stories, context=context)
         await page1.close()
 
         output_text = format_demand(info, stories, col_map)

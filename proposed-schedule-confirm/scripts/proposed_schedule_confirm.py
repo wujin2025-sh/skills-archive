@@ -439,7 +439,10 @@ def send_confirmation_email(html_path, version_str, receiver_str, items, is_send
     subject_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求确认表"
     subject = f"{subject_prefix} ({version_str} - {receiver_str})"
     
-    script_path = "/Users/wujin/.workbuddy/skills/svn-merge/scripts/save_to_draft.py"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_script = os.path.join(script_dir, "save_to_draft.py")
+    fallback_script = "/Users/wujin/.workbuddy/skills/svn-merge/scripts/save_to_draft.py"
+    script_path = local_script if os.path.exists(local_script) else fallback_script
     if not os.path.exists(script_path):
         print(f"❌ [Email Error] 未找到 Coremail 邮件处理脚本 {script_path}")
         return False

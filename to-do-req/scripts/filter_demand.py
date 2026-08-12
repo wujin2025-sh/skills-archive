@@ -13,11 +13,78 @@ import json
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-USERNAME = "125360"
-PASSWORD = "wujin@1124"
-LOGIN_URL = "https://fintech.gtht.com.cn/kjpt/user/login"
-DEMAND_URL = "https://fintech.gtht.com.cn/kjpt/DemandManage/main"
-BASE = "https://fintech.gtht.com.cn"
+import sys
+
+def decrypt_password(enc_str, key_path='~/.workbuddy/.meeting_skill_key'):
+    """解密存储在代码中的加密密码"""
+    if not enc_str or not isinstance(enc_str, str):
+        return ""
+    if not enc_str.startswith('ENC:'):
+        return enc_str
+    kp = os.path.expanduser(key_path)
+    if not os.path.exists(kp):
+        return enc_str
+    try:
+        from cryptography.fernet import Fernet
+        with open(kp, 'rb') as f:
+            key = f.read()
+        fern = Fernet(key)
+        return fern.decrypt(enc_str[4:].encode('utf-8')).decode('utf-8')
+    except Exception:
+        return enc_str
+
+def load_credentials():
+    username = os.environ.get("PLATFORM_USERNAME") or os.environ.get("FINTECH_USERNAME") or ""
+    password = os.environ.get("PLATFORM_PASSWORD") or os.environ.get("FINTECH_PASSWORD") or ""
+    platform_url = os.environ.get("PLATFORM_URL") or "https://fintech.gtht.com.cn"
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_root = os.path.dirname(script_dir)
+
+    config_paths = [
+        os.path.join(os.getcwd(), "config.json"),
+        os.path.join(skill_root, "config.json"),
+        os.path.join(script_dir, "config.json"),
+        "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/config.json",
+        os.path.expanduser("~/.workbuddy/config.json"),
+    ]
+
+    for p in config_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    creds = json.load(f)
+                    u = str(creds.get("username", "")).strip()
+                    p_plain = str(creds.get("password", "")).strip()
+                    p_enc = str(creds.get("password_encrypted", "")).strip()
+                    url_val = str(creds.get("platform_url", "")).strip()
+
+                    if url_val:
+                        platform_url = url_val.rstrip("/")
+                    if u and u not in ("YOUR_USERNAME", "你的工号") and not username:
+                        username = u
+
+                    if not password:
+                        if p_plain and p_plain not in ("YOUR_PASSWORD", "YOUR_PLAIN_PASSWORD", "你的登录密码", "密码"):
+                            password = p_plain
+                        elif p_enc:
+                            dec = decrypt_password(p_enc)
+                            if dec:
+                                password = dec
+                if username and password:
+                    break
+            except Exception:
+                pass
+
+    if not username or not password:
+        print("❌ [配置缺失错误] 未找到有效的科技平台登录凭据 (USERNAME / PASSWORD)", file=sys.stderr)
+
+    return username, password, platform_url
+
+USERNAME, PASSWORD, PLATFORM_URL = load_credentials()
+LOGIN_URL = f"{PLATFORM_URL}/kjpt/user/login"
+DEMAND_URL = f"{PLATFORM_URL}/kjpt/DemandManage/main"
+BASE = PLATFORM_URL
 SESSION_FILE = "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/.fintech_session.json"
 
 

@@ -282,6 +282,23 @@ SECTION_REVIEW  = "#### **评审纪要**"
 SECTION_LINKS   = "**相关链接**"
 
 # 新版自然融入行（用于检测已有值）
+def normalize_punctuation(text: str) -> str:
+    """规范化中英文标点与句尾点号纠错"""
+    if not text:
+        return ""
+    t = text.strip()
+    # 纠错连续重复标点
+    t = re.sub(r'([。，！？；：])\1+', r'\1', t)
+    # 纠错中文环境下的半角英文标点
+    t = re.sub(r'([\u4e00-\u9fa5]),\s*', r'\1，', t)
+    t = re.sub(r'([\u4e00-\u9fa5]):\s*', r'\1：', t)
+    t = re.sub(r'([\u4e00-\u9fa5]);\s*', r'\1；', t)
+    # 自动加句尾句号（若末尾不是标准标点）
+    if t and t[-1] not in "。！？；:：!?;...\n":
+        t += "。"
+    return t
+
+
 RE_SYSTEMS_LINE  = re.compile(r'^[ \t]*涉及系统[：:][ \t]*(.+)$', re.MULTILINE)
 RE_RELATED_LINE  = re.compile(r'^[ \t]*关联系统[：:][ \t]*(.+)$', re.MULTILINE)
 RE_TIME_LINE     = re.compile(r'^[ \t]*预计完成时间[：:][ \t]*(.+)$', re.MULTILINE)
@@ -408,7 +425,7 @@ def update_tech_section(tech: str, remark: str) -> tuple[str, bool]:
 
     # 3. 如果存在备注，插入临时标记
     if remark and remark.strip():
-        remark_clean = remark.strip()
+        remark_clean = normalize_punctuation(remark.strip())
         if not _has_remark_in_text(tech, remark_clean):
             header_pattern = re.compile(r'^(#### \*\*三、技术实现\*\*)\s*\n', re.MULTILINE)
             m = header_pattern.search(tech)

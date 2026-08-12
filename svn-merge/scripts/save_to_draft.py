@@ -354,8 +354,10 @@ def main():
                 if cc_el:
                     clean_cc_emails = [parse_clean_email(r) for r in cc_recipients]
                     for idx, email_addr in enumerate(clean_cc_emails):
+                        compose_page.keyboard.press("Escape")
+                        compose_page.wait_for_timeout(50)
                         compose_page.keyboard.type(email_addr + ";", delay=3)
-                        compose_page.wait_for_timeout(30)
+                        compose_page.wait_for_timeout(100)
                     compose_page.keyboard.press("Enter")
                     print(f"    Filled CC field with {len(cc_recipients)} recipients.")
 

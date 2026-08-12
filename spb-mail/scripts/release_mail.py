@@ -614,6 +614,20 @@ def main():
     else:
         print(f"[WARN] 未找到文件: {config['zip_filename']}")
 
+    # 3.5 自动化比对校验 (Task 编号与 SVN 提交记录一致性核对)
+    print(f"\n[INFO] 🔍 正在执行 Task 编号与 SVN Revision 自动比对核验...")
+    task_codes_in_excel = set(t.get('code', '') for t in tasks if t.get('code'))
+    svn_log_text = " ".join([l.get('msg', '') for l in logs])
+    matched_tasks = [code for code in task_codes_in_excel if code in svn_log_text]
+    unmatched_tasks = [code for code in task_codes_in_excel if code not in svn_log_text]
+    
+    print(f"[CHECK] ✅ 升级包 MD5 校验: {'已算得 ' + md5_val if md5_val else '⚠️ 缺失 ZIP升级包'}")
+    print(f"[CHECK] 📊 Task 编号比对: Excel 中共 {len(task_codes_in_excel)} 个 Task，与 SVN Log 匹配 {len(matched_tasks)} 个")
+    if unmatched_tasks:
+        print(f"[CHECK] ⚠️ 提示：以下 Task 未在今日 SVN 提交日志中找到对应编号关联: {', '.join(unmatched_tasks)}")
+    else:
+        print(f"[CHECK] ✅ 所有 Task 编号在 SVN 日志中均已完成关联核对！")
+
     # 4. 生成文本报告
     text_content = generate_text_report(config, tasks, md5_val, logs, mode)
     txt_path = os.path.join(WORK_DIR, "release_report.txt")

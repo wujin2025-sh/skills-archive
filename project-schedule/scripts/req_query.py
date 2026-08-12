@@ -78,6 +78,16 @@ def decrypt_password(cipher_text):
     except Exception:
         return None
 
+def extract_epic_name(epic_concat, epic_id):
+    if not epic_concat:
+        return ""
+    s = str(epic_concat).strip()
+    pattern = re.compile(re.escape(epic_id), re.IGNORECASE)
+    s = pattern.sub("", s)
+    s = re.sub(r'^[\s_\[\]\-\:：【】\(\)]+', '', s)
+    s = re.sub(r'[\s_\[\]\-\:：【】\(\)]+$', '', s)
+    return s.strip()
+
 # 加载凭证配置 (config.json)
 USERNAME = ""
 PASSWORD = ""
@@ -188,7 +198,11 @@ async def ensure_login(context, page):
 
     try:
         await page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=15000)
-        if "login" not in page.url.lower():
+        try:
+            await page.wait_for_selector('input[placeholder*="搜索需求"], input[placeholder*="工号"]', timeout=8000)
+        except Exception:
+            pass
+        if "login" not in page.url.lower() and not await page.locator('input[placeholder*="工号"]').is_visible():
             print("已有登录态，跳过")
             return
     except Exception:
@@ -285,7 +299,7 @@ async def search_demand(page, demand_id):
 # ============================================================
 async def open_detail_page(page, demand_id):
     """
-    打开需求详情页，返回 (stories_data, col_map)。
+    打开需求详情页，返回 (stories_data, col_map, detail_info)。
     """
     detail_url = DETAIL_URL_TEMPL.format(demand_id)
     print(f"[详情] 打开: {detail_url}")
@@ -321,10 +335,95 @@ async def open_detail_page(page, demand_id):
     except PWTimeout:
         print("[详情] 等待 Story 表格超时")
 
-    # 提取 Story 表格数据（含表头映射）
+    # 点击 "展开更多" / "查看更多" 展开基本信息
+    try:
+        expand_btns = await page.locator('text="展开更多", text="查看更多"').all()
+        for btn in expand_btns:
+            if await btn.is_visible():
+                await btn.click()
+                await page.wait_for_timeout(500)
+        print("[详情] 已成功点击 '展开更多' 展开基本信息")
+    except Exception as e:
+        print(f"[详情] 尝试点击 '展开更多' 失败: {e}")
+
+    # 提取 Story 表格数据（含表头映射和基本信息）
     result = await page.evaluate("""() => {
+        // Helper to extract value next to label element
+        const getValueForLabel = (el) => {
+            if (!el) return '';
+            if (el.tagName === 'TD' || el.tagName === 'TH') {
+                const tr = el.closest('tr');
+                if (tr) {
+                    const tds = Array.from(tr.querySelectorAll('td, th'));
+                    const idx = tds.indexOf(el);
+                    if (idx !== -1 && idx + 1 < tds.length) {
+                        const targetTd = tds[idx + 1];
+                        const childTexts = Array.from(targetTd.children)
+                            .map(c => c.textContent?.trim() || '')
+                            .filter(t => t);
+                        if (childTexts.length > 1) {
+                            return childTexts.join(', ');
+                        }
+                        return targetTd.textContent?.trim() || '';
+                    }
+                }
+            }
+            const formItem = el.closest('.ant-form-item') || el.closest('.ant-row') || el.parentElement;
+            if (formItem) {
+                const ctrl = formItem.querySelector('.ant-form-item-control') || formItem.querySelector('.ant-col:nth-child(2)');
+                if (ctrl) {
+                    const childTexts = Array.from(ctrl.children)
+                        .map(c => c.textContent?.trim() || '')
+                        .filter(t => t);
+                    if (childTexts.length > 1) {
+                        const joined = childTexts.join(', ');
+                        if (joined.length < 30) return joined;
+                    }
+                    const txt = ctrl.textContent?.trim() || '';
+                    if (txt && txt.length < 30) return txt;
+                }
+            }
+            if (el.nextElementSibling) {
+                const txt = el.nextElementSibling.textContent?.trim() || '';
+                if (txt && txt.length < 30) return txt;
+            }
+            if (el.parentElement && el.parentElement.nextElementSibling) {
+                const txt = el.parentElement.nextElementSibling.textContent?.trim() || '';
+                if (txt && txt.length < 30) return txt;
+            }
+            return '';
+        };
+
+        // 1. 尝试精准抓取基本信息中的 原始需求提出人 与 业务验收人
+        let originalRequester = '';
+        let businessAcceptor = '';
+        
+        const tds = Array.from(document.querySelectorAll('td, th'));
+        for (const td of tds) {
+            const text = td.textContent?.trim() || '';
+            if (text === '原始需求提出人') {
+                originalRequester = getValueForLabel(td);
+            }
+            if (text === '业务验收人') {
+                businessAcceptor = getValueForLabel(td);
+            }
+        }
+        
+        if (!originalRequester || !businessAcceptor) {
+            const allElements = Array.from(document.querySelectorAll('label, div, span'));
+            for (const el of allElements) {
+                const text = el.textContent?.trim() || '';
+                if (text === '原始需求提出人' && !originalRequester) {
+                    originalRequester = getValueForLabel(el);
+                }
+                if (text === '业务验收人' && !businessAcceptor) {
+                    businessAcceptor = getValueForLabel(el);
+                }
+            }
+        }
+
         const tables = document.querySelectorAll('.ant-table');
-        if (tables.length === 0) return { stories: [], colMap: {} };
+        if (tables.length === 0) return { stories: [], colMap: {}, originalRequester, businessAcceptor };
 
         let storyTable = null;
         for (const table of tables) {
@@ -334,7 +433,7 @@ async def open_detail_page(page, demand_id):
                 break;
             }
         }
-        if (!storyTable) return { stories: [], colMap: {} };
+        if (!storyTable) return { stories: [], colMap: {}, originalRequester, businessAcceptor };
 
         const headerCells = storyTable.querySelectorAll('.ant-table-thead th');
         const colMap = {};
@@ -349,13 +448,17 @@ async def open_detail_page(page, demand_id):
             return Array.from(cells).map(td => td.textContent?.trim() || '');
         });
 
-        return { stories, colMap };
+        return { stories, colMap, originalRequester, businessAcceptor };
     }""")
 
     stories_data = result.get("stories", [])
     col_map = result.get("colMap", {})
-    print(f"[详情] Story 数量: {len(stories_data)}")
-    return stories_data, col_map
+    detail_info = {
+        "原始需求提出人": result.get("originalRequester", ""),
+        "业务验收人": result.get("businessAcceptor", "")
+    }
+    print(f"[详情] Story 数量: {len(stories_data)}, 原始需求提出人: {detail_info['原始需求提出人']}, 业务验收人: {detail_info['业务验收人']}")
+    return stories_data, col_map, detail_info
 
 
 # ============================================================
@@ -413,14 +516,17 @@ def get_demands_by_epic_api(epic_id):
         raw_rows = resp_json.get("data", {}).get("data", [])
         
         demands = set()
+        epic_name = ""
         epic_upper = epic_id.upper()
         for row in raw_rows:
             epic_concat = row.get("epicConcat", "") or ""
             if epic_upper in str(epic_concat).upper():
+                if not epic_name:
+                    epic_name = extract_epic_name(epic_concat, epic_id)
                 d_id = row.get("demandId", "")
                 if d_id and d_id.startswith("R"):
                     demands.add(d_id)
-        return sorted(list(demands))
+        return sorted(list(demands)), epic_name
     except Exception as e:
         print(f"[API] 接口获取数据异常: {e}", file=sys.stderr)
         return None
@@ -467,7 +573,7 @@ async def get_demands_by_epic_playwright(epic_id):
             except Exception:
                 pass
                 
-            demands = await page.evaluate("""() => {
+            result = await page.evaluate("""() => {
                 const headerCells = document.querySelectorAll('.ag-header-cell[col-id]');
                 const nameToColId = {};
                 headerCells.forEach(cell => {
@@ -480,30 +586,46 @@ async def get_demands_by_epic_playwright(epic_id):
                 });
 
                 const dColId = nameToColId['需求编号'];
-                if (!dColId) return [];
+                const epicColId = nameToColId['史诗编号&史诗名称'];
+                if (!dColId) return { demands: [], epicName: "" };
 
                 const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-group)');
                 const demandsSet = new Set();
+                let epicNameStr = "";
                 dataRows.forEach(row => {
                     const cells = row.querySelectorAll('.ag-cell[col-id]');
+                    let rowDemand = "";
+                    let rowEpic = "";
                     cells.forEach(cell => {
                         const cid = cell.getAttribute('col-id');
                         if (cid === dColId) {
-                            const val = cell.textContent.trim();
-                            if (val && val.startsWith('R')) {
-                                demandsSet.add(val);
-                            }
+                            rowDemand = cell.textContent.trim();
+                        } else if (cid === epicColId) {
+                            rowEpic = cell.textContent.trim();
                         }
                     });
+                    if (rowDemand && rowDemand.startsWith('R')) {
+                        demandsSet.add(rowDemand);
+                    }
+                    if (rowEpic && !epicNameStr) {
+                        epicNameStr = rowEpic;
+                    }
                 });
-                return Array.from(demandsSet);
+                return {
+                    demands: Array.from(demandsSet),
+                    epicName: epicNameStr
+                };
             }""")
             
+            demands = result.get("demands", [])
+            raw_epic_name = result.get("epicName", "")
+            epic_name = extract_epic_name(raw_epic_name, epic_id)
+            
             await context.storage_state(path=SESSION_FILE)
-            return sorted(list(demands))
+            return sorted(list(demands)), epic_name
         except Exception as e:
             print(f"[Playwright] 查询史诗关联需求失败: {e}", file=sys.stderr)
-            return []
+            return [], ""
         finally:
             await browser.close()
 
@@ -610,7 +732,7 @@ async def query_wide_table(page, demand_id):
             }
         });
 
-        const neededCols = ['需求编号', 'Story系统', '计划生产排期', '备注'];
+        const neededCols = ['需求编号', 'Story系统', '计划生产排期', '备注', '史诗编号&史诗名称', '业务验收人', 'Story业务验收结果'];
         const found = neededCols.filter(c => nameToColId[c]);
         if (found.length < 2) {
             return { error: true, foundNames: Object.keys(nameToColId).slice(0, 20), neededCols };
@@ -634,11 +756,21 @@ async def query_wide_table(page, demand_id):
             const sColId = nameToColId['Story系统'];
             const pColId = nameToColId['计划生产排期'];
             const rColId = nameToColId['备注'];
-
+            const epicColId = nameToColId['史诗编号&史诗名称'];
+            const epicConcat = epicColId ? (rowData[epicColId] || '') : '';
+            const acceptorColId = nameToColId['业务验收人'];
+            const resultColId = nameToColId['Story业务验收结果'];
+            
+            const acceptor = acceptorColId ? (rowData[acceptorColId] || '') : '';
+            const busResult = resultColId ? (rowData[resultColId] || '') : '';
+ 
             records.push({
                 system: sColId ? (rowData[sColId] || '') : '',
                 planDate: pColId ? (rowData[pColId] || '') : '',
                 remark: rColId ? (rowData[rColId] || '') : '',
+                epicConcat: epicConcat,
+                acceptor: acceptor,
+                busResult: busResult
             });
         });
 
@@ -656,6 +788,9 @@ async def query_wide_table(page, demand_id):
             lookup[sys] = {
                 "plan_date": item.get("planDate", ""),
                 "remark": item.get("remark", ""),
+                "epic_concat": item.get("epicConcat", ""),
+                "acceptor": item.get("acceptor", ""),
+                "bus_result": item.get("busResult", "")
             }
 
     print(f"[大宽表] 找到 {len(lookup)} 条系统记录: {list(lookup.keys())}")
@@ -759,10 +894,14 @@ def _match_wide_table(system_name, wide_table_data):
     return None
 
 
-def format_demand(info, stories=None, col_map=None, wide_table_data=None):
+def format_demand(info, stories=None, col_map=None, wide_table_data=None, detail_info=None):
     """格式化核心需求要素为对话窗口输出"""
     if not info:
         return "**需求查询　|　未找到匹配结果**\n"
+
+    orig_requester = detail_info.get("原始需求提出人", "") if detail_info else ""
+    if not orig_requester:
+        orig_requester = info.get("提出人", "")
 
     lines = []
     lines.append(f"**需求查询　|　{info['编号']}**")
@@ -774,7 +913,7 @@ def format_demand(info, stories=None, col_map=None, wide_table_data=None):
     lines.append(f"　　**OA状态**：{info['OA状态']}")
     lines.append("")
 
-    lines.append(f"　　**提出人**：{info['提出人']}")
+    lines.append(f"　　**提出人**：{orig_requester}")
     lines.append(f"　　**提出部门**：{info['提出部门']}")
     lines.append(f"　　**受理人**：{info['受理人']}")
     lines.append(f"　　**期望上线时间**：{info['期望上线时间']}")
@@ -797,7 +936,15 @@ def format_demand(info, stories=None, col_map=None, wide_table_data=None):
                 wt = _match_wide_table(story_system, wide_table_data)
                 plan_date = wt.get("plan_date", "") if wt else ""
                 remark = wt.get("remark", "") if wt else ""
-
+                epic_concat = wt.get("epic_concat", "") if wt else ""
+                acceptor = wt.get("acceptor", "") if wt else ""
+                bus_result = wt.get("bus_result", "") if wt else ""
+                epic_code = ""
+                if epic_concat:
+                    match = re.search(r'(PG\d+-\d+|E\d+-\d+)', str(epic_concat), re.IGNORECASE)
+                    if match:
+                        epic_code = match.group(1).upper()
+ 
                 lines.append(f"　　　　**{i}. {scol('id')}** — {scol('name')}")
                 lines.append(f"　　　　　　状态：{scol('status')} | IT评估：{scol('it_status')}")
 
@@ -807,9 +954,16 @@ def format_demand(info, stories=None, col_map=None, wide_table_data=None):
                     sys_parts.append(f"工程排期：{sched}")
                 if plan_date:
                     sys_parts.append(f"计划生产排期：{plan_date}")
+                if epic_code:
+                    sys_parts.append(f"史诗编号：{epic_code}")
+                acceptor_val = acceptor or (detail_info.get("业务验收人", "") if detail_info else "")
+                if acceptor_val:
+                    sys_parts.append(f"业务验收人：{acceptor_val}")
+                if bus_result:
+                    sys_parts.append(f"业务验收结果：{bus_result}")
                 lines.append(f"　　　　　　{' | '.join(sys_parts)}")
 
-                lines.append(f"　　　　　　开发负责人：{scol('dev_owner')} | SIT负责人：{scol('sit_owner')} | UAT负责人：{scol('uat_owner')}")
+                lines.append(f"　　　　　　开发经办人：{scol('dev_owner')} | SIT经办人：{scol('sit_owner')} | UAT经办人：{scol('uat_owner')}")
                 lines.append(f"　　　　　　计划交付：{scol('story_delivery')} | 发布日期：{scol('release_date')}")
 
                 if remark:
@@ -858,15 +1012,15 @@ async def run(demand_id, headed, output):
                 wt_task = asyncio.create_task(query_wide_table(page2, demand_id))
                 detail_task = asyncio.create_task(open_detail_page(page, demand_id))
 
-                wide_table_data, (stories, col_map) = await asyncio.gather(wt_task, detail_task)
+                wide_table_data, (stories, col_map, detail_info) = await asyncio.gather(wt_task, detail_task)
 
                 await page2.close()
             else:
                 wide_table_data = {}
-                stories, col_map = [], {}
+                stories, col_map, detail_info = [], {}, {}
 
             # 步骤4: 格式化输出
-            output_text = format_demand(info, stories, col_map, wide_table_data)
+            output_text = format_demand(info, stories, col_map, wide_table_data, detail_info)
             print("\n" + "=" * 60)
             print(output_text)
             print("=" * 60)
@@ -905,8 +1059,9 @@ async def run(demand_id, headed, output):
 
 
 async def run_epic(epic_id):
-    demands = await get_demands_by_epic(epic_id)
+    demands, epic_name = await get_demands_by_epic(epic_id)
     print("EPIC_DEMANDS:" + " ".join(demands))
+    print("EPIC_NAME:" + epic_name)
 
 def main():
     parser = argparse.ArgumentParser(description="需求查询 — 金融科技平台（异步优化版）")
