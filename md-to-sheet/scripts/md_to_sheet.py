@@ -112,19 +112,57 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
         
     description = f"一、需求背景\n{bg_text}\n\n二、需求内容\n{content_text}"
     
-    # 3. 涉及系统
+    # 3. 涉及系统（优先从评审纪要中的改造范围、联测涉及系统、各系统改造功能提取，避免全文泛词误命中）
     systems_list = []
-    # 扫描整个内容中的系统关键字
-    if "低延时" in content or "低延迟" in content:
-        systems_list.append("低延时")
-    if "集中交易" in content or "交易系统" in content:
-        systems_list.append("集中交易")
-    if "参数中心" in content or "参数系统" in content or "参数" in content:
-        systems_list.append("参数中心")
-    if "清算" in content:
-        systems_list.append("集中清算")
-    if "核心98" in content or "98节点" in content or "98交易节点" in content:
-        systems_list.append("核心98节点")
+    review_scope_text = ""
+    review_idx = content.find("评审纪要")
+    if review_idx != -1:
+        review_part = content[review_idx:]
+        
+        # 提取 改造范围 (跨行匹配至下一序号/标头)
+        m_scope = re.search(r'改造范围[：:]?\s*\n?(.*?)(?=\n\s*\d+\.|\n\s*####|\n\s*预计|$)', review_part, re.DOTALL)
+        if m_scope:
+            review_scope_text += " " + m_scope.group(1)
+            
+        # 提取 联测涉及系统 (跨行匹配至下一序号/标头)
+        m_test = re.search(r'联测涉及系统[：:]?\s*\n?(.*?)(?=\n\s*\d+\.|\n\s*####|\n\s*预计|$)', review_part, re.DOTALL)
+        if m_test:
+            test_val = m_test.group(1).strip()
+            if "无" not in test_val:
+                review_scope_text += " " + test_val
+                
+        # 提取各系统改造功能中列出的系统标题，如 (1) 低延时交易系统：
+        for sys_hdr in re.findall(r'\(\d+\)\s*([^\n：:]+)[：:]', review_part):
+            review_scope_text += " " + sys_hdr
+
+    scope_search = review_scope_text if review_scope_text.strip() else content
+    
+    # 精确系统匹配
+    has_dyt = any(k in scope_search for k in ["低延时", "低延迟"])
+    has_jzjy = any(k in scope_search for k in ["集中交易", "传统柜台", "交易柜台", "集中交易系统"])
+    has_cszx = any(k in scope_search for k in ["参数中心", "参数后台"])
+    has_jzqs = any(k in scope_search for k in ["集中清算", "两融清算", "清算系统"])
+    has_98 = any(k in scope_search for k in ["核心98", "98节点", "98交易节点"])
+    has_jygg = any(k in scope_search for k in ["交易管家"])
+    has_xg = any(k in scope_search for k in ["信用业务管理系统", "信管系统"])
+    has_jjyw = any(k in scope_search for k in ["经纪业务平台"])
+
+    # 兜底：若评审纪要未识别出范围，则尝试从文件名匹配
+    if not any([has_dyt, has_jzjy, has_cszx, has_jzqs, has_98, has_jygg, has_xg, has_jjyw]):
+        has_dyt = "低延时" in filename
+        has_jzjy = any(k in filename for k in ["集中交易", "交易柜台"])
+        has_cszx = "参数中心" in filename
+        has_jzqs = "清算" in filename
+        has_98 = "98" in filename
+
+    if has_dyt: systems_list.append("低延时")
+    if has_jzjy: systems_list.append("集中交易")
+    if has_cszx: systems_list.append("参数中心")
+    if has_jzqs: systems_list.append("集中清算")
+    if has_98: systems_list.append("核心98节点")
+    if has_jygg: systems_list.append("交易管家")
+    if has_xg: systems_list.append("信管系统")
+    if has_jjyw: systems_list.append("经纪业务平台")
         
     systems = "\n".join(systems_list)
     
@@ -132,12 +170,17 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
     related_match = re.search(r'关联系统[：:]\s*(.+)', content)
     related = related_match.group(1).strip() if related_match else ""
     
-    # 5. 计划排期
-    schedule_match = re.search(r'预计完成时间[：:]\s*计划\s*(\d{4}年)?(\d{1,2})月', content)
-    if schedule_match:
-        schedule = f"{int(schedule_match.group(2))}月份"
+    # 5. 计划排期（兼容 预计上线日期、预计完成时间、预计上线时间、上线计划 等格式，支持中间修饰词）
+    schedule = ""
+    sched_m = re.search(r'(?:预计上线日期|预计完成时间|预计上线时间|上线计划)[：:]\s*.*?(?:计划\s*)?(\d{4}年)?(\d{1,2})月', content)
+    if sched_m:
+        schedule = f"{int(sched_m.group(2))}月份"
     else:
-        schedule = ""
+        sched_m2 = re.search(r'计划\s*.*?(?:交付|上线)?\s*(\d{4}年)?(\d{1,2})月(?:底|中|初)?上线', content)
+        if sched_m2:
+            schedule = f"{int(sched_m2.group(2))}月份"
+
+
         
     # 6. 评审状态与参会人员 (从评审纪要)
     review_match = re.search(r'####\s*\*\*?评审纪要\*\*?', content)
@@ -272,9 +315,11 @@ def main():
     # 2. 扫描 MD 需求文档并分类（优化：若指定特定日期，直接精确查找目标日期文件）
     print(f"🔍 扫描目录: {args.md_dir} (过滤业务类型: {args.biz}) ...")
     if target_date:
-        md_files = list(md_dir_path.glob(f"{target_date}-需求-*.md"))
+        pattern = f"{target_date}*-需求-*.md" if len(target_date) < 8 else f"{target_date}-需求-*.md"
+        md_files = sorted(list(md_dir_path.glob(pattern)))
     else:
-        md_files = list(md_dir_path.glob("*.md"))
+        md_files = sorted(list(md_dir_path.glob("*.md")))
+
     
     # 提取有效需求 MD 文件
     valid_demands = []
@@ -434,9 +479,10 @@ def main():
                 target_row_index, existing_row_data = existing_names_map[name]
                 print(f"🔄 [{name}]: 表格中已存在，准备更新行 {target_row_index}...")
                 
-                # 保留已有的 优先级、story拆分、备注(K列)、参会人员(L列) 字段，避免覆盖人工修改
+                # 保留已有的 优先级、story拆分、评审状态(J列)、备注(K列)、参会人员(L列) 字段，避免覆盖人工修改
                 priority = existing_row_data[1].strip() or "正常"
                 story = existing_row_data[8].strip() or "否"
+                review_status = existing_row_data[9].strip() or "待评审"
                 remark = existing_row_data[10].strip()
                 attendees = existing_row_data[11].strip()
                 updated_count += 1
@@ -445,6 +491,7 @@ def main():
                 new_row_index += 1
                 priority = "正常"
                 story = "否"
+                review_status = "待评审"  # 第一次写入，默认值固定为「待评审」
                 remark = ""
                 attendees = d["attendees"]
                 print(f"➕ [{name}]: 表格中不存在，准备追加到行 {target_row_index}...")
@@ -457,7 +504,7 @@ def main():
                 print(f"     提出日期: {d['date']}")
                 print(f"     涉及系统:\n{d['systems']}")
                 print(f"     计划排期: {d['schedule']}")
-                print(f"     评审状态: {d['review_status']}")
+                print(f"     评审状态: {review_status}")
                 print(f"     需求链接: {d['link']}")
                 print(f"     参会人员:\n{attendees}")
                 continue
@@ -472,7 +519,7 @@ def main():
                 {"row": target_row_index, "col": 6, "value_type": "STRING", "string_value": d["related"]},
                 {"row": target_row_index, "col": 7, "value_type": "STRING", "string_value": d["schedule"]},
                 {"row": target_row_index, "col": 8, "value_type": "STRING", "string_value": story},
-                {"row": target_row_index, "col": 9, "value_type": "STRING", "string_value": d["review_status"]},
+                {"row": target_row_index, "col": 9, "value_type": "STRING", "string_value": review_status},
                 {"row": target_row_index, "col": 10, "value_type": "STRING", "string_value": remark},
                 {"row": target_row_index, "col": 11, "value_type": "STRING", "string_value": attendees}
             ])
@@ -606,8 +653,10 @@ def main():
         print(f"📊 月份 {month} 处理完毕: 追加 {added_count} 条记录, 更新 {updated_count} 条记录")
 
     print("\n🏁 所有处理已完成。")
+    print("💡【下一步工作流提示】在线表格完成评审（填写备注、参会人员并将评审状态设为通过）后，可随时运行 `/sheet-to-md` 将表格最新内容反写回本地 Markdown 需求文档。")
 
 if __name__ == "__main__":
     main()
+
 
 

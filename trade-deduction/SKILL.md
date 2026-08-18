@@ -46,7 +46,11 @@ description: >-
     - 在行情剧烈波动场景中，包含「委托价预推演」与「成交价实际推演」二次校验对比，防止出现“委托时合规放行、成交后跌价导致资金漏项”的漏洞。
 13. **生产系统代码图谱 (graph.db) 事实优先法则**：
     - 当推演公式存在争议或需校验现行系统实际表现时，以集中交易系统生产源码图谱数据库（`/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db`）及 C++/C/SQL 实际实现作为**第一权威事实依据**。
-    - 可结合 `explore-codebase` 与 `reverse-engineering-business-logic` 技能查询代码图谱，精确提取现行生产的阈值、计算公式与异常控制流。
+14. **代码图谱 DB 自动比对与核验法则 (Auto Graph Code Verification)**：
+    - 任何交易推演在构建推演矩阵与 Multi-Case 对比前，必须优先调用本技能内置的图谱核验工具：
+      `python3 /Users/wujin/.workbuddy/skills/trade-deduction/scripts/verify_graph_deduction.py --query "<关键词>" [--snippet]`
+    - 自动提取集中交易(`jzjy`) / 集中清算(`jzqs`) 图谱库中的 C++ 函数签名、物理源码路径 (`file://`)、行号及算式片段；
+    - 在推演报告中必须标准输出 **【代码事实自动比对与图谱核验】** 表，自动标记“推演算式”与“生产代码”之间的硬冲突（`⚠️ 硬冲突`）或一致性（`✅ 一致`）。
 
 ---
 
@@ -170,7 +174,18 @@ flowchart LR
 
 ---
 
-## 三、 动态数据推演表 (Multi-Case 对比)
+## 三、 代码事实自动比对与图谱核验
+
+> 💡 运行 `python3 /Users/wujin/.workbuddy/skills/trade-deduction/scripts/verify_graph_deduction.py --query "<关键词>"` 自动生成本比对表：
+
+| 推算 / 逻辑点 | 需求/推演期望算式 | 生产代码 `graph.db` 现有逻辑 | 映射 C++ 函数/物理文件 (file://) | 比对结论 |
+| :--- | :--- | :--- | :--- | :---: |
+| **资金划拨优先级** | 1.解冻融冻占用 ➔ 2.清偿负债 ➔ 3.自有资金 | `STEPPOP.CPP`: 资金清算汇总处理例程 | [STEPPOP.CPP](file:///Volumes/Macintosh%20HD_Data/Project/jzjy/spbsrc/lbmdll/GeneralBus/STEPPOP.CPP#L1401) | ✅ 一致 |
+| **代扣税优先** | 预冻结代扣税 > 债务抵偿 | `taxdeal.cpp`: 预冻结代扣税优先扣除 | [taxdeal.cpp](file:///Volumes/Macintosh%20HD_Data/Project/jzjy/spbsrc/lbmdll/GeneralBus/taxdeal.cpp) | ✅ 一致 |
+
+---
+
+## 四、 动态数据推演表 (Multi-Case 对比)
 
 ### 方案 A：[旧默认逻辑 - 无联动释放导致负数倒挂]
 | 序号 | 交易动作 | 高流通持仓市值 | 融冻占用 | 融冻款金额 | 融资负债 | 维保比 | 条件判定与算式说明 |

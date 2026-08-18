@@ -86,7 +86,7 @@ KNOWN_EMAIL_MAP = {
     "李卓远": "lizhuoyuan@gtht.com", "李彦丽": "liyanli@gtht.com", "罗海洪": "luohaihong@gtht.com",
     "解娅宁": "xieyaning@gtht.com", "崔敦良": "cuidunliang@gtht.com", "范秀萍": "fanxiuping@gtht.com",
     "王岗": "wanggang@gtht.com", "陈紫菡": "chenzihan@gtht.com", "肖慧": "xiaohui@gtht.com",
-    "薛天明": "xuetianming@gtht.com", "马晓鑫": "maxiaoxin@gtht.com"
+    "薛天明": "xuetianming@gtht.com", "马晓鑫": "maxiaoxin@gtht.com", "周尤珠": "zhouyouzhu@gtht.com"
 }
 
 def clean_date_str(d_str):
@@ -333,12 +333,13 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
     
     return filtered_items
 
-def extract_table_recipients(items):
+def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed=False):
     """
     自动提取确认表上所有有效相关人员（开发负责人、SIT负责人、UAT负责人、业务验收人），
-    解析并生成 Coremail 格式的标准收件人列表字符串。固定包含：肖慧、刘青、乔露露、常丽、张帆、茆莹莹、张志鹏、薛天明、马晓鑫。
+    解析并生成 Coremail 格式的标准收件人列表字符串。固定包含：肖慧、刘青、乔露露、常丽、张帆、茆莹莹、张志鹏、薛天明、马晓鑫、李鹤晨、周尤珠。
+    若为 -r 模式，会自动读取此前初版确认表的人员名单缓存并自动 Merge，保持收件人完全一致。
     """
-    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张帆", "茆莹莹", "张志鹏", "薛天明", "马晓鑫"}
+    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张帆", "茆莹莹", "张志鹏", "薛天明", "马晓鑫", "李鹤晨", "周尤珠"}
     invalid_tokens = {"--", "无需业务验收", "None", "null", "", "无"}
     
     for item in items:
@@ -346,6 +347,30 @@ def extract_table_recipients(items):
             name = item.get(field)
             if name and str(name).strip() not in invalid_tokens:
                 unique_names.add(str(name).strip())
+
+    clean_ver = str(version_str).replace("-", "").strip()
+    clean_rec = str(receiver_str).strip()
+    cache_dir = os.path.dirname(os.path.abspath(__file__))
+    recipients_cache_file = os.path.join(cache_dir, f".recipients_{clean_ver}_{clean_rec}.json")
+
+    # 若为 -r 模式，尝试合并初版确认表的人员名单
+    if is_reviewed and os.path.exists(recipients_cache_file):
+        try:
+            with open(recipients_cache_file, "r", encoding="utf-8") as f:
+                cached_names = json.load(f)
+                if isinstance(cached_names, list):
+                    for n in cached_names:
+                        if n and str(n).strip() not in invalid_tokens:
+                            unique_names.add(str(n).strip())
+        except Exception:
+            pass
+    elif not is_reviewed and clean_ver:
+        # 初版确认表模式：将当前收件人持久化缓存起来，供后续 -r 模式继承
+        try:
+            with open(recipients_cache_file, "w", encoding="utf-8") as f:
+                json.dump(sorted(list(unique_names)), f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
     recipients_list = []
     for name in sorted(list(unique_names)):
@@ -430,7 +455,7 @@ def send_confirmation_email(html_path, version_str, receiver_str, items, is_send
     """
     调用 Coremail 通用发送脚本，将 HTML 确认表存草稿箱（默认 is_send=False）供人工审核，或直接发送 (is_send=True)
     """
-    recipients_list = extract_table_recipients(items)
+    recipients_list = extract_table_recipients(items, version_str=version_str, receiver_str=receiver_str, is_reviewed=is_reviewed)
     if not recipients_list:
         print("⚠️ [Email] 确认表中未识别到有效相关人员，无法起草邮件。")
         return False
@@ -1059,6 +1084,9 @@ def main():
 
     output_html_path = args.output_html if args.output_html else os.path.join(os.getcwd(), default_html_name)
     saved_html = generate_html(items, output_html_path, version_input, receiver_input, is_reviewed=is_reviewed)
+
+    # 预先提取/记录收件人列表（自动维护初版收件人持久化缓存）
+    extract_table_recipients(items, version_str=version_input, receiver_str=receiver_input, is_reviewed=is_reviewed)
 
     saved_md = None
     if args.output_md or args.table_only:

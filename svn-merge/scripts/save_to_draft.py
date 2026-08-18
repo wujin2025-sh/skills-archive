@@ -53,16 +53,27 @@ def decrypt_password(enc_pwd, key_path):
         sys.exit(1)
 
 def load_mail_credentials():
-    if not CONFIG_PATH.exists():
-        print(f"[ERROR] Config file not found at {CONFIG_PATH}")
+    config_paths = [
+        Path("/Users/wujin/.workbuddy/skills/meet-minutes/config.json"),
+        Path("/Users/wujin/.gemini/config/skills/email-polisher/config.json"),
+        Path("/Users/wujin/.workbuddy/skills/email-polisher/config.json"),
+    ]
+    cfg_file = None
+    for p in config_paths:
+        if p.exists():
+            cfg_file = p
+            break
+
+    if not cfg_file:
+        print("[ERROR] Mail config file not found.")
         sys.exit(1)
         
     try:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        with open(cfg_file, 'r', encoding='utf-8') as f:
             cfg = json.load(f)
         mail_cfg = cfg.get("mail", {})
         url = mail_cfg.get("url", "https://mail.gtht.com/")
-        username = mail_cfg.get("username", "")
+        username = mail_cfg.get("username", "wujin@gtht.com")
         enc_password = mail_cfg.get("password", "")
         csv_path = cfg.get("csv_path", "")
         

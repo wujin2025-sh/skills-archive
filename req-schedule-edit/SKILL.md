@@ -1,73 +1,80 @@
 ---
 name: req-schedule-edit
 description: |
-  国泰海通金融科技平台需求排期修改工具。根据需求编号与目标排期日期，自动打开需求详情页，点击右上角“修改排期”按钮，在“需求排期确认”弹窗中更新「需求预计交付验收时间」和「需求预计上线时间」并提交保存。支持 8 位纯数字日期 (20260821) 或标准日期格式 (2026-08-21)，自动支持 Session 复用与 Headless/Headed 双模式。
-  触发词：修改排期、需求排期修改、修改需求排期、需求排期确认、排期修改、R2607150083 20260821。
+  国泰海通科技平台需求排期极速修改与查询工具。支持按需求编号（R26xxxxxxx）、史诗编号（E/PG 开头批量更新下属 Story）或大宽表 rowId 写入。WebSocket 直连 + 本地热缓存，热缓存 <1s 极速落库，带缓存回读校验（--verify）。支持界面 Playwright 兜底（--browser）。
+  触发词：修改排期、需求排期修改、修改需求排期、需求排期确认、排期修改、排期改成、排期调整、R2607150083 20260821。
 agent_created: true
 ---
 
-# 需求排期修改技能 (req-schedule-edit)
+# 国泰海通需求排期修改技能 (req-schedule-edit)
 
-## 概述
-
-访问国泰海通金融科技平台需求详情页 (`https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1`)，自动点击页面右上角的 **修改排期** 按钮，在弹出的 **需求排期确认** 对话框中，填入新的 **需求预计交付验收时间** 及 **需求预计上线时间**，完成排期确认并提交落库。
-
-支持 Session 免登录态复用，且自动兼容 `20260821` (8位纯数字) 或 `2026-08-21` / `2026/08/21` 日期输入。
+⚡ **极速性能**：直连科技平台大宽表 WebSocket + 本地热缓存 (`.sheet_rows_cache.pkl`)，无需打开浏览器页面。热缓存响应 **<1s** 极速落库！
 
 ---
 
-## 触发条件
+## 📌 架构与执行入口
 
-当用户在对话或指令中涉及以下内容时触发本技能：
-
-- **修改排期**、**需求排期修改**、**修改需求排期**
-- **需求排期确认**、**排期修改**
-- 需求编号 + 8位数字/标准日期格式，例如：
-  - `R2607150083 20260821`
-  - `修改排期 R2607150083 20260821`
-  - `帮我把需求 R2606160105 的排期修改为 2026-08-21`
-
----
-
-## 使用方法
-
-脚本路径位于 `scripts/edit_req_schedule.py`，可以在虚拟环境中通过 CLI 直接调用：
+本技能底层对接 `gtht-skills` 的极速 WebSocket 协议引擎：
 
 ```bash
-# 1. 标准单笔修改模式 (自动转化 20260821 -> 2026-08-21)
-.venv/bin/python /Users/wujin/.workbuddy/skills/req-schedule-edit/scripts/edit_req_schedule.py R2607150083 20260821
-
-# 2. 分别指定交付验收时间与上线时间
-.venv/bin/python /Users/wujin/.workbuddy/skills/req-schedule-edit/scripts/edit_req_schedule.py R2607150083 2026-08-21 2026-08-24
-
-# 3. 可视化调试模式 (开启 Headed 浏览器观察 UI 操作)
-.venv/bin/python /Users/wujin/.workbuddy/skills/req-schedule-edit/scripts/edit_req_schedule.py R2607150083 20260821 --headed
+# 核心 WebSocket 直连脚本路径：
+SCRIPT="/Volumes/Macintosh HD_Data/WorkBuddy/需求分析/gtht-skills/gtht-demand-fetch/scripts/schedule_fast.py"
 ```
 
 ---
 
-## 参数说明
+## 🚀 使用方法
 
-| 参数名 | 必填 | 格式/示例 | 说明 |
-| :--- | :---: | :--- | :--- |
-| `demand_id` | **是** | `R2607150083` | 目标需求编号 |
-| `target_date` | **是** | `20260821` 或 `2026-08-21` | 目标「需求预计交付验收时间」 |
-| `online_date` | 否 | `2026-08-24` | 目标「需求预计上线时间」(未传时默认与交付验收时间一致) |
-| `--headed` | 否 | N/A | 显示 Playwright 浏览器界面 |
+### 1. 按需求号写排期（最常用推荐）
+
+将目标需求的「计划生产排期」修改为指定日期（支持 `20260821` 或 `2026-08-21`），并自动回读校验落库：
+
+```bash
+python3 "$SCRIPT" R2607150083 20260821 --verify
+```
+
+### 2. 按史诗写排期（批量更新史诗下所有 Story）
+
+传入史诗编号（`E` 或 `PG` 开头，如 `PG202204-0261`），自动批量更新该史诗关联的所有 Story 的计划生产排期：
+
+```bash
+python3 "$SCRIPT" PG202204-0261 20260821 --verify
+```
+
+### 3. 只读查询当前排期
+
+不带日期参数时，直接查询并显示目标行当前的计划生产排期：
+
+```bash
+python3 "$SCRIPT" R2607150083
+```
+
+### 4. 强制刷新缓存 / UI 浏览器兜底
+
+* 强制刷新大宽表本地缓存（大宽表行数据变动或新增 Story 时使用）：
+  ```bash
+  python3 "$SCRIPT" R2607150083 20260821 --refresh --verify
+  ```
+* 界面 Playwright DOM 点击模式（仅在 API/WS 协议异常时作为 UI 兜底）：
+  ```bash
+  .venv/bin/python /Users/wujin/.workbuddy/skills/req-schedule-edit/scripts/edit_req_schedule.py R2607150083 20260821 --headed
+  ```
 
 ---
 
-## 核心技术与工作流
+## 📋 参数说明
 
-1. **Session 复用与免密认证**：自动加载 `.fintech_session.json`，在失效时自动补全登录流程 (`USERNAME: 125360`) 并持久化 StorageState。
-2. **DOM 动态交互**：
-   - 唤醒详情页 Top-Right 工具栏中的 `.ant-btn:has-text("修改排期")`。
-   - 捕捉并定位渲染在顶层的 `.ant-modal-content` (`需求排期确认`)。
-3. **Datepicker 属性解锁与键盘触发**：
-   - 移去输入框的 `readonly` 约束属性。
-   - **修改顺序控制**：必须**优先修改「需求预计上线时间」**，再修改**「需求预计交付验收时间」**（若先改验收时间，可能触发平台自动根据 +10 工作日重置上线时间或锁定可选区间）。
-   - 模拟真实的全选 (`Meta+A` / `Ctrl+A`) 与字符流打字 (`type`)，选择并确认日历单元格，触发 React / Ant Design `onChange` 与状态绑定。
-4. **接口交互与校验落库**：
-   - 收起悬浮遮罩后触发提交按钮，推送后端更新接口 `/api/demand-service/demand/audit/updateLaunchTimeByDemandId`。
-   - 自动刷新页面 (`page.reload()`) 进行数据库落库验证。
-   - 自动截屏存盘为 `schedule_{demand_id}_{date}.png` 作为操作留痕凭证。
+| 参数名 | 必填 | 示例/格式 | 说明 |
+| :--- | :---: | :--- | :--- |
+| `<req_id>` | **是** | `R2607150083` / `PG202204-0261` | 目标需求编号或史诗编号 |
+| `<YYYYMMDD>` | 否 | `20260821` / `2026-08-21` | 目标排期日期；未传时为只读查询模式 |
+| `--verify` | 否 | N/A | 修改完成后追加缓存回读比对校验 |
+| `--refresh` | 否 | N/A | 强制重新拉取全量大宽表以刷新本地缓存 |
+
+---
+
+## ⚙️ 原理与可靠性说明
+
+1. **WebSocket 直链**：建立 `wss://fintech.gtht.com.cn/ws/table-socket/table/websocket/{tableId}` 通信通道，发送行索引更新数据帧；
+2. **热缓存加速**：大宽表全量行映射缓存至 `~/.local/share/gtht/.sheet_rows_cache.pkl`（TTL 2 小时），极速定位目标行；
+3. **安全确认**：服务端回包 `code: 1` 即代表服务端落库成功，无需等待整页加载。

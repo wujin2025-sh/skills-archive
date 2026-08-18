@@ -44,7 +44,7 @@ allowed-tools:
 
 1. **自动提取与固定人员补全**：
    - 自动扫描确认表中所有过滤出的 Story，提取 `开发负责人`、`SIT负责人`、`UAT负责人`、`业务验收人` 等角色。
-   - 固定补充 9 位核心人员：**肖慧 (`xiaohui@gtht.com`)、刘青 (`liuqing5@gtht.com`)、乔露露 (`qiaolulu@gtht.com`)、常丽 (`changli@gtht.com`)、张帆 (`zhangfan4@gtht.com`)、茆莹莹 (`maoyingying@gtht.com`)、张志鹏 (`zhangzhipeng@gtht.com`)、薛天明 (`xuetianming@gtht.com`)、马晓鑫 (`maxiaoxin@gtht.com`)**。
+   - 固定补充 11 位核心人员：**肖慧 (`xiaohui@gtht.com`)、刘青 (`liuqing5@gtht.com`)、乔露露 (`qiaolulu@gtht.com`)、常丽 (`changli@gtht.com`)、张帆 (`zhangfan4@gtht.com`)、茆莹莹 (`maoyingying@gtht.com`)、张志鹏 (`zhangzhipeng@gtht.com`)、薛天明 (`xuetianming@gtht.com`)、马晓鑫 (`maxiaoxin@gtht.com`)、李鹤晨 (`lihechen@gtht.com`)、周尤珠 (`zhouyouzhu@gtht.com`)**。
    - 正确矫正常用人员邮箱（如 **王岗** -> `wanggang@gtht.com`，**龚子慧** -> `gongzihui@gtht.com`）。
    - 过滤无意义字符（如 `--`、`无需业务验收`、`None` 等），并通过 `Escape` 键消隐 Coremail 联想弹窗，确保 100% 收件人 Tag 准确建立。
 
@@ -54,6 +54,11 @@ allowed-tools:
    - 使用 Coremail 官方 KindEditor API (`window.KindEditor.instances[0].html(js_content)`) 将全量 HTML 确认表（含 5 大统计卡片、13 列表格、底部 @ 负责人列表及风险反馈 Prompt）完整注入正文。
    - **自动将生成的 HTML 确认表（如 `拟排期需求确认表20260821-吴进.html`）作为邮件附件上传添加**。
    - **默认存入 Coremail 邮件草稿箱**，顶部弹出 `保存草稿成功`，方便用户登录邮箱复核后手动点击发送（带 `--force-send` 才强行直接发送）。
+
+3. **初版确认表与沟通后清单 (-r) 收件人一致性保障机制**：
+   - 生成初版 `拟排期需求确认表` 时，系统自动将当前版本的全部相关人员名单持久化缓存。
+   - 生成或起草 `拟排期需求明细清单` (`-r` 模式) 时，系统**自动继承并合并 (Union) 初版确认表的全部收件人**。
+   - 即使部分需求在沟通反馈后被调出至后续排期版本，**被调出需求的开发、SIT、UAT、业务验收人依然会自动保留在收件人列表中**，完美匹配“*对于调出的需求也请测试老师尽快安排测试，以期在下个版本可以上线*”的触达要求。
 
 ---
 

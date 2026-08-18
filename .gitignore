@@ -10,3 +10,4 @@ wide-table-query/scripts/downloads/
 proposed-schedule-confirm/scripts/*.html
 proposed-schedule-confirm/scripts/*.md
 proposed-schedule-confirm/scripts/__pycache__/
+meet-minutes/config.json

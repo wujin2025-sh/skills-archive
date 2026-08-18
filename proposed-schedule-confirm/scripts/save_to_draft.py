@@ -53,23 +53,35 @@ def decrypt_password(enc_pwd, key_path):
         sys.exit(1)
 
 def load_mail_credentials():
-    url = "https://mail.gtht.com/"
-    username = "125360"
-    password = ""
-    csv_path = ""
-    if CONFIG_PATH.exists():
-        try:
-            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-            mail_cfg = cfg.get("mail", {})
-            url = mail_cfg.get("url", url)
-            username = mail_cfg.get("username", username)
-            enc_password = mail_cfg.get("password", "")
-            csv_path = cfg.get("csv_path", "")
-            password = decrypt_password(enc_password, KEY_PATH)
-        except Exception:
-            pass
-    return url, username, password, csv_path
+    config_paths = [
+        Path("/Users/wujin/.workbuddy/skills/meet-minutes/config.json"),
+        Path("/Users/wujin/.gemini/config/skills/email-polisher/config.json"),
+        Path("/Users/wujin/.workbuddy/skills/email-polisher/config.json"),
+    ]
+    cfg_file = None
+    for p in config_paths:
+        if p.exists():
+            cfg_file = p
+            break
+
+    if not cfg_file:
+        print("[ERROR] Mail config file not found.")
+        sys.exit(1)
+
+    try:
+        with open(cfg_file, 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+        mail_cfg = cfg.get("mail", {})
+        url = mail_cfg.get("url", "https://mail.gtht.com/")
+        username = mail_cfg.get("username", "wujin@gtht.com")
+        enc_password = mail_cfg.get("password", "")
+        csv_path = cfg.get("csv_path", "")
+        
+        password = decrypt_password(enc_password, KEY_PATH)
+        return url, username, password, csv_path
+    except Exception as e:
+        print(f"[ERROR] Failed to load mail config: {e}")
+        sys.exit(1)
 
 def md_to_html(md: str) -> str:
     """Minimal Markdown to HTML converter to preserve spacing, bolding and breaks"""
@@ -217,9 +229,13 @@ def main():
             "locale": "zh-CN"
         }
         
+        # Force fresh login every time to prevent stale session expiry popup
         if os.path.exists(STORAGE_STATE):
-            context_opts["storage_state"] = STORAGE_STATE
-            print("🔑 Using existing Coremail storage state.")
+            try:
+                os.remove(STORAGE_STATE)
+                print("🧹 Cleared stale session state for clean login.")
+            except:
+                pass
 
         context = browser.new_context(**context_opts)
         page = context.new_page()
@@ -230,23 +246,36 @@ def main():
             page.goto(url, wait_until="commit", timeout=15000)
             page.wait_for_timeout(1000)
 
-            # Check if already logged in or login form is present
-            btn_compose = page.query_selector(SEL_COMPOSE)
-            if not btn_compose:
+            # Check if login form or expired modal is visible
+            print("[2] Performing fresh login...")
+            btn_relogin = page.query_selector('button:has-text("重新登录"), a:has-text("重新登录"), .btn-relogin')
+            if btn_relogin:
+                try:
+                    btn_relogin.click(force=True)
+                    page.wait_for_timeout(1000)
+                except:
+                    pass
+
+            for _ in range(10):
                 uid_input = page.query_selector("input#uid, input[name='uid']")
-                if uid_input and password:
-                    print("[2] Performing fresh login...")
-                    uid_input.fill(email)
-                    page.fill("input#password", password)
-                    ssl_checkbox = page.query_selector("#rcmloginssl")
-                    if ssl_checkbox and not ssl_checkbox.is_checked():
-                        ssl_checkbox.click()
-                    page.keyboard.press("Enter")
-                    print("    Submitted login form successfully.")
-                else:
-                    print("[2] Active session detected, proceeding directly to mailbox...")
+                if uid_input:
+                    break
+                page.wait_for_timeout(300)
+
+            uid_input = page.query_selector("input#uid, input[name='uid']")
+            if uid_input:
+                uid_input.fill(email)
+                page.fill("input#password", password)
+
+                ssl_checkbox = page.query_selector("#rcmloginssl")
+                if ssl_checkbox and not ssl_checkbox.is_checked():
+                    ssl_checkbox.click()
+
+                # Submit form instantly by pressing Enter
+                page.keyboard.press("Enter")
+                print("    Submitted login form successfully.")
             else:
-                print("[2] Active session detected with compose button ready.")
+                print("    [!] Login form not found directly, proceeding to check compose button...")
 
             # Dynamically wait for login completion by searching for compose button in all frames
             print("    Waiting for mailbox page to load...")

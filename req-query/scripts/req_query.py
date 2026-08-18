@@ -150,7 +150,10 @@ async def get_demand_details(page, demand_id, skip_stories=False, context=None):
             pass
 
     # 等待顶部卡片异步渲染
-    await asyncio.sleep(0.8)
+    try:
+        await page.wait_for_selector('text="需求提交人"', timeout=6000)
+    except Exception:
+        await asyncio.sleep(1.0)
 
     data = await page.evaluate("""({demandId, skipStories}) => {
         const fullText = document.body.innerText || '';
