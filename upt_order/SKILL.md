@@ -1,10 +1,15 @@
 ---
 name: upt_order
-description: |
-  国泰海通全连接平台 EOA117 IT运维申请单通用自动填写工具。支持集中交易系统 (jzjy)、参数中心 (cszx)、95信创域 (95xinchuang)、98创新域 (98chuangxin) 等系统的子版本上线发布表单填报。通过 Playwright 登录，自动填写表单各字段与弹窗，最终保存并截图确认。
+description: '国泰海通全连接平台 EOA117 IT运维申请单通用自动填写工具。支持集中交易系统 (jzjy)、参数中心 (cszx)、95信创域 (95xinchuang)、98创新域
+  (98chuangxin) 等系统的子版本上线发布表单填报。通过 Playwright 登录，自动填写表单各字段与弹窗，最终保存并截图确认。
+  已融合 spb-extract（自动从版本文件夹提取变更内容生成 upt_content.txt，无需手动执行 spb-extract）。
+
   触发词：升级单、EOA117、IT运维申请单、子版本上线、变更系统升级、提交升级单。
-agent_created: true
+
+  '
+disable: false
 ---
+
 
 # 执行指令
 
@@ -71,7 +76,7 @@ cd ~/.workbuddy/skills/upt_order/scripts && (python3.14 eoa_subversion_release.p
 | 18 | 变更组件 | 98/95：核心交易组件+BOS相关组件；其它：数据库+核心交易组件 | Checkbox/下拉 |
 | 19 | 影响业务功能 | 交易系统实时交易 | Checkbox/下拉 |
 | 20 | 影响用户范围 | 1万人以下投资者,多个部门 | Checkbox/下拉 |
-| 21 | 变更系统信息 | 若存在 `upt_content.txt`，自动读取并循环新增多条系统信息变更记录；否则使用默认值兜底静态填写 | 弹窗 |
+| 21 | 变更系统信息 | **自动融合 spb-extract**：先自动定位版本文件夹提取变更内容生成 `upt_content.txt`；若提取成功则循环新增多条系统信息；否则回退到已有 `upt_content.txt` 或默认值兜底静态填写 | 弹窗 |
 | 22 | 变更方案 | `jzjy` 循环填写 3 条，包含处理人张永军(108728)、张博闻(111483)、宋倩(114322)；`cszx` 填写 2 条；其它系统填写 1 条 | 弹窗 |
 | 23 | 回退计划 | 策略=全部回退 / 条件=系统异常整体回退 / 步骤=回退至上一版本 | 弹窗 |
 | 24 | 应急计划 | 异常场景=升级验证失败 | 弹窗 |
@@ -95,8 +100,21 @@ cd ~/.workbuddy/skills/upt_order/scripts && (python3.14 eoa_subversion_release.p
 | `scripts/eoa117_verify.png` | 保存后验证截图 |
 | `scripts/eoa117_report.json` | JSON 执行报告 |
 | `scripts/eoa117_keyword_signal.json` | 交互信号文件（临时） |
-| `upt_content.txt` | [输入文件] 升级包变更文件提取内容（用于循环填写变更系统信息） |
+| `upt_content.txt` | [输入文件] 升级包变更文件提取内容（用于循环填写变更系统信息）。**已融合 spb-extract：脚本会在 [18.55] 步骤自动从版本文件夹提取并覆盖生成，无需手动执行 spb-extract** |
 | `版本地址.txt` | [输入文件] 各系统云盘链接信息（用于自动匹配版本地址） |
+
+## 🔄 spb-extract 融合（自动提取升级包变更内容）
+
+脚本已集成 spb-extract 的变更内容提取能力，在填写「变更系统信息」前自动完成：
+
+1. **定位版本项目根目录**：向上查找含 `jzjy/`、`jygl/` 子目录及 `版本地址.txt` 的目录；找不到时兜底使用 `/Volumes/Macintosh HD_Data/WorkBuddy/版本发布`。
+2. **定位版本文件夹**（取最新匹配）：
+   - `jzjy`：`jzjy/` 下 `SPB-V0.26.*` 或 `SPB_V2.2.19_*` 文件夹
+   - `cszx`：`jygl/` 下 `CSZX-*` 文件夹
+3. **调用 `upt_extract.generate()`** 提取并分类汇总，生成 `upt_content.txt` 到项目根目录。
+4. **失败兜底**：若自动提取失败（未找到版本文件夹等），回退到已有 `upt_content.txt` 或静态默认配置。
+
+> 实现：`eoa_subversion_release.py` 新增 `locate_project_root()` 与 `auto_extract_upt_content(mode, project_root)` 两个函数，在 `[18.55]` 变更系统信息步骤前调用。依赖 `~/.workbuddy/skills/spb-extract/scripts/upt_extract.py`。
 
 ## 环境要求
 

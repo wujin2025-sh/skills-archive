@@ -1,7 +1,9 @@
 ---
 name: humanizer-zh
 description: 识别并消除中文文本中的“AI味/AI腔”（如假大空升华、套话连词、成三排比、机械格式化、空洞大词等），将文本重写为自然、地道、有呼吸感且保留真实摩擦感的人类表达。当用户提到“去AI味”、“去AI腔”、“humanizer-zh”、“中文去AI感”、“人性化润色”时触发。
+disable: false
 ---
+
 
 # Humanizer-zh: 中文 AI 腔调消除与人性化重写指南
 

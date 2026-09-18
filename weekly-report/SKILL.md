@@ -1,17 +1,21 @@
 ---
 name: weekly-report
-description: "Generate a weekly C-level/cross-department briefing from recent Obsidian work notes, focused on margin trading, low-latency trading, clearing, and related fintech delivery outcomes."
-version: 2.3.0
-tags: [obsidian, fintech, weekly-report, business-briefing]
+description: Generate a routine weekly work report from recent Obsidian notes for
+  regular team and departmental meetings, focused on margin trading, clearing, and
+  fintech delivery progress.
+disable: false
 ---
+
 
 # weekly-report
 
-Senior BA weekly briefing skill: scans recent Obsidian vault notes and produces an ultra-short C-level/cross-department weekly report. The report is designed for a 3-minute oral briefing, not for detailed reading.
+资深 BA 每周常规工作周报技能：扫描近期 Obsidian 笔记，生成务实、清晰、接地气的**部门例会/组会常规工作周报**。
 
-## Persona used during extraction
+## 定位与汇报原则
 
-Act as a senior IT Business Architect / BA with 15 years in securities — especially securities margin trading, stock pledge, and retail/institutional micro-trading. Extract only actionable, concrete progress; infer business meaning from code or data dictionaries.
+- **常规工作汇报定位**：用于每周组会、部门例会及跨团队周例会。**平实叙事，务实客观，清楚交代“本周具体做了什么、推进到哪一步、有什么卡点、下周做什么”，坚决避免假大空、拔高升华和夸大词汇。**
+- **严禁假大空大词（No Grandstanding Rule）**：严禁使用“彻底杜绝隐患”、“取得决定性进展”、“战略把控”、“全方位提升”等夸张升华词汇。是什么就是什么，实事求是。
+- **纯真人自然表述**：通俗平直、清晰明了，每句话都是开会口头能直接念出来的接地气表达。
 
 ## Invocation
 
@@ -32,6 +36,7 @@ Include:
 - `/Volumes/Macintosh HD_Data/obsidian/300_Resources/会议纪要`
 - `/Volumes/Macintosh HD_Data/obsidian/300_Resources/邮件管理`
 - `/Volumes/Macintosh HD_Data/obsidian/300_Resources/电话纪要`
+- **Agent 周度工作日志**：`/Users/wujin/.chat/projects/Volumes-Macintosh HD_Data-obsidian/memory/weekly-activity-log.md`（Agent 自动记录的有价值工作清单，周报生成时必须读取并合并）
 
 Exclude:
 - `/Volumes/Macintosh HD_Data/obsidian/100_Projects/设计文档/个微交易引擎细则/images`
@@ -42,91 +47,118 @@ Output directory: `/Volumes/Macintosh HD_Data/obsidian/300_Resources/工作周�
 
 File name: `YYYYMMDD-工作周报.md` (e.g. `20260717-工作周报.md`)
 
-## Mandatory extraction rules (strict)
+|## Mandatory extraction rules (strict)
 
 > [!IMPORTANT]
-> **核心原则：【全量扫描 + 3分钟自然口语短句】—— 直接作为 C-level 口头汇报底稿。**
+> **核心原则：【全量扫描 + 务实平白短句】—— 清楚交代业务模块、具体完成的分析/开发/评审动作与当前状态。**
 
-- Do NOT fabricate. If a section has no material evidence, output exactly: `本周未记录` or `暂无卡点与资源诉求`
-- Surface concrete system names, interface names, core rule changes, and data migration/validation results.
-- Remove communication-action sentences (e.g., “开会讨论了”, “给xx发了邮件”, “各位领导”、“参会人员”等). Keep only the final conclusion.
-- When encountering code, tables, or long data dictionaries, compress to a compact business-meaningful sentence.
-- Each output item must be a single highly-compressed spoken sentence (≤80 words), no deep technical detail.
-- **全量覆盖原则（Full Coverage Rule）**：`100_Projects/需求分析`、`100_Projects/需求管理`、`300_Resources/会议纪要`、`邮件管理` 及 `300_Resources/电话纪要` 目录下的所有本周变动点（近 5 天内修改或文件名包含本周日期），必须在周报【核心推进】章节中全量逐一呈现，不得截断遗漏。（注意：`300_Resources/复盘总结` 不纳入周报扫描）。
+- **全量覆盖原则（Full Coverage Rule）**：`100_Projects/需求分析`、`100_Projects/需求管理`、`300_Resources/会议纪要`、`邮件管理`、`300_Resources/电话纪要` **及 Agent 周度工作日志**（`memory/weekly-activity-log.md`）中的所有本周变动点（近 5 天内修改或文件名包含本周日期），必须在周报【核心推进】章节中全量逐一呈现，不得截断遗漏。
+- **汇报要点（3~5 条本周重点工作精炼）**：
+  - 聚焦本周最核心的 3~5 项具体工作进展，每条以 `**【模块/系统】**` 开头。
+  - **主条目单句规则**：主标题行必须为单句短句（仅含一个句号 `。`），概括该模块的核心价值。
+  - **子项结构支持规则（2026-09-11 新增）**：当同一业务模块下有多个独立但相关的子工作项时，允许在主标题行下方使用子列表（`1) 2) 3)`）展开，子项可含多个句号。示例：
+    ```
+    3. **【集中交易历史查询迁移】**
+       1）大数据：顶点99委托文件 stkname 截断与行情乱码导致截位，已提需求修复。
+       2）反洗钱：时间格式不一致，已提上海固收需求统一。
+       3）正回购：9.18包中，9.24日上线。
+    ```
+  - **允许跳过/合并低优先级事项规则（Low-Priority Skip Rule，2026-09-11 新增）**：若本周存在多个低优先级或工作量较小的事项，允许在汇报要点中以一条简略表述跳过（如「股权激励及几个小需求就不说了」），**核心推进章节中仍需全量覆盖**。此规则解决「全量覆盖」与「汇报要点仅 3~5 条」之间的天然矛盾。
+  - 严禁出现英文需求单号（如 R2607210113）或机械报文接口代码。
+  - **从业务价值角度提炼，而非具体操作层面**：汇报要点应突出「该工作为客户/业务带来什么价值」（如支持 QFII 客户多后端子账户灵活卖出零股、优化担保品划转后持仓可用性、推进行权参数自动化），避免罗列受理/评审/拆分/评估/登记等中间操作步骤。
+  - **口语化自然表述（Colloquial Expression Rule，2026-09-11 新增）**：汇报要点支持口语化、接地气的自然表述（如「9.18上了一批」、「后续逐笔推动」、「注意是固定费用扣收」等），只要信息清晰即可，不必过度书面化。这是对「纯真人自然表述」原则的显式化补充。
+- **AI 协作增效维度（AI Collaboration Value，2026-09-10 新增）**：本周若通过 AI 技能链（如 ba-to-dev / gtht-accept-review / gtht-story-split / gtht-ndw-fill / 需求关联 等）完成了需求分析、受理评审、Story 拆分、技术评估、价值量登记、需求关联等全流程自动化，或完成了知识库编译沉淀、失效链接清理等治理动作，应在汇报要点中**新增一条【AI 协作增效】**，从业务价值角度简述 AI 带来的效率提升与知识沉淀成果（如「借助 AI 技能链完成 N 项需求全流程自动化落地，并将跨需求通用规则编译沉淀进知识库」）。同样遵循单句短句、不出现具体操作编号。
+- **专项标题命名规范（Topic Title Naming Convention，2026-09-11 新增）**：汇报要点及正文各章节的【专项标题】必须使用**简洁、精炼的业务域简称**，遵循以下原则：
+  - ❌ 避免「及」「与」等连接词冗余（如 `【QFII及海外两融】` → `【QFII两融】`）
+  - ❌ 避免宽泛概括（如 `【历史数据迁移】` → `【集中交易历史查询迁移】`，明确到具体系统+业务场景）
+  - ✅ 格式：`【系统/业务域简称 + 核心关键词】`，控制在 10 字以内，一眼能看出业务归属
+  - 用户后续若对某专项标题有修正，应作为规范沉淀到本规则中，同类场景直接套用。
+- **Section 1 (本周核心结论)**：使用 `1) 2) 3)` 序号，平实概括 1) 系统稳定性, 2) 核心交付数量与进度, 3) 进度预警。
+- **Section 2 (核心推进)**：使用 `1. 2. 3.` 序号，每项以 `**【模块/系统】**` 开头，客观陈述具体业务与技术动作及所处阶段（如：已完成方案梳理 / 开发中 / 已提测 / 待排期联调）。
+- **Section 3 (关键阻塞点与资源诉求)**：使用 `1. 2. 3.` 序号，以 `**【阻塞/卡点/关联系统】**` 开头，客观陈述外部约束，并明确写出 `诉求：<需要协调协助的事项>`。
+- **Section 4 (下周核心 Action)**：使用 `1. 2. 3.` 序号，以 `**【模块/方向】**` 开头，交代下周计划落地的具体动作。
 
-
-
-- **### 汇报要点（C-level 3分钟口头汇报底稿）**：位于 `**周期**` 下方、分隔符 `---` 上方。专为 3 分钟口头汇报设计。
-  - **只说事实，不发表评价（Fact-Only Rule）**：必须严格以客观事实为唯一依据，只陈述具体的动作、结论与交付结果，**严禁使用任何主观评价或形容词词汇**（如“大幅提升”、“强力拦截”、“准确展示”、“完美解决”等）。
-  - **通俗口语化**：使用自然口语与通俗平直的日常汇报表达（如：“重点解决了25年滞留的历史遗漏问题”、“下周组会沟通方案”、“还需要我们逐个协调推进”），严禁出现英文需求单号（如 R2607210113）、机械报文接口号或冗长的书面专有名词。可以直接作为开会口头念诵的发言稿。
-  - **单一事项原则（Single Focus Rule）**：每一个【汇报要点】**必须且只能聚焦于一件核心需求或独立事项**，严禁将多项不同的需求或无关动作强行拼凑合并在一句话中。
-  - **严格一句话短句**：每一个编号点**必须且只能为一句话短句**（仅含一个句号 `。`），表达完整自洽。
-  - **语句完整与逻辑自洽**：结构完整、语气流畅（包含“主体/动作 + 客观事实/交付产出”），具备明确的因果与业务逻辑闭环。
-
-
-
-- **Section 1 (Executive Summary)**: Must use `1) 2) 3)` numbered list format, strictly covering 1) 系统稳定性, 2) 核心交付, 3) 进度预警.
-- **Section 2 (Key Projects & Impact)**: Must use `1. 2. 3.` numbering, and each item MUST start with bold bracket category tag `**【模块/系统】**` (e.g. `1. **【个微两融/柜台】** ...`), strictly limited to 1 sentence. All scanned items from 需求分析、会议纪要及复盘总结 MUST be presented fully.
-- **Section 3 (Blockers & Asks)**: Must use `1. 2. 3.` numbering, starting with bold bracket category tag `**【卡点分类/系统】**`, and explicitly state `诉求：<需要领导协调的事项>`, strictly limited to 1 sentence.
-- **Section 4 (Next Actions)**: Must use `1. 2. 3.` numbering, starting with bold bracket category tag `**【模块/方向】**`, strictly limited to 1 sentence. Include unresolved Action Items from GOBE reflections.
-
-
-
-## Mandatory output template (do not alter section names)
+## Mandatory output template
 
 ```text
 **周期**：MM/DD - MM/DD
 
 ### 汇报要点
 
-1. <提炼要点 1：通俗口语化表达，控制在一句话长度（含主体/动作/结果）>
-2. <提炼要点 2：通俗口语化表达，控制在一句话长度（含主体/动作/结果）>
-3. <提炼要点 3：通俗口语化表达，控制在一句话长度（含主体/动作/结果）>
+1. **【模块/业务】** <主标题单句概括核心价值。>
+   - 可选子项 1：<子项说明，可含多个句号。>
+   - 可选子项 2：<子项说明。>
+2. **【模块/业务】** <主标题单句概括核心价值。>
+3. **【模块/业务】** <主标题单句概括核心价值。>
+   - 可选子项：同上。>
+4. **【模块/业务及几个小需求就不说了】** <可选：低优先级事项允许跳过的兜底占位。>
+5. **【AI 协作增效】** <本周通过 AI 技能链完成的需求全流程自动化与知识沉淀成果，从业务价值角度简述。>
 
 ---
 
 **1. 本周核心结论**
 
-1) 系统稳定性：<系统稳定性及隐患排查总结，如：本周核心系统运行平稳，无生产事故；提前封堵了X隐患。>
-2) 核心交付：<重大项目/需求交付进展，如：本周「X项目」取得决定性进展，核心Story已完成开发并“结束发布”上线。>
-3) 进度预警：<逾期或阻塞情况，如：部分下游系统仍存在逾期或阻碍，需协调X团队加速排期联调。>
+1) 系统稳定性：<平实描述本周系统运行与生产情况，如：本周核心系统运行平稳，完成了X项日常缺陷排查。>
+2) 核心交付：<本周推进的需求总数与关键节点，如：本周全量推进 X 项需求，完成了 X 方案评审与接口对齐。>
+3) 进度预警：<客观交代需要关注的进度节点，如：关注 X 下游联调进度。>
 
 ---
 
 **2. 核心推进 (Key Projects & Impact)**
 
-1. **【模块/系统】** <业务价值与技术动作：具体动作，支撑了B业务/降低了C风险/提升了D性能。>
-2. **【模块/系统】** <交付状态与影响：当前所处阶段（如：开发中/已提测/已上线），对下游的影响。>
-3. **【模块/系统】** <协同进展与风险防范：完成了关键技术对接或评审，保障交付节点。>
+1. **【模块/系统】** <具体事项陈述与当前进展阶段。>
+2. **【模块/系统】** <具体事项陈述与当前进展阶段。>
+3. **【模块/系统】** <具体事项陈述与当前进展阶段。>
 
 ---
 
 **3. 关键阻塞点与资源诉求 (Blockers & Asks)**
 
-1. **【阻塞/卡点/关联系统】** <卡点陈述：客观陈述问题与逾期事项。>。诉求：<明确指出需要领导协调的部门或资源。>
+1. **【阻塞/卡点/关联系统】** <客观陈述当前卡点。>。诉求：<明确写出需要协调的事项。>
 
 ---
 
 **4. 下周核心 Action**
 
-1. **【模块/方向】** <核心交付点：确保项目如期推进的决定性动作。>
-2. **【模块/方向】** <关键支撑点：重点关注的业务逻辑、规则落地或数据校验。>
-3. **【模块/方向】** <改进/协同点：技术效率提升或跨团队联调。>
+1. **【模块/方向】** <下周具体的推进动作。>
+2. **【模块/方向】** <下周具体的推进动作。>
+3. **【模块/方向】** <下周具体的推进动作。>
 ```
 
-## 汇报逻辑建议
-- 汇报模版建议详见 `references/briefing-logic.md`，核心遵循“结论先行、业务化表达、机会式汇报”。
-- Each item must fit on one spoken sentence when read aloud.
-- Section 1 uses `1) 2) 3)` numbered list format, NOT a single paragraph. Each entry covers one angle: stability / core delivery / risk alert.
-- Sections 2–4 use `1. 2. 3. ...` numbering, and every item MUST start with bold category tags `**【模块/系统】**`.
-- Section 3 MUST include explicit `诉求：...` for leadership resource coordination.
-- The report is optimized for a 3-minute verbal executive summary.
+## Quality assurance rules (2026-09-11 更新)
+
+> [!IMPORTANT]
+> **质量护栏：以下 8 条规则基于 20260910/20260911 周报实战复盘沉淀，用于防范周报生成中的常见偏差。**
+
+- **核心交付数量核实规则（Delivery Count Verification Rule）**：核心结论②中「本周全量推进 X 项重点需求」的 X 值，必须与 `100_Projects/需求分析` 目录本周（近 5 天）新增/变更文件数对齐，不得主观夸大或随意估算。若需包含非需求分析目录的事项（如 BCP 邮件、会议纪要等），应逐一列明来源，确保数据可追溯。
+
+- **P1 阻塞点强制纳入规则（P1 Blocker Mandatory Rule）**：核心推进中涉及 **P1 优先级需求**（如生产修复、监管要求、重要业务承诺）的，必须在【关键阻塞点与资源诉求】章节中评估其排期风险，明确写出「诉求：」字段。不允许 P1 需求在核心推进中出现但在阻塞点中缺席。
+
+- **下周 Action 全覆盖规则（Next Action Full Coverage Rule）**：下周 Action 条目数不得少于核心推进中**待推进事项**的数量，P1 优先级事项必须纳入。检查清单：① 核心推进中每项「待拆分/待排期/待联调」状态的事项 → ② 下周 Action 中应有对应推进动作。
+
+- **核心推进单句防呆规则（Single-Sentence Anti-Duplication Rule）**：核心推进每条主标题行仅含一个句号 `。`。当同一模块有多个独立需求（如同一系统、同业务域但不同改造点）时，**必须拆分为独立条目**（如 `【QFII两融/零股卖出】` 和 `【QFII两融/担保物转出】` 拆为两条），不得合并为一条「一拖二」式复合句。检查方法：全文搜索核心推进章节中每条主标题行的句号数量，超过 1 个的必须拆分。**注意**：若同一系统/模块下的多个事项属于同一需求的不同阶段，或确实紧密关联不可分割，允许在一条中陈述但需确保仅含一个句号。
+
+- **核心推进条目数不设上限规则（Core Progress No-Cap Rule，2026-09-11 新增）**：核心推进章节的条目数不设上限，按实际本周工作事项逐一列出，模板中的 3 条仅为示意。实际周报中核心推进条目数通常在 10~15 条之间（如 20260911 周报有 12 条），生成时以全量覆盖为原则，不得因模板仅显示 3 条而截断遗漏。
+
+- **AI 协作增效与个人优化分离规则（AI vs Personal Optimization Separation Rule）**：AI 协作增效维度**仅限** AI 技能链自动化成果与知识治理沉淀（需求全流程自动化、知识库编译、失效链接清理、文件命名统一等）。个人工具/驾驶舱/工作台性能优化（如缓存分片化、前端渲染优化、冷加载提速等）不属于 AI 协作增效范畴，应放入核心推进对应模块（如【个人驾驶舱/性能优化】）。AI 协作增效条目中出现「同步完成个人XX优化」等表述时视为违规，必须剥离。
+
+- **知识治理成果显式呈现规则（Knowledge Governance Visibility Rule）**：本周若完成了知识库编译（常青 Wiki 沉淀）、失效双链修复、文件名统一、索引更新等 vault 治理动作，必须在核心推进中**单独新增条目**【知识库治理】，详细列出治理范围与成果，不得仅作为 AI 协作增效的附属描述一笔带过。知识治理条目同样遵循单句规范（若有多项可拆为多条）。
+
+- **AI 技能自身持续改进显式呈现规则（AI Skill Self-Improvement Visibility Rule，2026-09-11 新增）**：执行周报生成时，必须检查本周是否有 **AI 技能自身的持续改进工作**，包括：
+  - 技能规则新增/优化（如 ba-to-dev / gtht-accept-review / gtht-story-split 等核心技能的执行后自省、性能优化等）
+  - 新技能开发与既有技能重构（如新增 gtht-req-link、Playwright→MCP 直连重构等）
+  - 工具链可靠性修复与性能提升（如 adjust-plandate v3.1 批量写回修复、codebase-memory-mcp 接入等）
+  - 记忆中枢（MEMORY.md）更新与最佳实践沉淀
+  若存在上述改进，必须在核心推进中**单独新增条目**【AI 技能体系优化】，逐一列明改进范围与量化效果（如「接入图谱检索加速源码分析 100 倍以上」），不得仅作为 AI 协作增效的附属描述一笔带过。条目遵循单句规范，若有多项改进可拆为多条。
 
 ## Post-generation user amendment rules
 
-- **手工修改与补充保护原则（Manual Modification Preservation Rule）**：周报 md 生成后，若用户在文件内部或对话框里对【汇报要点】或正文内容进行了手工修改、替换或追加，**绝对不得自动删除或覆盖用户手工修改的内容**。用户的手工修改是对自动生成周报的权威补充。AI 的职责是在 100% 保留用户补充内容的前提下，优化组织语言（使其符合通俗口语化、单句短句、纯事实陈述等规范），并将其与自动梳理的内容有机融合。
-- **用户追加/修改内容融入**：当用户提供追加/修改内容时，必须先读取已有周报文件，保留用户手工修改的要点与补充，将用户内容自然融入对应章节（业务化表达、风格统一），覆盖写入，不得新建文件。
+- **手工修改与补充保护原则（Manual Modification Preservation Rule）**：周报 md 生成后，若用户在文件内部或对话框里对【汇报要点】或正文内容进行了手工修改、替换或追加，**绝对不得自动删除或覆盖用户手工修改的内容**。用户的手工修改是对自动生成周报的权威补充。
+- **多 Agent 共存·补充不覆盖原则（Multi-Agent Coexistence Rule，2026-09-10 新增）**：执行 `/weekly-report` 时，若本周周期对应的 MD 文件已在 `300_Resources/工作周报/` 目录下存在（由其他 Agent 或用户手工生成），**不得覆盖或删除已有文件**，必须：
+  ① 读取已有周报文件全文；
+  ② 检查本周是否有新增笔记变动（近 5 天内修改或文件名含本周日期），对比已有周报是否已覆盖；
+  ③ 若已有周报已覆盖全部本周变动点，则直接确认无需重复生成；
+  ④ 若存在尚未纳入的新增变动，则**在已有周报中追加补充**（新增汇报要点条目、核心推进项等），保留原文所有内容不变；
+  ⑤ 补充完成后在文件末尾标注 `<!-- 补充于 YYYY-MM-DD by [Agent 名] -->` 注释，避免重复追加。
+- **文件名格式统一原则（Filename Unification Rule，2026-09-10 新增）**：周报文件名**必须保持标准格式 `YYYYMMDD-工作周报.md`**（如 `20260910-工作周报.md`），不得因多 Agent 生成而出现 `cursorYYYYMMDD-工作周报.md`、`agentA-工作周报.md` 等带前缀的变体名。若检测到目录下已存在带前缀的周报变体文件（如 `cursor20260910-工作周报.md`），应将其**重命名为标准格式 `YYYYMMDD-工作周报.md`**（内容保持不变），并更新 `工作周报_Index.md` 索引中的双链引用；同一周期仅保留一个标准命名的周报文件。
 - **触发重新调整**：当用户在对话框输入 `已修改` 或 `upt` 时，表示用户已在本地直接编辑了周报文件。此时必须：① 读取最新周报文件；② 严格保留用户新增/修改的汇报要点，仅对语言组织、标点与单句结构进行润色；③ 覆盖写入，不得新建文件。
-- **写入工具**：始终使用文件写入工具或覆盖写入周报。
-
-

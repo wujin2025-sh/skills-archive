@@ -1,11 +1,10 @@
 ---
 name: project-schedule
-description: "批量查询多个需求编号，在后台并行获取它们的所有 Story 详情及进度信息，然后合并生成一个带 HTML 单元格合并效果的项目进度表（HTML & Markdown 格式）。支持传入多个以空格分隔的需求编号。"
-allowed-tools:
-  - Bash
-  - Read
-  - Write
+description: 批量查询多个需求编号，在后台并行获取它们的所有 Story 详情及进度信息，然后合并生成一个带 HTML 单元格合并效果的项目进度表（HTML
+  & Markdown 格式）。支持传入多个以空格分隔的需求编号。
+disable: false
 ---
+
 
 # 项目进度表生成器
 
@@ -23,8 +22,26 @@ allowed-tools:
 执行脚本，传入一个或多个以空格分隔的需求编号或史诗编号：
 
 ```bash
-.venv/bin/python scripts/project_schedule_generate.py <需求ID_或_史诗ID_1> <需求ID_或_史诗ID_2> ... [--project 项目名称] [--output_html html路径] [--output_md md路径]
+python3 scripts/project_schedule_generate.py <需求ID_或_史诗ID_1> <需求ID_或_史诗ID_2> ... [--project 项目名称] [--output_html html路径] [--output_md md路径]
 ```
+
+### 实际结束时间自动抓取（推荐，替代硬编码）
+
+大宽表缓存**不含** Story 实际结束字段（全 None），【实际结束】列数据源为平台 **Story 详情页「Story 一生」卡片**。已提供自动抓取脚本，抓取结果写入 `scripts/story_actual_end_cache.json`，生成排期表时自动加载合并（优先级：人工硬编码 `STORY_ACTUAL_END_MAP` > 自动缓存 > 平台缓存字段 > `--`）：
+
+```bash
+# 抓取史诗下所有 Story 的实际结束时间
+python3 scripts/fetch_story_actual_end.py --epic E2603040001
+# 抓取指定需求下 Story
+python3 scripts/fetch_story_actual_end.py --demand R2609080068 R2607090114
+# 全量刷新（覆盖缓存中已有条目）
+python3 scripts/fetch_story_actual_end.py --epic E2603040001 --force
+```
+
+- 取数规则严格对齐「Story 一生」：开发实际结束 → `开发实际结束时间`；SIT → `SIT自测实际结束时间`；UAT → `UAT自测实际结束时间`。
+- 关键 URL：`/kjpt/StoryManage/storyDetail?storyNo={R格式storyNo}`（storyNo 取大宽表缓存 `storyNo`/`dataUniqueNo` 字段，如 `R2410140070-1`，**非 S 编号**）。
+- 幂等合并：默认仅更新成功抓取到的条目，不覆盖已有值；`--force` 全量刷新。
+- 自动过滤已终止 Story（状态含「终止」）。
 
 ### 需求看板可视化
 
@@ -42,10 +59,12 @@ allowed-tools:
 
 - **需求ID/史诗ID**（至少一个）：以空格分隔的需求编号（如 R2603130062）或史诗编号（如 PG202204-0236）列表。如果传入史诗编号，系统将自动连接大宽表并提取出该史诗下所有关联的需求编号。
 - `--project`：项目名称（默认："交易结算核心历史数据及接口迁移项目"）
-- `--output_html`：生成的 HTML 表格保存路径（默认：`{日期}-进度-{项目名称}.html`）
-- `--output_md`：生成的 Markdown 表格保存路径（默认：`{日期}-进度-{项目名称}.md`）
+- `--output_html`：生成的 HTML 表格保存路径（默认：`/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪/{日期}-进度-{项目名称}.html`）
+- `--output_md`：生成的 Markdown 表格保存路径（默认：`/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪/{日期}-进度-{项目名称}.md`）
 - `--send-mail` / `--mail` / `--draft` / **“发邮件”指令**：严格提取 HTML 跟踪表中真正涉及的所有人员（开发经办人、SIT经办人、UAT经办人、需求提出人、业务验收人，绝不引入无关人员）作为收件人，无头模式将 HTML 进度跟踪表起草存入 Coremail 草稿箱（`草稿箱`）。
-- **自动同步**：Markdown 格式文件生成时，脚本将自动在 `/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪/` 目录下同步写入一份 `{日期}-进度-{项目名称}.md`。
+- **固定抄送（CC）**：发邮件时抄送人固定为 `刘勇明、周尤珠`（脚本内已硬编码，无需额外参数）。
+- **已终止 Story 过滤**：状态为 `终止`（含 `已终止`）的 Story 一律从进度表、逾期/未排期预警及收件人提取中彻底剔除，不展示、不提醒。
+- **统一输出目录**：HTML 与 Markdown 文件默认均输出到 `/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪/` 目录下，文件名为 `{日期}-进度-{项目名称}.html` / `.md`。
 
 ### 环境要求与凭证配置
 
@@ -97,8 +116,8 @@ allowed-tools:
    - **否则不填 / 不展示**：若未录入/无实际结束日期（环节推进中），或 `实际结束日期 <= 预计结束日期`（按期或提前完成），一律**不填/不展示逾期天数**。
    - **时间联动补全**：若环节状态为 `已完成` 且具有实际结束日期，但初始评估计划日期为空，自动以实际结束日期补齐预计结束，确保已完成环节时间数据 100% 完整。
 
-5. **【计划生产排期】史诗级统一对齐法则与自动命名**：
-   - **史诗级上线批次对齐法则 (`Epic Release Alignment Rule`)**：同一史诗（Epic）关联的所有需求与 Story，在上线交付维度属于同一批次投产（例如史诗 `PG202204-0263` 全员统一投产批次为 **`2026-09-04`**）。其【计划生产排期】必须全局保持绝对统一一致，绝不因单个 Story 初始评估日期散乱而出现日期不一。
+5. **【计划生产排期】直读大宽表法则与自动命名**：
+   - **直读大宽表（不硬编码）**：【计划生产排期】统一从需求大宽表缓存中 Story 的 `planProdLineDate` 字段实时读取，绝不使用任何硬编码映射覆盖。当通过 `adjust-plandate` 等工具修改排期后，大宽表缓存会自动刷新，进度表随之同步更新。
    - **史诗名称自动命名法则**：系统解析史诗编号后，自动提取史诗真实名称（如 `CX-业务-QFII两融-二期`），自动命名输出产物：`{日期}-进度-{史诗名称}.html` 与 `{日期}-进度-{史诗名称}.md`。
 
 6. **全行内 CSS 样式 (Inline CSS) 与高保真邮件起草**：

@@ -1,9 +1,13 @@
 ---
 name: 接口查询
-description: |
-  低延时接口查询。在金融科技服务治理平台 (http://sg.gtht.com.cn/fwzl/interfaceManage/interfaceManage.html) 中查询指定接口号或接口关键字的配置信息。
+description: '低延时接口查询。在金融科技服务治理平台 (http://sg.gtht.com.cn/fwzl/interfaceManage/interfaceManage.html)
+  中查询指定接口号或接口关键字的配置信息。
+
   触发词：低延时接口查询、接口查询、查询接口、interface-query、low-latency-query、7300780、7300780接口、interfaceManage。
+
+  '
 agent_created: true
+disable: false
 ---
 
 # 低延时接口查询 (SKILL.md)

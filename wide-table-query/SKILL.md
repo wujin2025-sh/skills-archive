@@ -1,11 +1,13 @@
 ---
 name: 大宽表查询
-description: "打开金融科技平台「交易结算核心系统需求集合」大宽表在线表格，将用户在对话框中输入的搜索内容填入搜索框，提取并输出搜索结果。支持需求编号、需求名称、系统名等关键字搜索。Session 复用避免重复登录。（user）"
+description: 打开金融科技平台「交易结算核心系统需求集合」大宽表在线表格，将用户在对话框中输入的搜索内容填入搜索框，提取并输出搜索结果。支持需求编号、需求名称、系统名等关键字搜索。Session
+  复用避免重复登录。（user）
 agent_created: true
 allowed-tools:
-  - Bash
-  - Read
-  - Write
+- Bash
+- Read
+- Write
+disable: false
 ---
 
 # 大宽表查询

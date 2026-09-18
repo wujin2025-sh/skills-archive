@@ -74,6 +74,7 @@ config_paths = [
     os.path.join(SKILL_ROOT, "config.json"),
     os.path.join(SCRIPT_DIR, "config.json"),
     os.path.join(os.path.dirname(SKILL_ROOT), "config.json"),
+    os.path.expanduser("~/.config/gtht/config.json"),
     "config.json"
 ]
 
@@ -300,13 +301,12 @@ async def edit_single_demand(page, demand_id, field_name, target_value):
     current_value = (await td.text_content()).strip()
     print(f"当前「{field_name}」值: {current_value}")
     
-    # 判定值是否已是目标值 (一致采用相等判定，保证只保留指定标签)
-    is_already_target = False
-    if current_value == target_value:
-        is_already_target = True
-            
-    if is_already_target:
-        print("已经是目标值，无需修改。")
+    # 解析多标签目标值（英文/中文逗号分隔，去重去空）
+    target_values = [t.strip() for t in re.split(r"[,，]", target_value) if t.strip()]
+    # 判定值是否已是目标值（多标签集合一致则跳过，避免重复操作）
+    current_tags = [t.strip() for t in re.split(r"[,，\s]+", current_value) if t.strip()]
+    if set(current_tags) == set(target_values):
+        print("标签集已一致，无需修改。")
         return True
         
     # 如果是需求自定义标签，先在主页面上清理掉所有非目标标签
@@ -317,7 +317,7 @@ async def edit_single_demand(page, demand_id, field_name, target_value):
             unwanted_text = ""
             for tag in tags:
                 tag_text = (await tag.text_content()).strip()
-                if tag_text != target_value:
+                if tag_text not in target_values:
                     unwanted_tag = tag
                     unwanted_text = tag_text
                     break
@@ -344,7 +344,7 @@ async def edit_single_demand(page, demand_id, field_name, target_value):
         # 重新获取当前值并比对
         current_value = (await td.text_content()).strip()
         print(f"[属性] 主页面标签清理后当前值: {current_value}")
-        if current_value == target_value:
+        if all(tv in current_value for tv in target_values):
             print("清理多余标签后值已符合目标，修改完成。")
             return True
         
@@ -362,50 +362,126 @@ async def edit_single_demand(page, demand_id, field_name, target_value):
     if await modal.count() > 0 and await modal.is_visible():
         print("[属性] 检测到编辑弹窗，进入弹窗修改模式...")
         
-        # 1. 移除已选的非目标标签 (只保留指定标签)
+        # 1. 移除已选的非目标标签（保留已有目标标签，避免清空后下拉空状态无选项）
         select_container = modal.locator(".ant-select").first
         selected_items = await select_container.locator(".ant-select-selection-item").all()
         for item in selected_items:
             item_text = (await item.text_content()).strip()
-            if item_text != target_value:
+            if item_text not in target_values:
                 print(f"[属性] 移除已有标签: {item_text}")
                 remove_btn = item.locator(".ant-select-selection-item-remove").first
                 if await remove_btn.count() > 0:
                     await remove_btn.click()
                     await asyncio.sleep(0.5)
-                    
-        # 2. 判断目标标签是否已经被选中，如果没有被选中，执行搜索并选中
-        selected_items_after = await select_container.locator(".ant-select-selection-item").all_text_contents()
-        selected_items_after_clean = [s.strip() for s in selected_items_after]
-        
-        if target_value not in selected_items_after_clean:
-            # 定位搜索输入框并输入
+
+        # 2. 逐个添加目标标签（下拉保持打开；若收起则点击 select 重新展开，全程不用 ESC，避免关闭弹窗）
+        import re as _re
+        select_container = modal.locator(".ant-select").first
+        # 首次展开下拉
+        try:
+            await select_container.click(timeout=5000)
+        except Exception:
+            await modal.locator(".ant-select-selector").first.click(timeout=5000)
+        await asyncio.sleep(1.2)
+
+        for tv in target_values:
+            # 如果该标签已在弹窗内选中，跳过
+            sel_now = await select_container.locator(".ant-select-selection-item").all_text_contents()
+            if tv in [s.strip() for s in sel_now]:
+                print(f"[属性] 标签已选中: {tv}")
+                continue
+
+            # 若下拉收起（搜索框不可见），重新点击 select 展开
             search_input = modal.locator("input[type='search']").first
+            input_visible = False
+            try:
+                input_visible = await search_input.is_visible(timeout=2000)
+            except Exception:
+                input_visible = False
+            if await search_input.count() == 0 or not input_visible:
+                select_container = modal.locator(".ant-select").first
+                try:
+                    await select_container.click(timeout=5000)
+                except Exception:
+                    await modal.locator(".ant-select-selector").first.click(timeout=5000)
+                await asyncio.sleep(1.2)
+                search_input = modal.locator("input[type='search']").first
             if await search_input.count() == 0:
                 print("错误: 弹窗中未找到搜索输入框！")
                 return False
-                
+
             await search_input.click()
-            await asyncio.sleep(0.5)
-            
-            print(f"[属性] 输入选项: {target_value}")
-            await search_input.type(target_value, delay=100)
+            await asyncio.sleep(0.3)
+            await search_input.fill("")
+            await asyncio.sleep(0.3)
+            print(f"[属性] 输入选项: {tv}")
+            await search_input.press_sequentially(tv, delay=80)
             await asyncio.sleep(1.5)
-            
-            # 定位并选中选项
-            option = page.locator(".ant-select-item-option").filter(has_text=target_value).first
-            if await option.count() == 0:
-                available_options = await page.locator(".ant-select-item-option").all_text_contents()
-                print(f"错误: 弹窗下拉选项中未找到「{target_value}」！可选: {available_options}")
+
+            # 精确匹配优先，避免子串误匹配（如「信用两融」误匹配「CX-信用-两融」）
+            option_locator = page.locator(".ant-select-item-option")
+            all_opts = await option_locator.all()
+            opt_texts = [(await o.text_content() or "").strip() for o in all_opts]
+            matched_idx = None
+            for i, txt in enumerate(opt_texts):
+                if txt == tv:
+                    matched_idx = i
+                    break
+            if matched_idx is None:
+                for i, txt in enumerate(opt_texts):
+                    if tv in txt:
+                        matched_idx = i
+                        break
+            if matched_idx is None:
+                print(f"错误: 弹窗下拉选项中未找到「{tv}」！可选: {opt_texts}")
                 cancel_btn = modal.locator("button:has-text('取 消')").first
                 if await cancel_btn.count() > 0:
                     await cancel_btn.click()
                 return False
-                
-            print(f"[属性] 选中选项: {target_value}")
-            await option.click()
-            await asyncio.sleep(0.5)
-            
+
+            print(f"[属性] 将确认选项: {tv} (实际文本: {opt_texts[matched_idx]})")
+            print(f"[属性] 当前所有可选项: {opt_texts}")
+            # 搜索框保持焦点，按 Enter 选中当前高亮项（比点击更稳）
+            await search_input.focus()
+            await asyncio.sleep(0.2)
+            await search_input.press("Enter")
+            await asyncio.sleep(1.2)  # 等待选择提交与重渲染
+
+            # 校验本次选择是否生效
+            sel_after = await select_container.locator(".ant-select-selection-item").all_text_contents()
+            if tv not in [s.strip() for s in sel_after]:
+                print(f"警告: 标签「{tv}」选择后未生效，重试一次...")
+                select_container = modal.locator(".ant-select").first
+                try:
+                    await select_container.click(timeout=5000)
+                except Exception:
+                    await modal.locator(".ant-select-selector").first.click(timeout=5000)
+                await asyncio.sleep(1.2)
+                search_input = modal.locator("input[type='search']").first
+                await search_input.click()
+                await asyncio.sleep(0.3)
+                await search_input.fill("")
+                await asyncio.sleep(0.3)
+                await search_input.press_sequentially(tv, delay=80)
+                await asyncio.sleep(1.5)
+                retry_locator = page.locator(".ant-select-item-option")
+                all_opts_retry = await retry_locator.all()
+                opt_texts_retry = [(await o.text_content() or "").strip() for o in all_opts_retry]
+                matched_idx_retry = None
+                for i, txt in enumerate(opt_texts_retry):
+                    if txt == tv:
+                        matched_idx_retry = i
+                        break
+                if matched_idx_retry is None:
+                    for i, txt in enumerate(opt_texts_retry):
+                        if tv in txt:
+                            matched_idx_retry = i
+                            break
+                if matched_idx_retry is not None:
+                    # 重试用键盘 Enter
+                    await search_input.press("Enter")
+                    await asyncio.sleep(1.2)
+        
         # 保存弹窗
         ok_btn = modal.locator("button:has-text('确 定')").first
         if await ok_btn.count() == 0:
@@ -446,12 +522,15 @@ async def edit_single_demand(page, demand_id, field_name, target_value):
         await check_icon.click()
         await asyncio.sleep(3)
     
-    # 验证修改结果
-    updated_value = (await td.text_content()).strip()
+    # 验证修改结果（基于独立标签元素，避免拼接文本误判）
+    await asyncio.sleep(1.0)
+    tag_els = await td.locator(".ant-tag").all()
+    updated_tags = [(await t.text_content()).strip() for t in tag_els]
+    updated_value = " ".join(updated_tags)
     print(f"修改后「{field_name}」值: {updated_value}")
     
     success = False
-    if updated_value == target_value:
+    if set(updated_tags) == set(target_values):
         success = True
             
     if success:
@@ -662,11 +741,14 @@ async def run(target_id, field_name, target_value, headed):
             
             print(f"\n[汇总] 处理完成。成功: {success_count} 个，失败: {fail_count} 个")
             
-            # 保存最后一次处理结果截图
+            # 保存最后一次处理结果截图（非致命，超时不影响结果）
             if demand_ids:
-                screenshot_path = os.path.join(SCRIPT_DIR, f"edit_last_result.png")
-                await page.screenshot(path=screenshot_path)
-                print(f"[截图] 结果已保存: {screenshot_path}")
+                try:
+                    screenshot_path = os.path.join(SCRIPT_DIR, f"edit_last_result.png")
+                    await page.screenshot(path=screenshot_path, timeout=10000)
+                    print(f"[截图] 结果已保存: {screenshot_path}")
+                except Exception as se:
+                    print(f"[截图] 截图保存失败（不影响修改结果）: {se}")
                 
         except Exception as e:
             print(f"\n执行发生异常: {e}")

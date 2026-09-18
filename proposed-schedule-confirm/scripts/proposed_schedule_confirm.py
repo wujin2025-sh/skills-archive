@@ -260,9 +260,10 @@ def update_and_load_data(script_dir):
         return load_data_from_cache(cache_path)
     return []
 
-def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
+def filter_and_format_stories(raw_records, target_version, receiver="吴进", system_filter=None):
     """
-    根据目标版本号和受理人筛选并整理 Story 数据
+    根据目标版本号、受理人和涉及系统筛选并整理 Story 数据
+    system_filter: 可选，按涉及系统名称筛选（支持模糊匹配）
     """
     clean_ver = target_version.replace("-", "").strip()
     if len(clean_ver) == 8 and clean_ver.isdigit():
@@ -273,10 +274,12 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
         compact_ver_date = clean_ver
 
     filtered_items = []
+    internal_owner_names = set()
     
     for r in raw_records:
         rec = str(r.get("demandReceiver") or "").strip()
         p_date = clean_date_str(r.get("planProdLineDate"))
+        sys_name = str(r.get("storySystemName") or "--").strip()
         
         # 受理人匹配
         receiver_match = (not receiver) or (receiver in rec)
@@ -288,7 +291,19 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
             if p_date == norm_ver_date or p_date_compact == compact_ver_date:
                 date_match = True
         
-        if receiver_match and date_match:
+        # 涉及系统匹配（支持模糊匹配）
+        system_match = True
+        if system_filter:
+            system_filter_lower = system_filter.lower()
+            sys_name_lower = sys_name.lower()
+            system_match = system_filter_lower in sys_name_lower
+        
+        # 过滤已终止/已取消的 Story
+        status_name_raw = str(r.get("storyStatusName") or r.get("demandStatus") or "").strip()
+        terminated_keywords = ["终止", "取消", "作废", "废弃", "已关闭"]
+        is_terminated = any(kw in status_name_raw for kw in terminated_keywords)
+        
+        if receiver_match and date_match and system_match and not is_terminated:
             epic_code = str(r.get("epicCode") or r.get("epicConcat") or "--").strip()
             if not epic_code or epic_code == "None":
                 epic_code = "--"
@@ -298,14 +313,30 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
             story_title = clean_story_name(story_code, r.get("storyTitle"))
             system_name = str(r.get("storySystemName") or "--").strip()
             status_name = str(r.get("storyStatusName") or r.get("demandStatus") or "--").strip()
-            dev_owner = parse_owner(r.get("devManagePerson"))
-            sit_owner = parse_owner(r.get("sitTestManagePerson"))
-            uat_owner = parse_owner(r.get("uatTestManagePerson"))
-            bus_owner = parse_owner(r.get("businessAcceptor") or r.get("storyBusName"))
+            dev_owner_raw = str(r.get("devManagePerson") or "").strip()
+            sit_owner_raw = str(r.get("sitTestManagePerson") or "").strip()
+            uat_owner_raw = str(r.get("uatTestManagePerson") or "").strip()
+            bus_owner_raw = str(r.get("businessAcceptor") or r.get("storyBusName") or "").strip()
+            dev_owner = parse_owner(dev_owner_raw)
+            sit_owner = parse_owner(sit_owner_raw)
+            uat_owner = parse_owner(uat_owner_raw)
+            bus_owner = parse_owner(bus_owner_raw)
             key_focus = str(r.get("keyFocus") or "--").strip()
             effect_gray = clean_gray_upgrade(r.get("isEffectGrayUpgrade"))
             remark = clean_remark(r.get("beizhuText") or r.get("remark"))
             plan_prod_date = p_date
+
+            # 收集有工号的内部人员名单（供外包过滤用）
+            # 有工号格式: "姓名-纯数字" (如 吴进-125360)
+            # 外包格式: "姓名-CP_xxx" 或纯姓名无后缀
+            for raw_val in [dev_owner_raw, sit_owner_raw, uat_owner_raw, bus_owner_raw]:
+                if raw_val and raw_val not in ("--", "None", "null", ""):
+                    if "-" in raw_val:
+                        suffix = raw_val.split("-")[-1].strip()
+                        if suffix.isdigit():  # 纯数字工号才是内部人员
+                            name_part = raw_val.split("-")[0].strip()
+                            if name_part:
+                                internal_owner_names.add(name_part)
 
             item = {
                 "epic_code": epic_code,
@@ -331,22 +362,28 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进"):
     # 重点关注在最上面排序 (keyFocus == '是' 优先)，且 Epic 编号、Demand 编号升序，方便合并单元格
     filtered_items.sort(key=lambda x: (0 if x["is_key_focus"] else 1, x["epic_code"], x["demand_id"], x["story_code"]))
     
-    return filtered_items
+    return filtered_items, internal_owner_names
 
-def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed=False):
+def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed=False, internal_owner_names=None):
     """
     自动提取确认表上所有有效相关人员（开发负责人、SIT负责人、UAT负责人、业务验收人），
-    解析并生成 Coremail 格式的标准收件人列表字符串。固定包含：肖慧、刘青、乔露露、常丽、张帆、茆莹莹、张志鹏、薛天明、马晓鑫、李鹤晨、周尤珠。
+    解析并生成 Coremail 格式的标准收件人列表字符串。
+    仅包含有工号（姓名-数字格式）的内部人员，自动过滤外包人员。
+    固定包含：肖慧、刘青、乔露露、常丽、张志鹏、李鹤晨、周尤珠。
     若为 -r 模式，会自动读取此前初版确认表的人员名单缓存并自动 Merge，保持收件人完全一致。
     """
-    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张帆", "茆莹莹", "张志鹏", "薛天明", "马晓鑫", "李鹤晨", "周尤珠"}
+    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张志鹏", "李鹤晨", "周尤珠"}
     invalid_tokens = {"--", "无需业务验收", "None", "null", "", "无"}
     
     for item in items:
         for field in ["dev_owner", "sit_owner", "uat_owner", "bus_owner"]:
             name = item.get(field)
             if name and str(name).strip() not in invalid_tokens:
-                unique_names.add(str(name).strip())
+                cleaned = str(name).strip()
+                # 仅当该人员有工号（在 internal_owner_names 中）时才加入收件人
+                if internal_owner_names and cleaned not in internal_owner_names:
+                    continue  # 外包人员，跳过
+                unique_names.add(cleaned)
 
     clean_ver = str(version_str).replace("-", "").strip()
     clean_rec = str(receiver_str).strip()
@@ -361,7 +398,11 @@ def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed
                 if isinstance(cached_names, list):
                     for n in cached_names:
                         if n and str(n).strip() not in invalid_tokens:
-                            unique_names.add(str(n).strip())
+                            cleaned = str(n).strip()
+                            # 合并缓存时也要过滤外包人员（缓存可能来自未过滤的旧版本）
+                            if internal_owner_names and cleaned not in internal_owner_names:
+                                continue
+                            unique_names.add(cleaned)
         except Exception:
             pass
     elif not is_reviewed and clean_ver:
@@ -451,11 +492,11 @@ def generate_reminder_html(items, version_str="", is_reviewed=False):
   </div>
 </div>"""
 
-def send_confirmation_email(html_path, version_str, receiver_str, items, is_send=False, is_reviewed=False):
+def send_confirmation_email(html_path, version_str, receiver_str, items, is_send=False, is_reviewed=False, internal_owner_names=None):
     """
     调用 Coremail 通用发送脚本，将 HTML 确认表存草稿箱（默认 is_send=False）供人工审核，或直接发送 (is_send=True)
     """
-    recipients_list = extract_table_recipients(items, version_str=version_str, receiver_str=receiver_str, is_reviewed=is_reviewed)
+    recipients_list = extract_table_recipients(items, version_str=version_str, receiver_str=receiver_str, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names)
     if not recipients_list:
         print("⚠️ [Email] 确认表中未识别到有效相关人员，无法起草邮件。")
         return False
@@ -548,7 +589,7 @@ def calculate_spans(items):
         
     return epic_spans, demand_spans
 
-def generate_html(items, output_path, version_str, receiver_str, is_reviewed=False):
+def generate_html(items, output_path, version_str, receiver_str, is_reviewed=False, system_filter=None):
     """
     生成高颜值 HTML 确认表 (含 开发负责人 列，带 Epic 与 Demand 单元格合并)
     """
@@ -561,10 +602,17 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
 
     title_text = f"拟排期需求明细清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求确认表 ({version_str} - {receiver_str})"
     banner_title = "📋 拟排期需求明细清单" if is_reviewed else "📋 拟排期需求确认表"
+    system_tag_html = f'<span>🔧 系统筛选：{system_filter}</span>' if system_filter else ''
+    
+    # 构建系统筛选下拉选项
+    system_options = ""
+    for s in systems:
+        system_options += f'<option value="{s}">{s}</option>'
 
     rows_html = []
     for idx, item in enumerate(items):
         tr_class = "row-key-focus" if item["is_key_focus"] else ("row-even" if idx % 2 == 0 else "row-odd")
+        sys_name = item["system_name"]
         
         # 重点关注徽章
         if item["is_key_focus"]:
@@ -603,12 +651,35 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         demand_td = ""
         if demand_spans[idx] > 0:
             rowspan_attr = f' rowspan="{demand_spans[idx]}"' if demand_spans[idx] > 1 else ""
-            demand_td = f'<td{rowspan_attr} class="text-center font-bold text-blue cell-merged">{item["demand_id"]}</td>'
+            demand_link = f'https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={item["demand_id"]}&templateId=8888&flag=1'
+            demand_td = f'<td{rowspan_attr} class="text-center font-bold text-blue cell-merged"><a href="{demand_link}" target="_blank" class="demand-link">{item["demand_id"]}</a></td>'
 
         remark_disp = item["remark"] if item["remark"] != "--" else '<span class="text-muted">--</span>'
 
+        # 生成平铺行（无 rowspan，筛选时使用）
+        demand_link_url = f'https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={item["demand_id"]}&templateId=8888&flag=1'
+        flat_row = f"""
+      <tr class="{tr_class}" data-system="{sys_name}">
+        <td class="text-center font-mono cell-merged">{item["epic_code"]}</td>
+        <td class="text-center font-bold text-blue cell-merged"><a href="{demand_link_url}" target="_blank" class="demand-link">{item["demand_id"]}</a></td>
+        <td class="text-center font-mono font-semibold">{item["story_code"]}</td>
+        <td class="story-title-col">{item["story_title"]}</td>
+        <td class="text-center"><span class="system-tag">{item["system_name"]}</span></td>
+        <td class="text-center">{status_badge}</td>
+        <td class="text-center">{dev_disp}</td>
+        <td class="text-center">{sit_disp}</td>
+        <td class="text-center">{uat_disp}</td>
+        <td class="text-center">{bus_disp}</td>
+        <td class="text-center">{kf_badge}</td>
+        <td class="text-center">{gray_badge}</td>
+        <td class="remark-col">{remark_disp}</td>
+      </tr>"""
+
+        # 生成平铺行（无 rowspan，筛选时使用）
+        flat_row_html = "".join(line.strip() for line in flat_row.strip().split("\n"))
+        
         row = f"""
-      <tr class="{tr_class}">
+      <tr class="{tr_class}" data-system="{sys_name}" data-flat='{flat_row_html}'>
         {epic_td}
         {demand_td}
         <td class="text-center font-mono font-semibold">{item["story_code"]}</td>
@@ -626,12 +697,13 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         rows_html.append(row)
 
     if not rows_html:
+        empty_filter_suffix = f"，涉及系统包含 <strong>{system_filter}</strong>" if system_filter else ""
         empty_row = f"""
       <tr>
         <td colspan="13" class="empty-cell">
           <div class="empty-state">
             <span class="empty-icon">🔍</span>
-            <p>未查找到排期版本为 <strong>{version_str}</strong> 且受理人包含 <strong>{receiver_str}</strong> 的需求/Story数据。</p>
+            <p>未查找到排期版本为 <strong>{version_str}</strong> 且受理人包含 <strong>{receiver_str}</strong>{empty_filter_suffix} 的需求/Story数据。</p>
           </div>
         </td>
       </tr>"""
@@ -844,6 +916,15 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
     color: #c2410c;
     border: 1px solid #fdba74;
   }}
+  .demand-link {{
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 700;
+  }}
+  .demand-link:hover {{
+    text-decoration: underline;
+    color: #1e40af;
+  }}
   .badge-purple {{
     background-color: #f3e8ff;
     color: #7e22ce;
@@ -909,6 +990,41 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
   .empty-icon {{
     font-size: 32px;
   }}
+  .filter-bar {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 32px;
+    background-color: #f0f4ff;
+    border-bottom: 1px solid #e2e8f0;
+  }}
+  .filter-label {{
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e40af;
+    white-space: nowrap;
+  }}
+  .filter-select {{
+    padding: 6px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #ffffff;
+    color: #1e293b;
+    cursor: pointer;
+    min-width: 200px;
+    outline: none;
+  }}
+  .filter-select:focus {{
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }}
+  .filter-count {{
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    margin-left: auto;
+  }}
 </style>
 </head>
 <body>
@@ -919,6 +1035,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
     <div class="header-meta">
       <span>📌 排期版本：{version_str}</span>
       <span>👤 受理人：{receiver_str}</span>
+      {system_tag_html}
       <span>🕒 生成时间：{CURRENT_TIME_STR}</span>
     </div>
   </div>
@@ -944,6 +1061,15 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
       <span class="stat-label">涉及系统数量</span>
       <span class="stat-value">{len(systems)}</span>
     </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-label">🔍 筛选条件：</div>
+    <select id="systemFilter" class="filter-select" onchange="filterBySystem()">
+      <option value="">📋 全部系统（{len(systems)} 个）</option>
+      {system_options}
+    </select>
+    <span class="filter-count" id="filterCount">共 {total_count} 条</span>
   </div>
 
   <div class="table-wrapper">
@@ -985,6 +1111,59 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
     </div>
   </div>
 </div>
+
+<script>
+var originalTbodyHTML = '';
+
+function saveOriginalTbody() {{
+  var tbody = document.querySelector('tbody');
+  if (tbody) originalTbodyHTML = tbody.innerHTML;
+}}
+
+function filterBySystem() {{
+  var select = document.getElementById('systemFilter');
+  var selected = select.value;
+  var tbody = document.querySelector('tbody');
+  if (!tbody) return;
+
+  // 首次保存原始 tbody
+  if (!originalTbodyHTML) saveOriginalTbody();
+
+  if (!selected) {{
+    // 全部：恢复原始 rowspan 布局
+    tbody.innerHTML = originalTbodyHTML;
+    var allRows = document.querySelectorAll('tbody tr');
+    document.getElementById('filterCount').textContent = '共 ' + allRows.length + ' 条';
+    return;
+  }}
+
+  // 筛选：用平铺行重建 tbody
+  var parser = new DOMParser();
+  var tempDoc = parser.parseFromString('<table><tbody>' + originalTbodyHTML + '</tbody></table>', 'text/html');
+  var origRows = tempDoc.querySelectorAll('tbody tr');
+  var fragment = document.createDocumentFragment();
+  var visibleCount = 0;
+
+  for (var i = 0; i < origRows.length; i++) {{
+    var sys = origRows[i].getAttribute('data-system');
+    var flatHtml = origRows[i].getAttribute('data-flat');
+    if (sys && sys.indexOf(selected) !== -1 && flatHtml) {{
+      var tempRowDoc = parser.parseFromString('<table><tbody>' + flatHtml + '</tbody></table>', 'text/html');
+      var flatRow = tempRowDoc.querySelector('tbody tr');
+      if (flatRow) {{
+        fragment.appendChild(flatRow);
+        visibleCount++;
+      }}
+    }}
+  }}
+
+  tbody.innerHTML = '';
+  tbody.appendChild(fragment);
+  document.getElementById('filterCount').textContent = '共 ' + visibleCount + ' 条（筛选后）';
+}}
+
+window.onload = saveOriginalTbody;
+</script>
 
 </body>
 </html>
@@ -1059,12 +1238,14 @@ def main():
     parser.add_argument("--send-mail", "--mail", "--send", action="store_true", help="触发发邮件功能（默认存入草稿箱，以便人工确认后发送）")
     parser.add_argument("--draft-mail", "--draft", action="store_true", help="触发存草稿箱功能")
     parser.add_argument("--force-send", action="store_true", help="强行直接发送邮件（跳过草稿箱）")
+    parser.add_argument("--system", "-s", default=None, help="按涉及系统名称筛选（支持模糊匹配，如 \"低延时\"、\"集中清算\"）")
     
     args = parser.parse_args()
 
     version_input = args.version.strip()
     receiver_input = args.opt_receiver if args.opt_receiver else args.receiver
     is_reviewed = args.reviewed
+    system_filter = args.system
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
@@ -1075,29 +1256,34 @@ def main():
         print("❌ [Error] 未能从在线 API 或本地缓存获取到大宽表数据！")
         sys.exit(1)
 
-    items = filter_and_format_stories(raw_records, version_input, receiver=receiver_input)
+    items, internal_owner_names = filter_and_format_stories(raw_records, version_input, receiver=receiver_input, system_filter=system_filter)
 
     clean_ver = version_input.replace("-", "").strip()
+    system_suffix = f"-{system_filter}" if system_filter else ""
     file_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求确认表"
-    default_html_name = f"{file_prefix}{clean_ver}-{receiver_input}.html"
+    default_html_name = f"{file_prefix}{clean_ver}-{receiver_input}{system_suffix}.html"
     default_md_name = f"{file_prefix}{clean_ver}-{receiver_input}.md"
 
-    output_html_path = args.output_html if args.output_html else os.path.join(os.getcwd(), default_html_name)
-    saved_html = generate_html(items, output_html_path, version_input, receiver_input, is_reviewed=is_reviewed)
+    # 默认产物保存目录：100_Projects/进度跟踪（可被 --output-html 覆盖）
+    default_output_dir = "/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪"
+    os.makedirs(default_output_dir, exist_ok=True)
+
+    output_html_path = args.output_html if args.output_html else os.path.join(default_output_dir, default_html_name)
+    saved_html = generate_html(items, output_html_path, version_input, receiver_input, is_reviewed=is_reviewed, system_filter=system_filter)
 
     # 预先提取/记录收件人列表（自动维护初版收件人持久化缓存）
-    extract_table_recipients(items, version_str=version_input, receiver_str=receiver_input, is_reviewed=is_reviewed)
+    extract_table_recipients(items, version_str=version_input, receiver_str=receiver_input, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names)
 
     saved_md = None
     if args.output_md or args.table_only:
-        output_md_path = args.output_md if args.output_md else os.path.join(os.getcwd(), default_md_name)
+        output_md_path = args.output_md if args.output_md else os.path.join(default_output_dir, default_md_name)
         saved_md = generate_markdown(items, output_md_path, version_input, receiver_input, is_reviewed=is_reviewed)
 
     if args.table_only and saved_md:
         with open(saved_md, "r", encoding="utf-8") as f:
             print(f.read())
     else:
-        print(f"[ProposedSchedule] ✅ 成功抽取 {len(items)} 条数据！ (模式: {'拟排期需求明细清单' if is_reviewed else '拟排期需求确认表'})")
+        print(f"[ProposedSchedule] ✅ 成功抽取 {len(items)} 条数据！ (模式: {'拟排期需求明细清单' if is_reviewed else '拟排期需求确认表'}{', 系统筛选: ' + system_filter if system_filter else ''})")
         print(f"[ProposedSchedule] 📄 HTML 文件已保存至: {saved_html}")
         if saved_md:
             print(f"[ProposedSchedule] 📝 Markdown 已保存至: {saved_md}")
@@ -1105,7 +1291,7 @@ def main():
     # 当触发【发邮件】或【存草稿】时，默认存入 Coremail 草稿箱（is_send=False）；仅在显式传入 --force-send 时才真正发送
     if args.send_mail or args.draft_mail:
         should_send = args.force_send
-        send_confirmation_email(saved_html, version_input, receiver_input, items, is_send=should_send, is_reviewed=is_reviewed)
+        send_confirmation_email(saved_html, version_input, receiver_input, items, is_send=should_send, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names)
 
 if __name__ == "__main__":
     main()

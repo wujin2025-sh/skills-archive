@@ -1,7 +1,9 @@
 ---
 name: bcp-progress-tracker
 description: 集中交易历史数据bcp文件迁移专项项目进度提取和提醒邮件生成工具。触发词：BCP文件迁移、集中交易历史数据bcp文件、BCP进度跟踪、BCP提取。
+disable: false
 ---
+
 
 # BCP Progress Tracker Skill (集中交易历史数据BCP文件迁移项目进度跟踪技能)
 

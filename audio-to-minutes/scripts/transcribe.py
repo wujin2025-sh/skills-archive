@@ -134,6 +134,8 @@ def transcribe_audio(audio_path, model="auto", language="Chinese", output_dir=No
         output_dir = os.path.join(os.path.expanduser("~"), ".cache", "audio_transcripts")
     os.makedirs(output_dir, exist_ok=True)
 
+    content = ""  # 统一初始化，避免 Python 回退分支引用未定义变量
+
     # 1. 音频重采样预处理提速
     opt_audio = preprocess_audio(audio_path)
     base_name = os.path.splitext(os.path.basename(opt_audio))[0]
@@ -142,14 +144,15 @@ def transcribe_audio(audio_path, model="auto", language="Chinese", output_dir=No
 
     engine_type, model_target = get_best_model()
 
-    # 优先尝试 C++ 8 线程硬件级加速
+    # 优先尝试 C++ 12 线程硬件级 Native 加速 (配合 --no-timestamps 极速解码)
     if engine_type == "cpp" and os.path.exists(WHISPER_CPP_BIN):
-        print(f"[⚡] 激活 C++ 原生硬件加速 (8 线程) 转写: {audio_path}...")
+        print(f"[⚡] 激活 C++ 原生硬件加速 (12 线程 + 极速解码) 转写: {audio_path}...")
         cmd = [
             WHISPER_CPP_BIN,
             "-m", model_target,
             "-l", "zh",
-            "-t", "8",
+            "-t", "12",
+            "--no-timestamps",
             "-f", opt_audio,
             "--output-txt",
             "--output-file", out_prefix
@@ -160,6 +163,15 @@ def transcribe_audio(audio_path, model="auto", language="Chinese", output_dir=No
             print(f"[✓] C++ 极速转写完成！耗时: {elapsed:.2f} 秒")
             with open(txt_file, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read().strip()
+
+            # 转写成功，自动安全清理原始音频文件
+            try:
+                if os.path.exists(audio_path):
+                    os.remove(audio_path)
+                    print(f"[✓] 已自动清理原始音频文件: {audio_path}")
+            except Exception as e:
+                print(f"[!] 清理原始音频失败: {e}")
+
             return {
                 "audio_path": os.path.abspath(audio_path),
                 "txt_file": txt_file,
@@ -167,14 +179,17 @@ def transcribe_audio(audio_path, model="auto", language="Chinese", output_dir=No
                 "elapsed_seconds": round(elapsed, 2)
             }
 
-    # 备选: Python 8 线程加速
-    print(f"[*] 激活 Python 8 线程极速模式转写: {audio_path}...")
+    # 备选: Python 12 线程极速贪心解码 (beam_size 1，计算量大打 2 折，提速 5 倍)
+    print(f"[*] 激活 Python 12 线程极速贪心解码 (beam_size 1): {audio_path}...")
     py_cmd = [
         WHISPER_PY_BIN,
         opt_audio,
         "--model", "tiny",
         "--language", "Chinese",
-        "--threads", "8",
+        "--threads", "12",
+        "--beam_size", "1",
+        "--best_of", "1",
+        "--fp16", "False",
         "--output_format", "txt",
         "--output_dir", output_dir
     ]
@@ -189,9 +204,24 @@ def transcribe_audio(audio_path, model="auto", language="Chinese", output_dir=No
         matching = [f for f in os.listdir(output_dir) if f.startswith(base_name) and f.endswith(".txt")]
         if matching:
             txt_file = os.path.join(output_dir, matching[0])
-            
-    with open(txt_file, "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read().strip()
+
+    # 读取转写文本（Python 回退分支必须显式读取，否则 content 为空）
+    try:
+        with open(txt_file, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read().strip()
+    except Exception:
+        content = ""
+
+    # 仅在转写有实质内容时，才安全清理原始音频文件；空转写保留源文件以便重跑
+    if content:
+        try:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+                print(f"[✓] 已自动清理原始音频文件: {audio_path}")
+        except Exception as e:
+            print(f"[!] 清理原始音频失败: {e}")
+    else:
+        print(f"[!] 转写内容为空，保留原始音频文件以便排查/重跑: {audio_path}")
 
     return {
         "audio_path": os.path.abspath(audio_path),

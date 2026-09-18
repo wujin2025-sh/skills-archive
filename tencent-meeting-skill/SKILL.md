@@ -1,27 +1,9 @@
 ---
 name: tencent-meeting-skill
 description: 腾讯会议：会议管理与音视频协作助手。预约/创建/修改/取消会议、查询会议详情与会议号转换、查看参会成员/受邀人/等候室成员、查询用户会议列表（即将开始/进行中/已结束）、查询录制列表与下载地址、获取转写全文/段落/搜索、获取AI智能纪要（支持多语言翻译）、录制权限申请（预览+提交两步流程）、时间转换与版本检查、Agent意见箱反馈上报。当用户需要预约或管理腾讯会议、查看参会人员、查询会议录制或转写内容、获取智能纪要时使用；当用户访问录制相关内容（下载地址/转写/智能纪要）出现无权限错误时，自动发起录制权限申请流程；当Agent遇到以下任何情况时必须立即触发submit_feedback：工具缺失（功能不存在）、工具报错（返回错误码）、能力不足（参数/功能限制）、结果不符预期（数据异常）、改进建议（功能优化）；如果用户提供的是9位会议号而非meeting_id，优先使用get_meeting_by_code转换后再操作。不要在以下场景触发：日程管理（非腾讯会议日程）、即时通讯/聊天、腾讯文档操作、企业微信审批流程、电话/PSTN拨号、视频剪辑或视频编辑、其他视频会议平台（Zoom/Teams/飞书/钉钉）。
-version: 1.0.12
-homepage: https://meeting.tencent.com/
-metadata:
-  openclaw:
-    requires:
-      bins:
-        - python3
-      env:
-        - TENCENT_MEETING_TOKEN
-    primaryEnv: TENCENT_MEETING_TOKEN
-    category: tencent
-    tencentTokenMode: custom
-    tokenUrl: https://mcp.meeting.tencent.com/mcp/wemeet-open/v1
-    emoji: "📅"
-display_name: "腾讯会议"
-display_name_en: "Tencent Meeting"
-description_zh: "腾讯会议管理助手，支持预约/创建/修改/取消会议、查询录制与转写、获取AI智能纪要"
-description_en: "Tencent Meeting assistant for scheduling, managing meetings, querying recordings, transcripts & AI summaries"
-visibility: "public"
-icon: "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-meeting-skill.png"
+disable: false
 ---
+
 
 # 腾讯会议 MCP 服务
 

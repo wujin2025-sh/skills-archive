@@ -1,9 +1,12 @@
 ---
 name: trade-deduction
-description: >-
-  证券与金融交易场景的动态数据推演与需求漏洞挖掘工具。支持结合集中交易生产源码图谱 DB (/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db) 逆向核对算法逻辑。支持融资融券、一户两地、融冻管控、预冻结代扣税、货基混用、高流通市值、维保比联动及T+1清算等场景。演算资金余额、可用资金、融冻占用、融冻款金额、融资负债、维持担保比例等核心指标；展示递推算式与数值变化，支持 Multi-Case 多分支对比与强平/滑点二次校验，自动识别边界溢出与倒挂漏洞并输出规范化修正方案。生成的推演 MD 文档默认自动存盘至 /Volumes/Macintosh HD_Data/obsidian/100_Projects/交易推演 目录。
-  Triggers: 交易推演、推演需求、交易数据推演、动态推演、数据变化推演、需求漏洞推演、维保比推演、代扣税推演、清算推演、漏洞挖掘、trade-deduction、/trade-deduction。
+description: '证券与金融交易场景的动态数据推演与需求漏洞挖掘工具。支持结合集中交易生产源码图谱 DB (/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/.code-review-graph/graph.db)
+  逆向核对算法逻辑。支持融资融券、一户两地、融冻管控、预冻结代扣税、货基混用、高流通市值、维保比联动及T+1清算等场景。演算资金余额、可用资金、融冻占用、融冻款金额、融资负债、维持担保比例等核心指标；展示递推算式与数值变化，支持
+  Multi-Case 多分支对比与强平/滑点二次校验，自动识别边界溢出与倒挂漏洞并输出规范化修正方案。生成的推演 MD 文档默认自动存盘至 /Volumes/Macintosh
+  HD_Data/obsidian/100_Projects/交易推演 目录。 Triggers: 交易推演、推演需求、交易数据推演、动态推演、数据变化推演、需求漏洞推演、维保比推演、代扣税推演、清算推演、漏洞挖掘、trade-deduction、/trade-deduction。'
+disable: false
 ---
+
 
 # 交易推演 Skill (Trading Scenario Simulation & Vulnerability Deduction)
 

@@ -226,7 +226,11 @@ async def create_epic_workflow(demand_inputs, ref_epic_code="PG202204-0269", cus
         page.on("request", handle_request)
 
         await ensure_login(context, page)
-        await page.goto(EPIC_MANAGE_URL, wait_until="networkidle", timeout=30000)
+        try:
+            await page.goto(EPIC_MANAGE_URL, wait_until="networkidle", timeout=30000)
+        except Exception:
+            # networkidle 对持续轮询的 SPA 页面可能永不满足，降级为 domcontentloaded + 等待
+            await page.goto(EPIC_MANAGE_URL, wait_until="domcontentloaded", timeout=30000)
         await asyncio.sleep(2)
 
         for _ in range(10):

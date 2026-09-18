@@ -21,8 +21,8 @@ def resolve_path(name, ver=None):
     base = os.path.dirname(os.path.abspath(__name__))
 
     mapping = {
-        'jzjy': {'parent': 'jzjy', 'prefix': 'SPB_V2.2.19_'},
-        'cszx': {'parent': 'jygl', 'prefix': 'CSZX-'},
+        'jzjy': {'parent': 'jzjy', 'prefixes': ['SPB-V0.26.', 'SPB_V2.2.19_']},
+        'cszx': {'parent': 'jygl', 'prefixes': ['CSZX-']},
     }
 
     name_lower = name.lower()
@@ -31,7 +31,7 @@ def resolve_path(name, ver=None):
         return os.path.abspath(name)
 
     parent = mapping[name_lower]['parent']
-    prefix = mapping[name_lower]['prefix']
+    prefixes = mapping[name_lower]['prefixes']
     parent_dir = os.path.join(base, parent)
 
     if not os.path.isdir(parent_dir):
@@ -39,33 +39,44 @@ def resolve_path(name, ver=None):
         sys.exit(1)
 
     if ver:
-        # 直接拼接 prefix + ver
-        target = os.path.join(parent_dir, prefix + ver)
-        if os.path.isdir(target):
-            return os.path.abspath(target)
-        else:
-            print(f"错误：目录不存在 {target}")
-            # 列出匹配项提示
-            matches = glob.glob(os.path.join(parent_dir, prefix + '*'))
-            dirs = [d for d in matches if os.path.isdir(d)]
-            if dirs:
-                print("匹配到的目录：")
-                for d in dirs:
-                    print(f"  {d}")
-            sys.exit(1)
+        # 依次尝试每个前缀
+        for prefix in prefixes:
+            target = os.path.join(parent_dir, prefix + ver)
+            if os.path.isdir(target):
+                return os.path.abspath(target)
+        print(f"错误：未找到匹配目录（尝试了以下前缀）")
+        for prefix in prefixes:
+            target = os.path.join(parent_dir, prefix + ver)
+            print(f"  {target}")
+        # 列出所有匹配项提示
+        all_matches = []
+        for prefix in prefixes:
+            all_matches.extend(glob.glob(os.path.join(parent_dir, prefix + '*')))
+        dirs = [d for d in all_matches if os.path.isdir(d)]
+        if dirs:
+            print("匹配到的目录：")
+            for d in sorted(set(dirs)):
+                print(f"  {d}")
+        sys.exit(1)
     else:
-        # 无参数，找唯一一个匹配的文件夹
-        pattern = os.path.join(parent_dir, prefix + '*')
-        matches = glob.glob(pattern)
-        dirs = [d for d in matches if os.path.isdir(d)]
-        if len(dirs) == 1:
-            return os.path.abspath(dirs[0])
-        elif len(dirs) == 0:
-            print(f"错误：未找到匹配目录 {pattern}")
+        # 无参数，找唯一一个匹配的文件夹（遍历所有前缀）
+        all_dirs = []
+        for prefix in prefixes:
+            pattern = os.path.join(parent_dir, prefix + '*')
+            matches = glob.glob(pattern)
+            dirs = [d for d in matches if os.path.isdir(d)]
+            all_dirs.extend(dirs)
+        all_dirs = sorted(set(all_dirs))
+        if len(all_dirs) == 1:
+            return os.path.abspath(all_dirs[0])
+        elif len(all_dirs) == 0:
+            print(f"错误：未找到匹配目录（尝试了以下前缀）")
+            for prefix in prefixes:
+                print(f"  {os.path.join(parent_dir, prefix + '*')}")
             sys.exit(1)
         else:
-            print(f"错误：匹配到多个目录 {len(dirs)} 个，请指定版本号参数")
-            for d in sorted(dirs):
+            print(f"错误：匹配到多个目录 {len(all_dirs)} 个，请指定版本号参数")
+            for d in all_dirs:
                 print(f"  {d}")
             sys.exit(1)
 
@@ -180,8 +191,9 @@ def generate(version_dir, is_cszx=False):
                          note=get_note('table', ' '.join(table_files), default_note), is_cszx=is_cszx)
         lines.append('')
 
-    # ========== init1 - .sql ==========
-    init1_files = get_files(os.path.join(current_dir, 'init'), '.sql')
+    # ========== init1 - .sql（排除 KafkaTriggerConfig）==========
+    all_sql_files = get_files(os.path.join(current_dir, 'init'), '.sql')
+    init1_files = [f for f in all_sql_files if not f.startswith('KafkaTriggerConfig')]
     if init1_files:
         files_text = ' '.join(init1_files)
         lines += section('init1', files_text, '所有核心、两个总控、VIP极速与融资融券1/2/3的run(包括公募', 'SQL脚本',
@@ -196,12 +208,20 @@ def generate(version_dir, is_cszx=False):
                          note=get_note('init2', files_text), is_cszx=is_cszx)
         lines.append('')
 
-    # ========== init3 - .txt ==========
-    init3_files = get_files(os.path.join(current_dir, 'init'), '.txt')
-    if init3_files:
-        files_text = ' '.join(init3_files)
-        lines += section('init3', files_text, '路由配置', '新增',
+    # ========== init3 - KafkaTriggerConfig .sql（触发器）==========
+    kafka_files = [f for f in all_sql_files if f.startswith('KafkaTriggerConfig')]
+    if kafka_files:
+        files_text = ' '.join(kafka_files)
+        lines += section('init3', files_text, '总控备库、两融备库和VIP备库', 'SQL脚本',
                          note=get_note('init3', files_text), is_cszx=is_cszx)
+        lines.append('')
+
+    # ========== init4 - .txt ==========
+    init4_files = get_files(os.path.join(current_dir, 'init'), '.txt')
+    if init4_files:
+        files_text = ' '.join(init4_files)
+        lines += section('init4', files_text, '路由配置', '新增',
+                         note=get_note('init4', files_text), is_cszx=is_cszx)
         lines.append('')
 
     # ========== memlbm ==========

@@ -3,11 +3,46 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Sensitive credentials and configs
+config.json
+*/config.json
+*/*/config.json
+*.session.json
+*/*.session.json
+*/*/*.session.json
 .fintech_session.json
+*/.fintech_session.json
+*/*/.fintech_session.json
+
+# Caches and runtime state
+*.cache.json
+*_cache.json
+*/*_cache.json
+*/*/*_cache.json
+.table_cache.json
+*/.table_cache.json
+*/*/.table_cache.json
+.recipients_*.json
+*/.recipients_*.json
+*/*/.recipients_*.json
+eoa117_report.json
+*/eoa117_report.json
+*/*/eoa117_report.json
+live_dynamic_node_results.json
+*/live_dynamic_node_results.json
+shared_maps.json
+*/shared_maps.json
 .disable_to_model_invocation_migration.json
-meet-minutes.zip
+.model_invocation_to_override_migration.json
+
+# Generated reports & previews
+personal-cockpit-preview/
 wide-table-query/scripts/downloads/
 proposed-schedule-confirm/scripts/*.html
 proposed-schedule-confirm/scripts/*.md
 proposed-schedule-confirm/scripts/__pycache__/
-meet-minutes/config.json
+
+# Archive packages
+*.zip
+

@@ -1,7 +1,9 @@
 ---
 name: crawl4ai
 description: AI驱动的网页抓取框架，用于从网站提取结构化数据。支持AI智能解析、处理动态内容及复杂HTML结构。
+disable: false
 ---
+
 
 # Crawl4ai 网页抓取框架
 

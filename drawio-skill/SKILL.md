@@ -1,13 +1,11 @@
 ---
 name: drawio-skill
-version: 1.14.0
-description: 当用户请求绘制各种图表、流程图、架构图、ER 图、UML / 时序图 / 类图、网络拓扑图、机器学习/深度学习模型结构图（Transformer/CNN/LSTM）、思维导图或任何可视化表达时使用。当向用户解释包含 3 个及以上组件系统、复杂数据流或适合可视化展示的关系时，也可主动使用。最适合需要自定义样式、丰富形状库、泳道或可导出图片（PNG/SVG/PDF/JPG）的图表场景。通过本地原生 draw.io 桌面 CLI 生成 .drawio XML 并导出图片。
-license: MIT
-homepage: https://github.com/Agents365-ai/drawio-skill
-compatibility: 依赖本地 PATH 中的 draw.io 桌面应用 CLI（macOS/Linux/Windows）。视觉自检步骤需要支持 Vision 能力的模型（如 Claude Sonnet/Opus）；不可用时自动优雅跳过。可选的自动排版脚本 (scripts/autolayout.py) 需要安装 Graphviz (dot)。
-platforms: [macos, linux, windows]
-metadata: {"openclaw":{"requires":{"anyBins":["draw.io","drawio"]},"emoji":"📐","os":["darwin","linux","win32"],"install":[{"id":"brew-drawio","kind":"brew","formula":"drawio","bins":["drawio"],"label":"Install draw.io via Homebrew","os":["darwin"]},{"id":"brew-graphviz","kind":"brew","formula":"graphviz","bins":["dot"],"label":"Install Graphviz for optional autolayout.py","os":["darwin"],"optional":true}]},"hermes":{"tags":["drawio","diagram","flowchart","architecture","visualization","uml"],"category":"design","requires_tools":["drawio","draw.io"],"related_skills":["mermaid","excalidraw","plantuml"]},"author":"Agents365-ai","version":"1.14.0"}
+description: 当用户请求绘制各种图表、流程图、架构图、ER 图、UML / 时序图 / 类图、网络拓扑图、机器学习/深度学习模型结构图（Transformer/CNN/LSTM）、思维导图或任何可视化表达时使用。当向用户解释包含
+  3 个及以上组件系统、复杂数据流或适合可视化展示的关系时，也可主动使用。最适合需要自定义样式、丰富形状库、泳道或可导出图片（PNG/SVG/PDF/JPG）的图表场景。通过本地原生
+  draw.io 桌面 CLI 生成 .drawio XML 并导出图片。
+disable: false
 ---
+
 
 # Draw.io 图表生成技能 (Draw.io Diagrams)
 

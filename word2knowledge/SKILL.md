@@ -1,15 +1,16 @@
 ---
 name: word2knowledge
-description: >-
-  Convert Word (.docx) files into Obsidian-compatible Markdown (.md) files with embedded image links.
-  Use when Codex needs to process .docx files for Obsidian knowledge management, including:
-  (1) Converting Word documents to Markdown, (2) Extracting and migrating embedded images,
-  (3) Rewriting image references to Obsidian double-bracket syntax,
-  (4) Cleaning up converted text (line breaks, formatting noise),
-  (5) Fixing table rendering for Obsidian (GFM → standard Markdown).
-  Triggers on: docx to markdown, word to obsidian, .docx conversion,
-  "doc转md", "word转笔记", "文档转Obsidian", "提取word图片", or any request to convert Word documents for Obsidian.
+description: 'Convert Word (.docx) files into Obsidian-compatible Markdown (.md) files
+  with embedded image links. Use when Codex needs to process .docx files for Obsidian
+  knowledge management, including: (1) Converting Word documents to Markdown, (2)
+  Extracting and migrating embedded images, (3) Rewriting image references to Obsidian
+  double-bracket syntax, (4) Cleaning up converted text (line breaks, formatting noise),
+  (5) Fixing table rendering for Obsidian (GFM → standard Markdown). Triggers on:
+  docx to markdown, word to obsidian, .docx conversion, "doc转md", "word转笔记", "文档转Obsidian",
+  "提取word图片", or any request to convert Word documents for Obsidian.'
+disable: false
 ---
+
 
 # Word2Knowledge: DOCX → Obsidian Markdown Converter
 

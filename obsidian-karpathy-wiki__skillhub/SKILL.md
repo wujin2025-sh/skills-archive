@@ -1,7 +1,13 @@
 ---
 name: obsidian-karpathy-wiki
-description: Operate an Obsidian knowledge base as a persistent LLM wiki using a raw-to-source-to-wiki pattern. Use when Codex or another agent needs to ingest raw notes, reconcile loose inbox material, maintain source summaries, compile formal wiki pages, write back valuable query outputs, run heartbeat maintenance, lint contradictions and stale claims, or hand off ongoing wiki operations to another agent.
+description: Operate an Obsidian knowledge base as a persistent LLM wiki using a raw-to-source-to-wiki
+  pattern. Use when Codex or another agent needs to ingest raw notes, reconcile loose
+  inbox material, maintain source summaries, compile formal wiki pages, write back
+  valuable query outputs, run heartbeat maintenance, lint contradictions and stale
+  claims, or hand off ongoing wiki operations to another agent.
+disable: false
 ---
+
 
 # Obsidian Karpathy Wiki
 

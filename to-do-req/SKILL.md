@@ -1,9 +1,11 @@
-name: to-do-req
-description: |-
-  自动从 Fintech 需求管理平台中检索范围为「我受理的」，且状态为待受理、待拆分、技术评估、讨论中的待处理需求（不限制 OA 状态，以保证完整性）。
-  触发词：to-do-req、待处理需求、待处理、pending requirements、我受理的需求筛选、待办需求。
-  agent_created: true
 ---
+name: to-do-req
+description: '自动从 Fintech 需求管理平台中检索范围为「我受理的」，且状态为待受理、待拆分、技术评估、讨论中的待处理需求（不限制 OA 状态，以保证完整性）。
+
+  触发词：to-do-req、待处理需求、待处理、pending requirements、我受理的需求筛选、待办需求。'
+disable: false
+---
+
 
 # to-do-req — Fintech 需求筛选工具
 

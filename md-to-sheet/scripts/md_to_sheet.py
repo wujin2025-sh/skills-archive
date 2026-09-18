@@ -77,15 +77,16 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
     
     # 1. 提出日期与需求名称（从文件名）
     # 格式：YYYYMMDD-需求-【系统名】需求标题.md 或 YYYYMMDD-需求-需求标题.md
+    #      或 YYYYMMDD-R26xxxxxxx-纯中文标题.md（ba-to-dev 命名规范）
     filename = file_path.name
-    date_match = re.match(r'^(\d{8})-需求-', filename)
+    date_match = re.match(r'^(\d{8})-(?:需求-|R\d+-)', filename)
     if not date_match:
-        raise ValueError(f"文件名不符合规范 (必须为 YYYYMMDD-需求-...): {filename}")
+        raise ValueError(f"文件名不符合规范 (必须为 YYYYMMDD-需求-... 或 YYYYMMDD-R26xxxxxxx-...): {filename}")
     
     raw_date = date_match.group(1)
     formatted_date = f"{raw_date[:4]}/{int(raw_date[4:6])}/{int(raw_date[6:8])}"
     
-    # 需求名称：文件名中 需求- 后的部分（去掉扩展名）
+    # 需求名称：文件名中 需求-/R26xxxxxxx- 后的部分（去掉扩展名）
     name = filename[date_match.end():].replace('.md', '').strip()
     
     # 2. 提取需求描述（一、需求背景 + 二、需求内容）
@@ -315,7 +316,7 @@ def main():
     # 2. 扫描 MD 需求文档并分类（优化：若指定特定日期，直接精确查找目标日期文件）
     print(f"🔍 扫描目录: {args.md_dir} (过滤业务类型: {args.biz}) ...")
     if target_date:
-        pattern = f"{target_date}*-需求-*.md" if len(target_date) < 8 else f"{target_date}-需求-*.md"
+        pattern = f"{target_date}*-*.md" if len(target_date) < 8 else f"{target_date}-*.md"
         md_files = sorted(list(md_dir_path.glob(pattern)))
     else:
         md_files = sorted(list(md_dir_path.glob("*.md")))
@@ -324,7 +325,7 @@ def main():
     # 提取有效需求 MD 文件
     valid_demands = []
     for f in md_files:
-        if not re.match(r'^\d{8}-需求-', f.name):
+        if not re.match(r'^\d{8}-(?:需求-|R\d+-)', f.name):
             continue
         try:
             content = f.read_text(encoding='utf-8')
@@ -342,7 +343,7 @@ def main():
             print(f"⚠️  解析文件 {f.name} 失败: {e}", file=sys.stderr)
 
     if not valid_demands:
-        print(f"ℹ️  未找到任何符合 YYYYMMDD-需求-... 格式且业务类型为 {args.biz} 的 MD 文件")
+        print(f"ℹ️  未找到任何符合 YYYYMMDD-需求-... 或 YYYYMMDD-R26xxxxxxx-... 格式且业务类型为 {args.biz} 的 MD 文件")
         sys.exit(0)
 
     print(f"   共解析出 {len(valid_demands)} 个有效需求文档")

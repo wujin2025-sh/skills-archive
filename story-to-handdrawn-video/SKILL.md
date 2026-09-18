@@ -1,7 +1,10 @@
 ---
 name: story-to-handdrawn-video
-description: 将中文故事文案或按顺序排列的本地图片，转换为带手写字幕、从左至右黑白到彩色显色、可选翻页过渡、安全无裁剪画幅以及无声音轨 Remotion 画面的手绘日记漫画动画。
+description: 将中文故事文案或按顺序排列的本地图片，转换为带手写字幕、从左至右黑白到彩色显色、可选翻页过渡、安全无裁剪画幅以及无声音轨 Remotion
+  画面的手绘日记漫画动画。
+disable: false
 ---
+
 
 # 故事转手绘视频 (Story to Hand-drawn Video)
 

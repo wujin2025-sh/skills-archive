@@ -1,11 +1,11 @@
 ---
 name: anydoc
-description: 极速将 Word (.doc/.docx/.docm)、PowerPoint (.ppt/.pptx/.pps/.pot/.odp)、Excel (.xls/.xlsx/.xlsm/.xlsb/.ods)、PDF、RTF、EPUB、CSV 等 14 种复杂办公文档与电子书转换为干净纯粹的 GitHub 风格 Markdown。由 Firecrawl 研发，Rust 内核单次解析中位数 <5ms，支持 CLI 命令与 Python/Node API 直接调用。
-license: MIT
-metadata:
-  author: firecrawl
-  repo: https://github.com/firecrawl/anydoc
+description: 极速将 Word (.doc/.docx/.docm)、PowerPoint (.ppt/.pptx/.pps/.pot/.odp)、Excel
+  (.xls/.xlsx/.xlsm/.xlsb/.ods)、PDF、RTF、EPUB、CSV 等 14 种复杂办公文档与电子书转换为干净纯粹的 GitHub 风格
+  Markdown。由 Firecrawl 研发，Rust 内核单次解析中位数 <5ms，支持 CLI 命令与 Python/Node API 直接调用。
+disable: false
 ---
+
 
 # AnyDoc: 高性能多格式文档转 Markdown 引擎
 

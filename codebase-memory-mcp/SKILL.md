@@ -1,7 +1,10 @@
 ---
 name: codebase-memory-mcp
-description: 高性能 AI 代码库知识图谱与记忆引擎 (DeusData/codebase-memory-mcp)。通过 Tree-sitter AST 解析代码库，构建本地持久化 SQLite 知识图谱，支持极速依赖追踪、架构挖掘、死代码检测、爆炸半径分析与 Cypher 图查询，极大降低 Token 消耗。
+description: 高性能 AI 代码库知识图谱与记忆引擎 (DeusData/codebase-memory-mcp)。通过 Tree-sitter AST
+  解析代码库，构建本地持久化 SQLite 知识图谱，支持极速依赖追踪、架构挖掘、死代码检测、爆炸半径分析与 Cypher 图查询，极大降低 Token 消耗。
+disable: false
 ---
+
 
 # Codebase Memory MCP
 

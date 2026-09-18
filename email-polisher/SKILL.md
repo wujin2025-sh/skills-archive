@@ -1,7 +1,9 @@
 ---
 name: email-polisher
 description: 用于起草或润色涉及跨部门协作、系统切换进度或风险管理的正式商务邮件。
+disable: false
 ---
+
 
 # Email Polisher & Expert (邮件润色与优化专家)
 

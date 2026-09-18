@@ -1,8 +1,9 @@
 ---
 name: wujin-overdue-demands
-description: "一键统计我（吴进）受理的且是否逾期交付为「是」、且未上线（过滤已上线状态）的需求汇总明细。"
-agent_created: true
+description: 一键统计我（吴进）受理的且是否逾期交付为「是」、且未上线（过滤已上线状态）的需求汇总明细。
+disable: false
 ---
+
 
 # 我受理的逾期需求统计技能 (wujin-overdue-demands)
 

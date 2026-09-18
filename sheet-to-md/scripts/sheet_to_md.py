@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 """
-腾讯文档 Sheet → Obsidian MD 反写工具 v7
+腾讯文档 Sheet → Obsidian MD 反写工具 v8
 
 从腾讯文档在线表格 CSV 数据中提取需求记录，按需求名称匹配本地 MD 文件，
 将在线文档中的列数据反写到 MD 对应章节。
 
-v7 更新：
-- K列(备注) 智能融合 — 备注融入 三、技术实现 与 评审纪要 的内容中
-- G列(关联系统) 位置调整 — 从 技术实现 移到 评审纪要 的 涉及系统 下方
-- 临时标记机制 — 用 <!-- REMARK_START -->\n备注：...\n<!-- REMARK_END -->
-  将备注插入到对应章节，待 AI 助手语义融合与润色后清理
-- 增量比对更新 — 比对所有相关属性，无新变化不重复修改
+v8 更新：
+- 移除了「涉及系统」和「关联系统」行的自动写入（下发内容已删除）
+- 评审纪要精简：仅保留参会人员、备注语义融合与预计上线日期
 
 数据映射：
-  F(涉及系统) → 评审纪要 | 涉及系统：xxx（预计完成时间上方）
-  G(关联系统) → 评审纪要 | 关联系统：xxx（涉及系统下方）
-  H(计划排期) → 评审纪要 | 预计完成时间：计划 xxx
+  H(计划排期) → 评审纪要 | 更新 预计上线日期：计划 xxx（不再新增预计完成时间）
   K(备注)     → 技术实现 + 评审纪要 | 插入临时备注标签后由 AI 融合
   L(参会人员) → 评审纪要(第一句) | YYYY年MM月DD日经与**部门A**人员A和**部门B**人员B沟通评审通过
 
@@ -301,7 +296,7 @@ def normalize_punctuation(text: str) -> str:
 
 RE_SYSTEMS_LINE  = re.compile(r'^[ \t]*涉及系统[：:][ \t]*(.+)$', re.MULTILINE)
 RE_RELATED_LINE  = re.compile(r'^[ \t]*关联系统[：:][ \t]*(.+)$', re.MULTILINE)
-RE_TIME_LINE     = re.compile(r'^[ \t]*预计完成时间[：:][ \t]*(.+)$', re.MULTILINE)
+RE_TIME_LINE     = re.compile(r'^[ \t]*预计上线日期[：:][ \t]*(.+)$', re.MULTILINE)
 
 # 评审纪要编号条目: N. **标题**：内容
 RE_NUM_ITEM = re.compile(r'^(\d+)\.\s+\*\*(.+?)\*\*[：:](.+?)$', re.MULTILINE)
@@ -402,7 +397,7 @@ def _text_differs(text: str, key: str, value: str, pattern: re.Pattern) -> bool:
 def update_tech_section(tech: str, remark: str) -> tuple[str, bool]:
     """在 技术实现 中插入备注临时标记。
 
-    v7：G列(关联系统) 和 F列(涉及系统) 不再出现在此章节。
+    v8：F列(涉及系统) 和 G列(关联系统) 不再出现在此章节（已全局移除）。
     仅插入 K列备注 的临时标记，AI 助手后续进行语义融合。
 
     返回 (更新后文本, 是否有变更)
@@ -535,7 +530,7 @@ def _generate_remark_title(remark: str) -> str:
 def _merge_remark_into_items(review: str, remark: str) -> tuple[str, bool]:
     """将备注内容（去除临时标记）融入评审纪要的编号列表中。
 
-    v7 行为：
+    v8 行为：
     1. 清理 <!-- REMARK_START/END --> 标记
     2. 检查备注内容是否已存在于某条目中 → 跳过
     3. 尝试按关键词重叠合并到语义最接近的条目
@@ -664,19 +659,17 @@ def update_review_section(
     schedule: str,
     remark: str,
     attendees: str,
-    systems: str,
-    related: str,
     date_str: str,
     dept_map: dict[str, str],
 ) -> tuple[str, bool]:
     """更新 评审纪要 部分。
 
-    v7 关键顺序：
+    v8 变更：移除了「涉及系统」和「关联系统」行的自动写入（下发内容已删除）。
+
+    顺序：
     1. 参会人员第一句
     2. 编号评审要点（备注语义融入后清理标记）
-    3. 涉及系统
-    4. 关联系统（涉及系统下方）
-    5. 预计完成时间
+    3. 预计上线日期（计划排期更新预计上线日期，不再新增预计完成时间）
     """
     changed = False
 
@@ -720,44 +713,12 @@ def update_review_section(
         if merged_changed:
             changed = True
 
-    # ── 3. 涉及系统 与 关联系统（仅在值或缩进有变化时才修改，保持幂等与排版对齐） ──
-    systems_clean = _clean_multiline(systems) if systems else ''
-    related_clean = _clean_multiline(related) if related else ''
-
-    sys_match = RE_SYSTEMS_LINE.search(review)
-    rel_match = RE_RELATED_LINE.search(review)
-    expected_sys = f"{leading_ws}涉及系统：{systems_clean}" if systems_clean else ''
-    expected_rel = f"{leading_ws}关联系统：{related_clean}" if related_clean else ''
-
-    sys_needs = systems_clean and (not sys_match or sys_match.group(0) != expected_sys)
-    rel_needs = related_clean and (not rel_match or rel_match.group(0) != expected_rel)
-    sys_remove = sys_match and not systems_clean
-    rel_remove = rel_match and not related_clean
-
-    if sys_needs or rel_needs or sys_remove or rel_remove:
-        review = RE_SYSTEMS_LINE.sub('', review)
-        review = RE_RELATED_LINE.sub('', review)
-        lines_to_insert = []
-        if systems_clean:
-            lines_to_insert.append(expected_sys)
-        if related_clean:
-            lines_to_insert.append(expected_rel)
-        if lines_to_insert:
-            sys_related_block = "\n".join(lines_to_insert) + "\n"
-            time_pos = review.find('预计完成时间')
-            if time_pos > 0:
-                prefix = review[:time_pos].rstrip() + "\n\n"
-                review = prefix + sys_related_block + review[time_pos:]
-            else:
-                review = review.rstrip() + f'\n\n{sys_related_block}'
-        changed = True
-
-    # ── 4. 预计完成时间 ──
+    # ── 3. 预计上线日期（计划排期更新预计上线日期，不再新增预计完成时间）──
     if schedule and schedule.strip():
         s_val = schedule.strip()
         if not s_val.startswith("计划"):
             s_val = f"计划 {s_val}"
-        time_str = f"{leading_ws}预计完成时间：{s_val}"
+        time_str = f"{leading_ws}预计上线日期：{s_val}"
         old_time = RE_TIME_LINE.search(review)
         if old_time:
             if old_time.group(0) != time_str:
@@ -876,15 +837,13 @@ def process_row(row: dict, md_dir: str, dry_run: bool,
             sections.tech = new_tech
             changes.append('技术实现')
 
-    # 更新 评审纪要 (F:涉及系统, G:关联系统, H:排期, K:备注, L:参会人员)
+    # 更新 评审纪要 (H:排期, K:备注, L:参会人员)
     if sections.has_review:
         new_review, review_changed = update_review_section(
             sections.review,
             row.get('schedule', ''),
             row.get('remark', ''),
             row.get('attendees', ''),
-            row.get('systems', ''),
-            row.get('related', ''),
             date_str,
             dept_map,
         )

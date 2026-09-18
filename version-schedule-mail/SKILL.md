@@ -1,11 +1,12 @@
 ---
 name: version-schedule-mail
-description: >
-  版本排期邮件一键自动保存到 Coremail 草稿箱技能。
-  已配置指定的收件人（79位）和抄送人（7位），支持通过命令行指定主题和内容，一键在草稿箱中起草，自动存盘且不发送。
+description: '版本排期邮件一键自动保存到 Coremail 草稿箱技能。 已配置指定的收件人（79位）和抄送人（7位），支持通过命令行指定主题和内容，一键在草稿箱中起草，自动存盘且不发送。
   触发词：版本排期邮件、起草版本排期、排期邮件草稿、存入版本排期草稿、version-schedule-mail。
-agent_created: true
+
+  '
+disable: false
 ---
+
 
 # 版本排期邮件自动起草技能 (Version Schedule Mail)
 

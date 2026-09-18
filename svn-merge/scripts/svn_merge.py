@@ -20,7 +20,57 @@ import argparse
 from collections import defaultdict
 from datetime import datetime
 
+def _parse_version_to_date(version_str):
+    """从导出版本号推导 8 位日期。
+    例：SPB-V0.26.9.4 → 20260904（V0.26 表示 2026 年，9.4 表示 9 月 4 日）
+        CSZX-20260724 → 20260724（8 位日期直接提取）
+    支持带后缀如 _hotfix。"""
+    import re
+    # CSZX 格式：CSZX-20260724 → 直接提取日期
+    m = re.search(r"CSZX-(\d{8})", version_str)
+    if m:
+        return m.group(1)
+    # JZJY 格式：SPB-V0.26.9.4 → 月份.日期 → YYYYMMDD
+    m = re.search(r"V0\.(\d+)\.(\d+)\.(\d+)", version_str)
+    if m:
+        year = 2000 + int(m.group(1))
+        month = int(m.group(2))
+        day = int(m.group(3))
+        if 1 <= month <= 12 and 1 <= day <= 31:
+            return f"{year}{month:02d}{day:02d}"
+    return None
+
+
+def _find_exported_version():
+    """在项目目录下查找导出版本号（excel_output.txt 中 '# 版本: xxx' 行）"""
+    import re
+    candidates = [
+        os.path.join(os.getcwd(), "excel_output.txt"),
+        os.path.join(os.getcwd(), "jzjy", "excel_output.txt"),
+        os.path.join(os.getcwd(), "jygl", "excel_output.txt"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        m = re.match(r"#\s*版本:\s*(\S+)", line.strip())
+                        if m:
+                            return m.group(1)
+            except Exception:
+                pass
+    return None
+
+
 def _get_default_commit_prefix():
+    # 1) 优先从导出版本号推导（如 SPB-V0.26.9.4 → 20260904）
+    version = _find_exported_version()
+    if version:
+        date_str = _parse_version_to_date(version)
+        if date_str:
+            return date_str
+
+    # 2) 回退：合并版本号.txt
     filename = "合并版本号.txt"
     # 尝试在当前工作目录下查找
     p1 = os.path.join(os.getcwd(), filename)
@@ -453,6 +503,14 @@ def process_requirement(req_num, tasks):
     entries = search_revisions(req_num)
     if not entries:
         return "skipped"
+
+    # 合并前优先更新本地，确保基于最新代码基线
+    print("   合并前 svn update 以确保本地为最新版本 ...")
+    code, out, err = run_svn(
+        build_svn_cmd("update", "--accept", "theirs-full")
+    )
+    if code != 0:
+        print(f"   [WARN] svn update 失败: {err}")
 
     # 一次性合并所有 revision
     merge_ok = svn_merge_revisions(entries)

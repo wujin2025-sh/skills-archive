@@ -20,8 +20,8 @@ OUT_DIR = "/Volumes/Macintosh HD_Data/WorkBuddy/邮件发送"
 # Selector definitions
 SEL_COMPOSE = "button.btn-compose, button:has-text('写 信'), button:has-text('写信'), .btn-compose, a:has-text('写信')"
 SEL_SUBJ = "input[name='subject'], input#subject, input#subj, input[placeholder*='主题']"
-SEL_TO = "input#toInput, input[name='to'], input#to, input[placeholder*='收件人'], #toAddrInput"
-SEL_CC = "input#ccInput, input[name='cc'], input#cc, input[placeholder*='抄送'], #ccAddrInput"
+SEL_TO = ".j-form-item-to .tag-editor textarea, .tag-editor textarea, li.tag-editor-li textarea, .tag-editor-tag textarea, input#toInput, input[name='to'], input#to, input[placeholder*='收件人'], #toAddrInput"
+SEL_CC = ".j-form-item-cc .tag-editor textarea, .j-form-item-cc li.tag-editor-li textarea, .j-form-item-cc textarea, input#ccInput, input[name='cc'], input#cc, input[placeholder*='抄送'], #ccAddrInput"
 
 def decrypt_password(enc_pwd, key_path):
     if not enc_pwd:
@@ -80,6 +80,29 @@ def md_to_html(md: str) -> str:
     html = html.replace("\n\n", "<div><br></div>")
     html = html.replace("\n", "<br>")
     return html
+
+def extract_plain_emails(recipients):
+    """将形如 `"姓名" <email>` 或 `email` 的收件人转换为纯邮箱地址。
+
+    Coremail 收件人输入框直接键入纯邮箱地址最可靠；带引号+尖括号的
+    完整格式可能无法被正确解析为联系人，导致发送失败。
+    """
+    emails = []
+    for r in recipients:
+        r = r.strip()
+        if not r:
+            continue
+        m = re.search(r'<([^<>]+)>', r)
+        if m:
+            email = m.group(1).strip()
+        else:
+            email = r.strip(' "\'')
+        if email and '@' in email:
+            emails.append(email)
+        elif email:
+            # 无 @ 的地址（如纯姓名），保留原样交由 Coremail 处理
+            emails.append(email)
+    return emails
 
 def find_in_all_frames(page, selector, timeout=5000):
     """Find a selector across the main page and all sub-frames, returning the element and its frame"""
@@ -205,11 +228,13 @@ def main():
     recipients = []
     if args.recipients:
         recipients = [r.strip() for r in re.split(r'[;；,，\r\n]+', args.recipients) if r.strip()]
+        recipients = extract_plain_emails(recipients)
         print(f"🎯 Recipients: {recipients}")
 
     cc_recipients = []
     if args.cc:
         cc_recipients = [r.strip() for r in re.split(r'[;；,，\r\n]+', args.cc) if r.strip()]
+        cc_recipients = extract_plain_emails(cc_recipients)
         print(f"🎯 CC Recipients: {cc_recipients}")
 
     body = body.lstrip()
@@ -435,7 +460,13 @@ def main():
             # Step 4: Save Draft or Send
             if args.send:
                 print("[6] Sending email...")
-                send_btn = compose_frame.query_selector('a:has-text("发送"), button:has-text("发送"), span:has-text("发送")')
+                # Primary: use .j-tbl-send (Coremail 真实发送按钮)
+                send_btn = compose_frame.query_selector('.j-tbl-send')
+                if not send_btn:
+                    send_btn = compose_page.query_selector('.j-tbl-send')
+                # Fallback: text-based selectors
+                if not send_btn:
+                    send_btn = compose_frame.query_selector('a:has-text("发送"), button:has-text("发送"), span:has-text("发送")')
                 if not send_btn:
                     send_btn = compose_page.query_selector('a:has-text("发送"), button:has-text("发送"), span:has-text("发送")')
                 if send_btn:
@@ -444,10 +475,61 @@ def main():
                 else:
                     raise Exception("Failed to find send button")
                 
-                # Wait for send confirmation
-                compose_page.wait_for_timeout(3000)
+                # Handle any confirmation dialogs that may appear after clicking send
+                compose_page.wait_for_timeout(1500)
+                # Check for "确定不需要写邮件内容吗？" or "请填写收件人地址" dialogs
+                for confirm_sel in [
+                    "button:has-text('确定')", "a:has-text('确定')",
+                    ".u-dialog button:first-child", ".u-dialog-operation button:first-child"
+                ]:
+                    try:
+                        confirm_btn = compose_page.query_selector(confirm_sel)
+                        if confirm_btn and confirm_btn.is_visible():
+                            confirm_btn.click(force=True)
+                            print(f"    Clicked confirmation: {confirm_sel}")
+                            compose_page.wait_for_timeout(1000)
+                            break
+                    except:
+                        pass
+                
+                # Wait for send confirmation - robust: check sent folder nav OR compose close
+                print("    Waiting for send confirmation...")
+                sent = False
+                for poll_sec in range(15):
+                    # Check 1: Main page URL navigated to sent folder
+                    try:
+                        if 'mail.list' in (compose_page.url or ''):
+                            sent = True
+                            break
+                    except:
+                        pass
+                    
+                    # Check 2: Compose inputs hidden/removed in any frame (compose closed)
+                    closed = False
+                    for fr in compose_page.frames:
+                        try:
+                            to = fr.query_selector('input[name="to"], input#toInput, input#to')
+                            subj = fr.query_selector('input[name="subject"], input#subject')
+                            to_hidden = (to is None) or (not to.is_visible())
+                            subj_hidden = (subj is None) or (not subj.is_visible())
+                            if to_hidden and subj_hidden:
+                                closed = True
+                                break
+                        except:
+                            continue
+                    if closed:
+                        sent = True
+                        break
+                    
+                    compose_page.wait_for_timeout(1000)
+                
                 compose_page.screenshot(path=os.path.join(OUT_DIR, "coremail_final.png"))
-                print("[7] ✅ Done! Email successfully sent.")
+                
+                if sent:
+                    print("[7] ✅ Done! Email successfully sent (verified: compose closed / navigated to sent folder).")
+                else:
+                    print("[7] ⚠️ Send button clicked, but could not verify if email was actually sent.")
+                    print("    Please check the screenshot at:", os.path.join(OUT_DIR, "coremail_final.png"))
             else:
                 print("[6] Saving draft...")
                 # Method 1: Click "存草稿" button directly

@@ -1,13 +1,14 @@
 ---
 name: spb-mail
-description: >
-  国泰海通版本发布邮件内容生成工具。根据中心+日期，从 SVN 获取当日提交记录（分支级过滤）、
-  从 Excel 读取 Task 信息、计算升级包 MD5，生成结构化 TXT + HTML 邮件内容，并支持一键自动保存草稿及发送邮件。
-  支持多中心配置（JZJY集中交易、CSZX参数中心），区分 Task新增/更新 双模式。
-  触发词：版本邮件、发布邮件、release mail、版本报告、release report、发版邮件、
-  生成邮件、邮件内容、发邮件、发送版本邮件、spb-mail。
-agent_created: true
+description: '国泰海通版本发布邮件内容生成工具。根据中心+日期，从 SVN 获取当日提交记录（分支级过滤）、 从 Excel 读取 Task 信息、计算升级包
+  MD5，生成结构化 TXT + HTML 邮件内容，并支持一键自动保存草稿及发送邮件。 已融合 spb-check：自动定位版本包文件夹并与 excel_output.txt（或
+  upt_excel_output.txt）做双向内容核对，核对结果一并写入邮件正文。 支持多中心配置（JZJY集中交易、CSZX参数中心），区分 Task新增/更新
+  双模式。 触发词：版本邮件、发布邮件、release mail、版本报告、release report、发版邮件、 生成邮件、邮件内容、发邮件、发送版本邮件、spb-mail、spb-check、版本包比对。
+
+  '
+disable: false
 ---
+
 
 # 版本邮件
 
@@ -58,10 +59,16 @@ cd <项目目录> && python3 <SKILL_DIR>/scripts/release_mail.py CSZX 20260529 u
 - `release_report.txt` — 纯文本邮件内容
 - `release_report.html` — 带样式的 HTML 版本
 
+脚本在生成邮件前会自动执行 **spb-check 版本包内容核对**（融合功能）：
+- 定位当前版本的版本包文件夹（如 `jzjy/SPB-V0.26.9.4/`）；若仅存在 ZIP 则自动解压。
+- 与 `excel_output.txt`（新增模式）或 `upt_excel_output.txt`（更新模式）做双向核对。
+- 核对结果（通过/警告/缺失项、未声明额外文件）自动追加到邮件正文的 `【包内容核对】` 小节。
+
 完成第一步后，简要汇报：
 - 版本号 + 中心名称
 - Task 数量（区分新增/更新）
 - SVN 提交数（仅本分支）
+- 版本包核对结果（通过/警告/缺失项数）
 
 ### Step 4: 对话窗口同步 HTML
 

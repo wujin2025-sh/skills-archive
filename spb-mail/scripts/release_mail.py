@@ -33,7 +33,7 @@ CENTER_CONFIG = {
     "JZJY": {
         "name": "集中交易",
         "svn_repo": "https://jyjs.svn.gtja.net/svn/jjywpt/Src/01Branches/Produce",
-        "version_fmt": "SPB_V2.2.19_{version}",     # {version} 替换为版本号
+        "version_fmt": "SPB-V0.26.{short_version}",  # 由入参日期推导，如 20260831 → SPB-V0.26.8.31
         "upgrade_url": "https://yunpan.gtht.com.cn/l/i1LRd3",
         "zip_suffix": "",                            # ZIP 文件名额外后缀
         "data_subdir": "jzjy",                       # Excel 和 ZIP 所在子目录
@@ -82,10 +82,23 @@ def parse_args():
     return center, date_str, mode
 
 
+def to_short_version(date_str):
+    """将 8 位日期转为短版本号（月.日，去前导零），保留后缀如 _hotfix。
+    例：20260904 → 9.4，20260831 → 8.31"""
+    if len(date_str) >= 8 and date_str[:8].isdigit():
+        month = str(int(date_str[4:6]))
+        day = str(int(date_str[6:8]))
+        suffix = date_str[8:]
+        return f"{month}.{day}{suffix}"
+    return date_str
+
+
 def get_config(center, date_str):
     """根据中心+日期构建完整配置"""
     cfg = CENTER_CONFIG[center]
-    version = cfg["version_fmt"].replace("{version}", date_str)
+    version = cfg["version_fmt"]
+    version = version.replace("{version}", date_str)
+    version = version.replace("{short_version}", to_short_version(date_str))
 
     # Dynamically read upgrade_url from 版本地址.txt if available
     upgrade_url = cfg["upgrade_url"]
@@ -123,11 +136,13 @@ def get_config(center, date_str):
 # SVN 命令行因 OpenSSL 3.x 不支持服务器老旧 TLS 1.0，改用 curl 请求
 
 def _get_proxy():
-    # 优先使用环境变量中的代理配置
-    p = os.environ.get("HTTPS_PROXY", os.environ.get("https_proxy", ""))
-    if p:
-        return p
-    # 检测本地默认代理是否存活，存活才使用
+    """检测可用的代理配置。
+    
+    注意：环境变量中的系统代理（如 172.16.0.11:3128）无法访问
+    SVN 服务器（返回 502 Tunnel Connection Failed），因此
+    不优先使用环境变量代理。仅当本地代理 127.0.0.1:63562 
+    存活时才使用，否则直连。
+    """
     default_proxy = "http://127.0.0.1:63562"
     from urllib.parse import urlparse
     import socket
@@ -168,6 +183,9 @@ def _find_head_revision(repo_root):
     curl_cmd = ["curl", "-k"]
     if SVN_PROXY:
         curl_cmd += ["--proxy", SVN_PROXY]
+    else:
+        # 直连：绕过环境变量中的系统代理（该代理无法访问 SVN，会 502）
+        curl_cmd += ["--noproxy", "*"]
     curl_cmd += [
         "-u", f"{SVN_USERNAME}:{SVN_PASSWORD}",
         "-H", "Depth: 0",
@@ -216,6 +234,9 @@ def get_svn_logs_today(repo_path):
         curl_cmd = ["curl", "-k"]
         if SVN_PROXY:
             curl_cmd += ["--proxy", SVN_PROXY]
+        else:
+            # 直连：绕过环境变量中的系统代理（该代理无法访问 SVN，会 502）
+            curl_cmd += ["--noproxy", "*"]
         curl_cmd += [
             "-u", f"{SVN_USERNAME}:{SVN_PASSWORD}",
             "-H", "Content-Type: application/xml",
@@ -324,7 +345,7 @@ def read_tasks_from_excel(excel_path):
             title = str(row['Task标题']).strip()
             if tid == 'nan' or title == 'nan':
                 continue
-            tasks.append((tid, title))
+            tasks.append({'code': tid, 'title': title})
         return tasks
     except Exception as e:
         print(f"[ERROR] 读取 Excel 失败: {e}")
@@ -354,7 +375,7 @@ def read_tasks_from_txt(txt_path):
                 parts = line.split(maxsplit=1)
                 if len(parts) == 2:
                     tid, title = parts
-                    tasks.append((tid.strip(), title.strip()))
+                    tasks.append({'code': tid.strip(), 'title': title.strip()})
     except Exception as e:
         print(f"[WARN] 读取 txt 报告失败: {e}")
     return tasks
@@ -366,9 +387,172 @@ def format_tasks_for_email(tasks):
         return "无 Task 或无法自动提取，请人工补充"
 
     lines = []
-    for tid, title in tasks:
+    for t in tasks:
+        tid = t.get('code', '')
+        title = t.get('title', '')
         lines.append(f"{tid}  {title}")
     return "\n".join(lines)
+
+
+# ================= spb-check 融合（版本包内容核对） =================
+def _load_spb_check():
+    """动态加载 spb-check 技能脚本模块，避免顶层硬依赖。"""
+    import importlib.util
+    spb_check_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        '..', '..', 'spb-check', 'scripts', 'spb_check.py'
+    )
+    if not os.path.exists(spb_check_path):
+        return None
+    spec = importlib.util.spec_from_file_location("spb_check_module", spb_check_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def run_package_check(config, mode):
+    """运行版本包内容核对（融合 spb-check）。
+
+    定位版本包文件夹（如 jzjy/SPB-V0.26.9.4/），与 excel_output.txt（或
+    upt_excel_output.txt）做双向核对，返回核对结果 dict；无法核对时返回 None。
+    """
+    spb_check = _load_spb_check()
+    if spb_check is None:
+        print("[CHECK] ⚠️ 未找到 spb-check 脚本，跳过版本包内容核对")
+        return None
+
+    version = config['version']
+    subdir = config['zip_subdir']
+    system_type = 'jzjy' if config['center'] == 'JZJY' else 'cszx'
+
+    # 1. 定位版本包文件夹
+    pkg_dir = os.path.join(WORK_DIR, subdir, version)
+    if not os.path.isdir(pkg_dir):
+        zip_path = os.path.join(WORK_DIR, subdir, config['zip_filename'])
+        if os.path.exists(zip_path):
+            print(f"[CHECK] 📦 版本包未解压，自动解压 {config['zip_filename']} ...")
+            try:
+                import zipfile
+                with zipfile.ZipFile(zip_path, 'r') as zf:
+                    zf.extractall(pkg_dir)
+                pkg_dir = spb_check.resolve_extracted_dir(pkg_dir)
+            except Exception as e:
+                print(f"[CHECK] ⚠️ 自动解压失败: {e}")
+                return None
+        else:
+            print(f"[CHECK] ⚠️ 未找到版本包文件夹或 ZIP: {pkg_dir}")
+            return None
+
+    # 2. 确定参考文件
+    ref_file = "upt_excel_output.txt" if mode == "upt" else "excel_output.txt"
+    ref_path = os.path.join(WORK_DIR, subdir, ref_file)
+    if not os.path.exists(ref_path):
+        print(f"[CHECK] ⚠️ 未找到参考文件 {ref_file}，跳过版本包内容核对")
+        return None
+
+    # 3. 运行双向核对
+    sections = spb_check.parse_excel_output(ref_path)
+    if not sections:
+        print(f"[CHECK] ⚠️ 参考文件解析失败，跳过版本包内容核对")
+        return None
+    report, summary = spb_check.check_package(pkg_dir, sections, system_type)
+    extra_files = spb_check.run_reverse_audit(pkg_dir, sections, report)
+
+    status = "🔴" if summary['errors'] > 0 else "🟡" if summary['warnings'] > 0 else "🟢"
+    print(f"[CHECK] {status} 版本包内容核对完成: 通过 {summary['passed']} 项，"
+          f"警告 {summary['warnings']} 项，缺失 {summary['errors']} 项")
+    return {
+        'pkg_dir': pkg_dir,
+        'ref_file': ref_file,
+        'report': report,
+        'summary': summary,
+        'extra_files': extra_files,
+        'system_type': system_type,
+    }
+
+
+def format_check_text(check_result):
+    """生成版本包核对的文本摘要（用于邮件正文）。"""
+    if not check_result:
+        return None
+    summary = check_result['summary']
+    status = "🔴" if summary['errors'] > 0 else "🟡" if summary['warnings'] > 0 else "🟢"
+    lines = []
+    lines.append("【包内容核对】(spb-check)")
+    lines.append(f"- 版本包目录: {os.path.basename(check_result['pkg_dir'])}")
+    lines.append(f"- 参考文件: {check_result['ref_file']}")
+    lines.append(f"- 核对结果: {status} 通过 {summary['passed']} 项，"
+                 f"警告 {summary['warnings']} 项，缺失 {summary['errors']} 项")
+
+    fails = [r for r in check_result['report'] if r['status'] == 'FAIL']
+    if fails:
+        lines.append("- 🔴 缺失项：")
+        for r in fails:
+            name = r.get('item_name') or ''
+            lines.append(f"  - {name} {r['message']}")
+    warns = [r for r in check_result['report'] if r['status'] == 'WARN']
+    if warns:
+        lines.append("- 🟡 警告项：")
+        for r in warns:
+            name = r.get('item_name') or ''
+            lines.append(f"  - {name} {r['message']}")
+
+    extras = check_result['extra_files']
+    has_extras = any(len(files) > 0 for files in extras.values())
+    if has_extras:
+        lines.append("- 🟡 未声明额外文件：")
+        for folder, files in extras.items():
+            if files:
+                lines.append(f"  - {folder}/: {', '.join(files[:5])}{'...' if len(files) > 5 else ''}")
+    return "\n".join(lines)
+
+
+def format_check_html(check_result):
+    """生成版本包核对的 HTML 摘要（用于邮件 HTML）。"""
+    if not check_result:
+        return None
+    summary = check_result['summary']
+    if summary['errors'] > 0:
+        status_html = '<span style="color:#b91c1c;font-weight:bold;">🔴 存在缺失</span>'
+    elif summary['warnings'] > 0:
+        status_html = '<span style="color:#a16207;font-weight:bold;">🟡 存在警告</span>'
+    else:
+        status_html = '<span style="color:#15803d;font-weight:bold;">🟢 全部通过</span>'
+
+    items = []
+    for r in check_result['report']:
+        if r['status'] == 'FAIL':
+            sym = '🔴'
+        elif r['status'] == 'WARN':
+            sym = '🟡'
+        else:
+            sym = '🟢'
+        name = r.get('item_name') or ''
+        items.append(f"<li>{sym} {name} {r['message']}</li>")
+
+    extras = check_result['extra_files']
+    has_extras = any(len(files) > 0 for files in extras.values())
+    extras_html = ""
+    if has_extras:
+        extras_html = "<p style='color:#a16207;font-weight:bold;'>未声明额外文件：</p><ul>"
+        for folder, files in extras.items():
+            if files:
+                extras_html += (f"<li><b>{folder}/</b>: {', '.join(files[:5])}"
+                                f"{'...' if len(files) > 5 else ''}</li>")
+        extras_html += "</ul>"
+
+    item_list = "\n".join(items)
+    return f"""
+  <div class="section">
+    <p><b>包内容核对：</b>&nbsp;&nbsp;{status_html}</p>
+    <p><span class="mono">版本包目录: {os.path.basename(check_result['pkg_dir'])} &nbsp;|&nbsp; 参考文件: {check_result['ref_file']}</span></p>
+    <p>通过 {summary['passed']} 项，警告 {summary['warnings']} 项，缺失 {summary['errors']} 项</p>
+    <ul>
+{item_list}
+    </ul>
+    {extras_html}
+  </div>
+"""
 
 
 # ================= 报告生成 =================
@@ -412,7 +596,7 @@ def format_svn_log_detailed(logs):
     return "\n".join(lines)
 
 
-def generate_text_report(config, tasks, md5_value, logs, mode):
+def generate_text_report(config, tasks, md5_value, logs, mode, check_result=None):
     """生成文本邮件内容"""
     version = config['version']
     upgrade_url = config['upgrade_url']
@@ -451,7 +635,7 @@ def generate_text_report(config, tasks, md5_value, logs, mode):
     return "\n".join(lines)
 
 
-def build_html_report(config, tasks, md5_value, logs, mode):
+def build_html_report(config, tasks, md5_value, logs, mode, check_result=None):
     """生成 HTML 邮件内容"""
     version = config['version']
     upgrade_url = config['upgrade_url']
@@ -461,8 +645,8 @@ def build_html_report(config, tasks, md5_value, logs, mode):
     # Task HTML
     if tasks:
         task_items = "\n".join(
-            f'<li>{tid}&nbsp;&nbsp;{title}</li>'
-            for tid, title in tasks
+            f'<li>{t.get("code", "")}&nbsp;&nbsp;{t.get("title", "")}</li>'
+            for t in tasks
         )
         task_html = f"<ul>\n{task_items}\n</ul>"
     else:
@@ -617,7 +801,7 @@ def main():
     # 3.5 自动化比对校验 (Task 编号与 SVN 提交记录一致性核对)
     print(f"\n[INFO] 🔍 正在执行 Task 编号与 SVN Revision 自动比对核验...")
     task_codes_in_excel = set(t.get('code', '') for t in tasks if t.get('code'))
-    svn_log_text = " ".join([l.get('msg', '') for l in logs])
+    svn_log_text = " ".join([l.get('message', '') for l in logs])
     matched_tasks = [code for code in task_codes_in_excel if code in svn_log_text]
     unmatched_tasks = [code for code in task_codes_in_excel if code not in svn_log_text]
     
@@ -628,21 +812,25 @@ def main():
     else:
         print(f"[CHECK] ✅ 所有 Task 编号在 SVN 日志中均已完成关联核对！")
 
-    # 4. 生成文本报告
-    text_content = generate_text_report(config, tasks, md5_val, logs, mode)
+    # 4. 运行版本包内容核对（融合 spb-check）
+    print(f"\n[INFO] 🔍 执行版本包内容核对 (spb-check)...")
+    check_result = run_package_check(config, mode)
+
+    # 5. 生成文本报告
+    text_content = generate_text_report(config, tasks, md5_val, logs, mode, check_result)
     txt_path = os.path.join(WORK_DIR, "release_report.txt")
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(text_content)
     print(f"\n[OK] 文本报告 → release_report.txt")
 
-    # 5. 生成 HTML 报告
-    html_content = build_html_report(config, tasks, md5_val, logs, mode)
+    # 6. 生成 HTML 报告
+    html_content = build_html_report(config, tasks, md5_val, logs, mode, check_result)
     html_path = os.path.join(WORK_DIR, "release_report.html")
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
     print(f"[OK] HTML 报告 → release_report.html")
 
-    # 6. 打印预览（文本版）
+    # 7. 打印预览（文本版）
     print("\n")
     print("=" * 60)
     print("                    邮  件  内  容  预  览")
@@ -650,7 +838,7 @@ def main():
     print()
     print(text_content)
     print()
-    # 7. 打印 HTML 内容（同步输出到对话窗口）
+    # 8. 打印 HTML 内容（同步输出到对话窗口）
     print("=" * 60)
     print("                  HTML  内  容  预  览")
     print("=" * 60)

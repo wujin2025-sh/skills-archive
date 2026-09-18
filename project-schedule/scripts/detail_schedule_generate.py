@@ -25,44 +25,30 @@ CURRENT_DATE_STR = CURRENT_DATE_TEMP.strftime("%Y-%m-%d")
 CURRENT_DATE_FILE_STR = CURRENT_DATE_TEMP.strftime("%Y%m%d")
 CURRENT_DATE = datetime.strptime(CURRENT_DATE_STR, "%Y-%m-%d")
 
-# 需求编号子标题硬编码映射
-DEMAND_SUBTITLE_MAP = {
-    "R2603130062": "富易网络投票切换清算",
-    "R2603110056": "历史文件迁移到清算",
-    "R2602120019": "银证转账历史文件迁移",
-    "R2602120009": "交易历史文件迁移",
-    "R2602120017": "担保费率等迁移参数后台",
-}
+# 共享映射（shared_maps.json 单一数据源）：需求子标题 + Story 名称精炼，人工维护
+def _load_shared_maps():
+    """加载共享映射：DEMAND_SUBTITLE_MAP / STORY_NAME_MAP（人工精炼产物，单一数据源）"""
+    maps_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shared_maps.json")
+    if os.path.exists(maps_path):
+        try:
+            with open(maps_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("demand_subtitle", {}), data.get("story_name", {})
+        except Exception:
+            pass
+    return {}, {}
 
-# 已知 Story ID 到任务名称映射
-STORY_NAME_MAP = {
-    "S2603160070": "富易网络投票切换清算配合",
-    "S2603160083": "移动端网络投票切换封装配合",
-    "S2603190133": "JY977-富易投票切换清算",
-    "S2603190136": "富易投票接口切换测试配合",
-    "S2603110132": "配合测试-历史文件迁移",
-    "S2603110133": "委托和沪港通委托历史文件迁移",
-    "S2603190060": "历史文件迁移非现场配合",
-    "S2603190061": "历史文件迁移反洗钱配合",
-    "S2603190062": "历史文件迁移信用业务配合",
-    "S2605290172": "历史文件迁移大数据配合",
-    "S2606080286": "配合历史数据迁移监控",
-    "S2602120030": "银证转账迁移配合测试",
-    "S2602120031": "银证转账迁移集中交易配合",
-    "S2603110087": "银证转账迁移大数据模块",
-    "S2603180160": "银证转账配合(BDNEW_3.1)",
-    "S2603180162": "银证转账迁移反洗钱配合",
-    "S2603180163": "银证转账迁移非现场配合",
-    "S2602120011": "集中交易历史数据文件迁移",
-    "S2602120012": "集中交易历史数据迁移配合",
-    "S2603190066": "历史数据迁移非现场监控配合",
-    "S2603190067": "历史文件迁移反洗钱监控配合",
-    "S2603190068": "历史文件迁移信用业务配合",
-    "S2602120027": "两融担保费率迁移至参数后台",
-    "S2602120029": "两融历史文件迁移配合测试",
-    "S2605290171": "两融历史文件迁移信用配合",
-    "S2605290177": "两融历史文件迁移非现场配合"
-}
+DEMAND_SUBTITLE_MAP, STORY_NAME_MAP = _load_shared_maps()
+
+# 动态流程节点解析映射（优先自动从 Live Scraper / Cache 载入，覆盖各阶段【经办人】多人显示）
+LIVE_NODE_MAP = {}
+LIVE_CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_dynamic_node_results.json")
+if os.path.exists(LIVE_CACHE_PATH):
+    try:
+        with open(LIVE_CACHE_PATH, "r", encoding="utf-8") as f:
+            LIVE_NODE_MAP = json.load(f)
+    except Exception:
+        LIVE_NODE_MAP = {}
 
 def clean_story_name(story_id, original_name):
     if story_id in STORY_NAME_MAP:
@@ -79,9 +65,37 @@ def clean_story_name(story_id, original_name):
     return name
 
 def parse_owner(text):
-    if not text or text.strip() in ("/", "--", "None", ""):
+    """通用经办人解析：自动切分逗号/空格/换行/斜杠/顿号分隔的多人，及无分隔符连体中文姓名
+    （如 刘志林金渤文 -> 刘志林, 金渤文）。返回 ", " 连接的字符串（保持顺序去重），无有效值返回 "/"。"""
+    if not text or str(text).strip() in ("/", "--", "None", "", "null"):
         return "/"
-    return text.split('-')[0].strip()
+    raw_items = re.split(r'[,，/\\;\n\t、\s]+', str(text).strip())
+    names = []
+    for item in raw_items:
+        s_item = item.strip()
+        if not s_item:
+            continue
+        match = re.search(r'^([\u4e00-\u9fa5]+)', s_item)
+        if match:
+            cn = match.group(1)
+            if len(cn) > 4 and len(cn) <= 8:
+                if len(cn) == 6:
+                    parts = [cn[:3], cn[3:]]
+                elif len(cn) == 4:
+                    parts = [cn[:2], cn[2:]]
+                elif len(cn) == 5:
+                    parts = [cn[:3], cn[3:]]
+                else:
+                    parts = [cn]
+            else:
+                parts = [cn]
+        else:
+            parts = [s_item]
+        for p in parts:
+            p = p.strip()
+            if p and p not in ("/", "--") and p not in names:
+                names.append(p)
+    return ", ".join(names) if names else "/"
 
 def clean_date_str(date_str):
     if not date_str or date_str in ("--", "None", ""):
@@ -183,15 +197,24 @@ def load_demand_data_from_cache(demand_ids, script_dir):
             is_done = (status in ("结束", "SIT大远期自测完成", "UAT验收完成", "完成", "已发布"))
             is_terminated = (status == "终止")
 
-            dev_owner = parse_owner(r.get("devManagePerson"))
+            if s_id in LIVE_NODE_MAP and LIVE_NODE_MAP[s_id].get("dev"):
+                dev_owner = ", ".join(LIVE_NODE_MAP[s_id]["dev"])
+            else:
+                dev_owner = parse_owner(r.get("devManagePerson"))
             dev_end = clean_date_str(r.get("devAssessDateEnd"))
             dev_status = compute_phase_status(dev_end, is_done, is_terminated)
 
-            sit_owner = parse_owner(r.get("sitTestManagePerson"))
+            if s_id in LIVE_NODE_MAP and LIVE_NODE_MAP[s_id].get("sit"):
+                sit_owner = ", ".join(LIVE_NODE_MAP[s_id]["sit"])
+            else:
+                sit_owner = parse_owner(r.get("sitTestManagePerson"))
             sit_end = clean_date_str(r.get("sitTestAssessDateEnd"))
             sit_status = compute_phase_status(sit_end, is_done, is_terminated)
 
-            uat_owner = parse_owner(r.get("uatTestManagePerson"))
+            if s_id in LIVE_NODE_MAP and LIVE_NODE_MAP[s_id].get("uat"):
+                uat_owner = ", ".join(LIVE_NODE_MAP[s_id]["uat"])
+            else:
+                uat_owner = parse_owner(r.get("uatTestManagePerson"))
             uat_end = clean_date_str(r.get("uatTestAssessDateEnd"))
             uat_status = compute_phase_status(uat_end, is_done, is_terminated)
 
@@ -247,7 +270,7 @@ def generate_html(data_list, output_path, project_name):
             rows_html.append(f"""
       <tr{row_style}>
         <td class="req-col">
-          {demand_id}
+          <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="font-weight: bold; text-decoration: underline;">{demand_id}</a>
           <span class="req-sub">{subtitle}</span>
         </td>
         <td colspan="15" style="text-align: center; color: #64748b;">（无关联 Story）</td>
@@ -272,7 +295,7 @@ def generate_html(data_list, output_path, project_name):
                     rows_html.append(f"""
       <tr{row_style}>
         <td rowspan="{story_count}" class="req-col">
-          <strong>{demand_id}</strong>
+          <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="font-weight: bold; text-decoration: underline;">{demand_id}</a>
           <span class="req-sub">{subtitle}</span>
         </td>
         <td><strong>{story["id"]}</strong></td>

@@ -1,9 +1,10 @@
 ---
 name: meet-to-req
-description: >-
-  将会议纪要的核心内容（架构决策、划转规则、应急机制、T+1持久化策略、参会人员等）精细化、结构化地融合到需求 Markdown 文档的“评审纪要”小节中，实现自然流畅的语义补全与信息无缝融合。
-  Triggers: 会议纪要融合、会议到需求、会议融入需求评审纪要、meet-to-req、meet-fusion、/meet-to-req。
+description: '将会议纪要的核心内容（架构决策、划转规则、应急机制、T+1持久化策略、参会人员等）精细化、结构化地融合到需求 Markdown 文档的“评审纪要”小节中，实现自然流畅的语义补全与信息无缝融合。
+  Triggers: 会议纪要融合、会议到需求、会议融入需求评审纪要、meet-to-req、meet-fusion、/meet-to-req。'
+disable: false
 ---
+
 
 # Meet-to-Req: 会议纪要融合需求文档技能
 

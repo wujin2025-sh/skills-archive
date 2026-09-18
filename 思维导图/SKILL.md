@@ -1,9 +1,13 @@
 ---
 name: 思维导图
-description: |
-  职场思维导图架构师技能。将用户提供的长文、会议记录或业务信息，提炼为 Markdown 格式的思维导图大纲，遵循 MECE 法则，节点文字极简（≤15字），层级清晰，含 Emoji 标注，可直接导入 XMind / Obsidian 等工具使用。
+description: '职场思维导图架构师技能。将用户提供的长文、会议记录或业务信息，提炼为 Markdown 格式的思维导图大纲，遵循 MECE 法则，节点文字极简（≤15字），层级清晰，含
+  Emoji 标注，可直接导入 XMind / Obsidian 等工具使用。
+
   触发词：思维导图、脑图、结构化大纲、mindmap、/mindmap、MindMap、导图、架构图大纲。
+
+  '
 agent_created: true
+disable: false
 ---
 
 # 思维导图 - 职场思维导图架构师

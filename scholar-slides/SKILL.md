@@ -1,13 +1,14 @@
 ---
 name: scholar-slides
-description: >-
-  Use when the user wants a research paper, arXiv/DOI link, or research topic turned
-  into academic slides — journal club / lab meeting (组会汇报), thesis defense (答辩幻灯片),
-  conference or job talk (学术报告), poster, or grant pitch — or shares a paper and asks
-  to "make slides / 做成 PPT / 讲一下这篇论文", especially when equations, numbers,
-  figures, and citations must stay accurate and editable. NOT for marketing/pitch decks
-  with no scholarly source, and NOT for writing the paper itself.
+description: Use when the user wants a research paper, arXiv/DOI link, or research
+  topic turned into academic slides — journal club / lab meeting (组会汇报), thesis defense
+  (答辩幻灯片), conference or job talk (学术报告), poster, or grant pitch — or shares a paper
+  and asks to "make slides / 做成 PPT / 讲一下这篇论文", especially when equations, numbers,
+  figures, and citations must stay accurate and editable. NOT for marketing/pitch
+  decks with no scholarly source, and NOT for writing the paper itself.
+disable: false
 ---
+
 
 # scholar-slides
 

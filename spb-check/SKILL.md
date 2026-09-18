@@ -1,10 +1,12 @@
 ---
 name: spb-check
-description: >
-  主要比对解压后的版本包文件夹（SPB_V2.2.19_20260710 或 CSZX-20260710）与 excel_output.txt 之间声明的内容是否一致，进行双向文件与内容核对工作。
-  触发词：spb-check、spb检查、版本包比对、spb比对、spbcheck。
-agent_created: true
+description: '主要比对解压后的版本包文件夹（SPB_V2.2.19_20260710 或 CSZX-20260710）与 excel_output.txt
+  之间声明的内容是否一致，进行双向文件与内容核对工作。 触发词：spb-check、spb检查、版本包比对、spb比对、spbcheck。
+
+  '
+disable: false
 ---
+
 
 # spb-check (SPB 版本包与报告双向比对核对技能)
 

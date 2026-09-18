@@ -493,6 +493,7 @@ def main():
                 page.screenshot(path=os.path.join(OUT_DIR, "coremail_error.png"))
             except:
                 pass
+            sys.exit(1)
         finally:
             browser.close()
 

@@ -1,6 +1,9 @@
 ---
 name: omnivoice
-description: Speak and transcribe through the user's local VoiceStudio — free, offline, no API key. Text-to-speech (including the user's cloned voices) and speech-to-text via the OpenAI-compatible API at localhost:3900.
+description: Speak and transcribe through the user's local VoiceStudio — free, offline,
+  no API key. Text-to-speech (including the user's cloned voices) and speech-to-text
+  via the OpenAI-compatible API at localhost:3900.
+disable: false
 ---
 
 # VoiceStudio — 本地 TTS（语音合成）与 STT（语音转写）

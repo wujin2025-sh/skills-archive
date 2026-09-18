@@ -2097,6 +2097,87 @@ def check_auth_status(page, has_mid_auth_error):
 active_playwright = None
 active_browser = None
 
+
+# ============================================================
+# spb-extract 融合：自动提取升级包变更内容
+# ============================================================
+def locate_project_root():
+    """定位版本发布项目根目录（包含 jzjy/ 与 jygl/ 子目录）"""
+    candidates = [os.getcwd(), SCRIPT_DIR]
+    for start in candidates:
+        cur = start
+        for _ in range(8):
+            if (os.path.isdir(os.path.join(cur, "jzjy"))
+                    and os.path.isdir(os.path.join(cur, "jygl"))
+                    and os.path.exists(os.path.join(cur, "版本地址.txt"))):
+                return cur
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+    alt = "/Volumes/Macintosh HD_Data/WorkBuddy/版本发布"
+    if os.path.isdir(alt):
+        return alt
+    return None
+
+
+def auto_extract_upt_content(mode, project_root):
+    """
+    融合 spb-extract：根据 MODE 自动定位版本文件夹并生成 upt_content.txt。
+    返回 (success, message)
+    """
+    if not project_root or not os.path.isdir(project_root):
+        return False, "未定位到版本发布项目根目录"
+
+    # 加载 spb-extract 模块（upt_extract.py 提供 generate() 提取逻辑）
+    try:
+        spb_extract_dir = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "spb-extract", "scripts"))
+        if spb_extract_dir not in sys.path:
+            sys.path.insert(0, spb_extract_dir)
+        import upt_extract
+    except Exception as e:
+        return False, f"无法加载 spb-extract 模块: {e}"
+
+    # 确定版本子目录与前缀
+    if mode == "jzjy":
+        sub = os.path.join(project_root, "jzjy")
+        prefixes = ["SPB-V0.26.", "SPB_V2.2.19_"]
+    elif mode == "cszx":
+        sub = os.path.join(project_root, "jygl")
+        prefixes = ["CSZX-"]
+    else:
+        return False, f"模式 {mode} 暂不支持自动提取变更内容"
+
+    if not os.path.isdir(sub):
+        return False, f"版本子目录不存在: {sub}"
+
+    # 查找版本文件夹（取最新匹配）
+    candidates = []
+    for prefix in prefixes:
+        for d in os.listdir(sub):
+            full = os.path.join(sub, d)
+            if os.path.isdir(full) and d.startswith(prefix):
+                candidates.append(full)
+    if not candidates:
+        return False, f"未在 {sub} 找到 {mode} 版本文件夹"
+    version_dir = sorted(candidates)[-1]
+
+    try:
+        content = upt_extract.generate(version_dir, is_cszx=(mode == "cszx"))
+    except Exception as e:
+        return False, f"提取失败: {e}"
+    if not content.strip():
+        return False, f"版本文件夹 {version_dir} 无变更内容可提取"
+
+    # 写入 upt_content.txt 到版本项目根目录（供后续 [18.55] 读取）
+    out_path = os.path.join(project_root, "upt_content.txt")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"\n  [spb-extract 融合] 已自动生成变更内容 → {out_path}")
+    print(f"  [spb-extract 融合] 提取自版本文件夹: {version_dir}")
+    return True, f"已生成 {len(content)} 字符变更内容"
+
+
 # ============================================================
 # 主流程
 # ============================================================
@@ -3384,6 +3465,23 @@ def main():
     print("[13] 是否停机 → 是...")
     fill_radio_by_label(ep, "停机", "是", "是否停机")
 
+    # 提前检测是否包含适配器升级（按模式读取对应的变更内容文件）
+    has_adapter_upgrade = False
+    try:
+        project_root = locate_project_root()
+        if MODE == "jzjy":
+            upt_content_path = os.path.join(project_root, "upt_content.txt")
+        else:
+            upt_content_path = os.path.join(project_root, "jygl", "upt_excel_output.txt")
+        if os.path.exists(upt_content_path):
+            with open(upt_content_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            has_adapter_upgrade = "适配器" in content
+            if has_adapter_upgrade:
+                print(f"  [UptContent] 检测到适配器升级（{upt_content_path}），将新增朱海江(108451)作为实施负责人")
+    except Exception as e:
+        print(f"  [UptContent] 读取失败: {e}")
+
     # ==================== [13.5] 实施负责人 ====================
     owner_search = active_cfg["owner"]
     owner_name = active_cfg["owner_name"]
@@ -3648,6 +3746,219 @@ def main():
 
     time.sleep(1.0)
 
+    # 适配器升级时，在实施负责人中额外新增朱海江(108451)
+    if has_adapter_upgrade:
+        print(f"\n  [13.5-extra] 适配器升级，新增朱海江(108451)作为实施负责人...")
+        ep.keyboard.press("Escape"); time.sleep(0.5)
+        trigger_result2 = ep.evaluate("""() => {
+            const items = document.querySelectorAll('.formfield');
+            for(const item of items){
+                const lbl = item.querySelector('.fieldlabel');
+                if(lbl && lbl.textContent.includes('实施负责人') && !lbl.textContent.includes('审核') && !lbl.textContent.includes('确认') && !lbl.textContent.includes('测试')){
+                    const content = item.querySelector('.fieldcontent');
+                    if(!content) return 'no_content';
+                    const tryOrder = [
+                        content.querySelector('.ant-select-selection'),
+                        content.querySelector('.ant-select'),
+                        content.querySelector('input:not([type="hidden"])'),
+                        content
+                    ];
+                    for(const el of tryOrder){
+                        if(el && window.getComputedStyle(el).display !== 'none'){ el.click(); return 'clicked'; }
+                    }
+                    return 'nothing_clickable';
+                }
+            }
+            return 'not_found';
+        }""")
+        print(f"  触发实施负责人(朱海江): {trigger_result2}")
+        time.sleep(1.5)
+
+        search_result2 = ep.evaluate("""(keyword) => {
+            const selectors = [
+                '.ant-select-search__field',
+                '.ant-select-selection-search-input',
+                'input.ant-input[placeholder*="搜索"]',
+                '.ant-select-dropdown input'
+            ];
+            for(const sel of selectors){
+                const inputs = document.querySelectorAll(sel);
+                for(const inp of inputs){
+                    if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled){
+                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeInputValueSetter.call(inp, keyword);
+                        inp.dispatchEvent(new Event('input', {bubbles: true}));
+                        inp.dispatchEvent(new Event('change', {bubbles: true}));
+                        return {ok: true, source: sel};
+                    }
+                }
+            }
+            const allInputs = document.querySelectorAll('input');
+            for(const inp of allInputs){
+                if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled && inp.type !== 'hidden'){
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    nativeInputValueSetter.call(inp, keyword);
+                    inp.dispatchEvent(new Event('input', {bubbles: true}));
+                    return {ok: true, source: 'fallback_input'};
+                }
+            }
+            return {ok: false};
+        }""", "108451")
+        print(f"  ant-select搜索框输入(朱海江): {search_result2}")
+        if search_result2.get('ok'):
+            ep.keyboard.press("Enter")
+            print("  已按回车（触发弹窗）")
+            time.sleep(1.5)
+
+        modal_check2 = ep.evaluate("""(keyword) => {
+            function isVis(el){
+                if(!el) return false;
+                const s = window.getComputedStyle(el);
+                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+            }
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let modalBody = null;
+            for(const m of modals){
+                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                const body = m.querySelector('.ant-modal-body');
+                if(body && body.children.length > 0){ modalBody = body; break; }
+            }
+            if(!modalBody) return {found: false};
+            const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
+            if(!input) return {found: true, hasInput: false, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length};
+            input.focus();
+            input.value = '';
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            return {found: true, hasInput: true, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length, inputFocused: document.activeElement === input};
+        }""", "108451")
+        print(f"  Modal检查(朱海江): {modal_check2}")
+        if modal_check2.get('found') and modal_check2.get('hasInput'):
+            type_result2 = ep.evaluate("""(keyword) => {
+                function isVis(el){
+                    if(!el) return false;
+                    const s = window.getComputedStyle(el);
+                    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+                }
+                const modals = document.querySelectorAll('.ant-modal-wrap');
+                let modalBody = null;
+                for(const m of modals){
+                    if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                    const body = m.querySelector('.ant-modal-body');
+                    if(body && body.children.length > 0){ modalBody = body; break; }
+                }
+                if(!modalBody) return {ok: false, reason: 'no_modal'};
+                const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
+                if(!input) return {ok: false, reason: 'no_input'};
+                input.focus();
+                input.value = '';
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeInputValueSetter.call(input, keyword);
+                input.dispatchEvent(new Event('keydown', {bubbles: true}));
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+                input.dispatchEvent(new Event('keyup', {bubbles: true}));
+                input.dispatchEvent(new Event('change', {bubbles: true}));
+                const enterEvent = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true});
+                input.dispatchEvent(enterEvent);
+                input.dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}));
+                return {ok: true, inputValue: input.value};
+            }""", "108451")
+            print(f"  Modal搜索(含Enter)(朱海江): {type_result2}")
+            time.sleep(2.5)
+
+        tree_result2 = ep.evaluate("""(keyword) => {
+            function isVis(el){
+                if(!el) return false;
+                const s = window.getComputedStyle(el);
+                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+            }
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let modalBody = null;
+            for(const m of modals){
+                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                const body = m.querySelector('.ant-modal-body');
+                if(body && body.children.length > 0){ modalBody = body; break; }
+            }
+            if(!modalBody) return {status: 'no_modal'};
+            const treeNodes = modalBody.querySelectorAll('.ant-tree-treenode');
+            for(const node of treeNodes){
+                if(!isVis(node)) continue;
+                const title = node.querySelector('.ant-tree-title');
+                if(!title) continue;
+                const titleText = (title.textContent || '').trim();
+                if(titleText.includes(keyword)){
+                    const checkbox = node.querySelector('.ant-tree-checkbox');
+                    if(checkbox){ checkbox.click(); return {status: 'checked', text: titleText.substring(0, 60)}; }
+                    title.click();
+                    return {status: 'clicked_title', text: titleText.substring(0, 60)};
+                }
+            }
+            const allTitles = modalBody.querySelectorAll('.ant-tree-title');
+            for(const t of allTitles){
+                if(!isVis(t)) continue;
+                const txt = (t.textContent || '').trim();
+                if(txt.includes(keyword)){
+                    let el = t.parentElement;
+                    while(el){
+                        const cb = el.querySelector('.ant-tree-checkbox');
+                        if(cb && isVis(cb)){ cb.click(); return {status: 'checked_ancestor', text: txt.substring(0, 60)}; }
+                        if(el.classList.contains('ant-tree')) break;
+                        el = el.parentElement;
+                    }
+                    let sib = t.previousElementSibling;
+                    while(sib){
+                        if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_prev', text: txt.substring(0, 60)}; }
+                        sib = sib.previousElementSibling;
+                    }
+                    sib = t.nextElementSibling;
+                    while(sib){
+                        if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_next', text: txt.substring(0, 60)}; }
+                        sib = sib.nextElementSibling;
+                    }
+                    const parent = t.parentElement;
+                    if(parent){
+                        const cb = parent.querySelector('.ant-tree-checkbox');
+                        if(cb && isVis(cb)){ cb.click(); return {status: 'checked_parent', text: txt.substring(0, 60)}; }
+                    }
+                    t.click();
+                    return {status: 'clicked_title_fallback', text: txt.substring(0, 60)};
+                }
+            }
+            return {status: 'not_found'};
+        }""", "朱海江")
+        print(f"  树节点勾选(朱海江): {tree_result2}")
+        time.sleep(0.8)
+
+        if tree_result2.get('status', '').startswith('checked') or tree_result2.get('status', '').startswith('clicked'):
+            confirm_result2 = ep.evaluate("""() => {
+                function isVis(el){
+                    if(!el) return false;
+                    const s = window.getComputedStyle(el);
+                    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+                }
+                const modals = document.querySelectorAll('.ant-modal-wrap');
+                for(const m of modals){
+                    if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                    const footer = m.querySelector('.ant-modal-footer');
+                    if(!footer) continue;
+                    for(const btn of footer.querySelectorAll('button, .ant-btn')){
+                        if(!isVis(btn)) continue;
+                        const bt = (btn.textContent || '').trim();
+                        if(bt === '确 定' || bt === '确定' || bt === '确认'){ btn.click(); return {status: 'confirmed', source: 'modal_footer', btnText: bt}; }
+                    }
+                    for(const btn of footer.querySelectorAll('.ant-btn-primary')){
+                        if(isVis(btn)){ btn.click(); return {status: 'confirmed_primary'}; }
+                    }
+                }
+                return {status: 'no_confirm_btn'};
+            }""")
+            print(f"  确认按钮(朱海江): {confirm_result2}")
+            if confirm_result2.get('status', '').startswith('confirmed'):
+                print(f"  ✅ 已选: 朱海江(108451)")
+                time.sleep(1.5)
+        else:
+            print(f"  ⚠ 未在树中找到 朱海江: {tree_result2}")
+        time.sleep(1.0)
+
     # ==================== [14] 变更需求类型 ====================
     print("\n" + "=" * 55)
     print("[14] 变更需求类型 → 普通业务功能...")
@@ -3679,6 +3990,16 @@ def main():
     fill_input_by_label(ep, "变更成功标准", "升级验证成功", "变更成功标准")
 
     # ==================== [18.55] 变更系统信息 ====================
+    # 融合 spb-extract：自动提取当前系统版本的升级包变更内容，生成 upt_content.txt
+    print("\n" + "=" * 55)
+    print("[18.55] 变更系统信息 → 尝试自动提取升级包变更内容 (spb-extract 融合)...")
+    project_root = locate_project_root()
+    extract_ok, extract_msg = auto_extract_upt_content(MODE, project_root)
+    if extract_ok:
+        print(f"  ✅ {extract_msg}")
+    else:
+        print(f"  ⚠ 自动提取未执行: {extract_msg}，回退到已有 upt_content.txt / 静态配置")
+
     # 查找 upt_content.txt
     upt_content_file = None
     for start_dir in [os.getcwd(), SCRIPT_DIR]:
@@ -3737,6 +4058,14 @@ def main():
             print(f"  [UptContent] 成功解析了 {len(parsed_blocks)} 个变更数据块")
         except Exception as e:
             print(f"  [UptContent] 读取/解析失败: {e}")
+
+    # 检测是否包含适配器升级（用于决定是否新增朱海江作为实施负责人）
+    has_adapter_upgrade = any(
+        "适配器" in block.get("变更文件", "") or "适配器" in block.get("变更部位", "")
+        for block in parsed_blocks
+    )
+    if has_adapter_upgrade:
+        print(f"  [UptContent] 检测到适配器升级，将新增朱海江(108451)作为实施负责人")
 
     # 构建和填写动作
     if parsed_blocks:

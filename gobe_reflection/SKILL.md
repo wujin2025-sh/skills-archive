@@ -1,7 +1,10 @@
 ---
 name: gobe_reflection
-description: 基于 GOBE 经典复盘体系与专业复盘（GRA）方法论结合的深度复盘与系统升维 Engine。支持全量 Skill 矩阵评估、单点项目/故障复盘及周期性复盘，具备 5-Why 根因追问、双环学习回流、P0/P1/P2 显式优先级及 AI-todo 自动同步功能。
+description: 基于 GOBE 经典复盘体系与专业复盘（GRA）方法论结合的深度复盘与系统升维 Engine。支持全量 Skill 矩阵评估、单点项目/故障复盘及周期性复盘，具备
+  5-Why 根因追问、双环学习回流、P0/P1/P2 显式优先级及 AI-todo 自动同步功能。
+disable: false
 ---
+
 
 # GOBE 深度复盘与职场系统升维 Engine (v2.0 旗舰版)
 

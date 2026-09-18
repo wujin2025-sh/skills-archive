@@ -1,12 +1,10 @@
 ---
 name: wujin-demand-filter
-description: "根据输入的计划生产排期日期，筛选大宽表中需求受理人含吴进的需求列表。共享大宽表本地热缓存（.sheet_rows_cache.pkl），命中热缓存时 0.17s 秒级响应，支持 API 及 Playwright 智能多层兜底。"
-agent_created: true
-allowed-tools:
-  - Bash
-  - Read
-  - Write
+description: 根据输入的计划生产排期日期，筛选大宽表中需求受理人含吴进的需求列表。共享大宽表本地热缓存（.sheet_rows_cache.pkl），命中热缓存时
+  0.17s 秒级响应，支持 API 及 Playwright 智能多层兜底。
+disable: false
 ---
+
 
 # 计划生产排期下吴进需求筛选技能 (wujin-demand-filter)
 

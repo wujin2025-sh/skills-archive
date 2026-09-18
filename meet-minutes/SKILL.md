@@ -1,17 +1,10 @@
 ---
 name: meet-minutes
-description: 将会议语音转写记录与《人员部门对应关系表》整合为专业、精炼、结构化、排版严谨的券商IT项目会议纪要，输出可直接复制到邮件客户端的纯文本格式。自动提取需求编号(demand_id)，并在生成纪要MD的属性中填充；若存在需求编号，自动将纪要核心决策按meet-to-req规则融入到 /Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析 对应的需求MD文档中。当用户提供会议转写内容并要求生成会议纪要/邮件时使用本技能。
-agent_created: true
-version: 2.17
-read_when:
-  - User provides meeting transcript or audio file (.m4a, .mp3, .wav) and asks to generate meeting minutes or email
-  - User mentions 会议纪要, 会议记录, 会议转纪要, 音频转纪要, meeting minutes, meet-minutes
-  - User says /会议转纪要 with optional date and/or demand_id (e.g. 会议转纪要 20260722 R2607090120)
-  - User passes an audio file path (e.g. 交易系统兼容性问题讨论.m4a) asking to generate meeting minutes
-  - User says /meet-minutes with optional date and/or demand_id (e.g. meet-minutes 20260722 R2607090120)
-  - User mentions demand_id or demand number (e.g. R2607090120) when generating meeting minutes
-  - User says 发邮件 after meeting minutes have been generated
+description: 将会议语音转写记录与《人员部门对应关系表》整合为专业、精炼、结构化、排版严谨的券商IT项目会议纪要，输出可直接复制到邮件客户端的纯文本格式。自动提取需求编号(demand_id)，并在生成纪要MD的属性中填充；若存在需求编号，自动将纪要核心决策按meet-to-req规则融入到
+  /Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析 对应的需求MD文档中。当用户提供会议转写内容并要求生成会议纪要/邮件时使用本技能。
+disable: false
 ---
+
 
 # meet-minutes 会议转纪要技能
 

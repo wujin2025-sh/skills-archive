@@ -2,3 +2,70 @@ interface:
   display_name: "BA-to-Dev"
   short_description: "Convert business requirements to structured R&D Markdown"
   default_prompt: "将以下业务需求转换为可直接指导研发与测试的结构化 Markdown 文档"
+
+# =============================================================================
+# 本地优先扫描配置（强制执行 SKILL.md 第 99-117 行规定）
+# =============================================================================
+
+# 数据源优先级（自上而下递减，命中即停）
+data_source_priority:
+  - local_obsidian      # 第一优先级：本地 Obsidian 仓库（0 秒响应）
+  - mcp_kjptai         # 第二优先级：科技平台 MCP（仅当本地未命中时启用）
+
+# 本地扫描路径配置
+local_scan_paths:
+  - "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/"
+  - "/Volumes/Macintosh HD_Data/obsidian/100_Projects/业务梳理/"
+
+# 三路并行检索策略（缺一不可）
+local_retrieval_strategy:
+  enabled: true
+  fail_on_multiple_matches: false  # 允许多个同名文件，以 req_id 为唯一判据
+  
+  paths:
+    # 路径 1: 文件名 Glob 匹配
+    - type: "glob"
+      pattern: "**/*R{req_id}*"
+      weight: 1
+      
+    # 路径 2: Front Matter Grep（关键路径，权威性最高）
+    - type: "frontmatter_grep"
+      field: "req_id"
+      value: "{req_id}"
+      weight: 3  # 最高权重，因为文件名常不含需求号
+      
+    # 路径 3: 标题核心词 Grep（兜底路径）
+    - type: "title_keyword_grep"
+      extract_from: "business_input"
+      weight: 2
+
+# 重复文件防护（硬闸门）
+duplicate_prevention:
+  enabled: true
+  unique_key: "req_id"  # 以 req_id 为唯一判据，不以文件名为准
+  action_on_match: "incremental_update"  # 命中时增量更新，严禁新建
+  forbidden_actions:
+    - "create_duplicate_file"
+    - "overwrite_without_diff"
+
+# MCP 调用节制策略
+mcp_throttling:
+  enabled: true
+  skip_conditions:
+    - "local_file_found"           # 本地命中时跳过 MCP
+    - "force_refresh_not_requested" # 用户未要求 --force/--remote 时跳过
+  force_refresh_triggers:
+    - "--force"
+    - "--remote"
+    - "--refresh"
+    - "-f"
+    - "强制刷新"
+    - "重新从平台拉取"
+
+# 缓存策略
+cache_policy:
+  type: "local_first"
+  ttl_seconds: 86400  # 24 小时本地缓存有效期
+  invalidate_on:
+    - "manual_force_refresh"
+    - "status_change_detected"

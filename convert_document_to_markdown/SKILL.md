@@ -1,13 +1,14 @@
 ---
 name: convert_document_to_markdown
-description: >
-  当用户要求你阅读、解析、总结、翻译或提取某份文件（或链接）的内容时，必须调用此工具。此工具将复杂的文件格式转换为你易于理解的纯 Markdown 文本。
-  支持的文件类型包括：PDF、Word (.docx)、PowerPoint (.pptx)、Excel (.xlsx)、图像、音频、HTML 网页、CSV、JSON、XML、ZIP 等。
-  调用注意事项：
-  1. 如果用户提供的是本地路径，请原样传入。
-  2. 如果用户提供的是网页链接或下载 URL，请传入 URL。
-  3. 获取到 Markdown 文本后，请根据用户的具体指令（如总结摘要、提取表格、翻译等）对文本进行二次处理并回复用户。
+description: '当用户要求你阅读、解析、总结、翻译或提取某份文件（或链接）的内容时，必须调用此工具。此工具将复杂的文件格式转换为你易于理解的纯 Markdown
+  文本。 支持的文件类型包括：PDF、Word (.docx)、PowerPoint (.pptx)、Excel (.xlsx)、图像、音频、HTML 网页、CSV、JSON、XML、ZIP
+  等。 调用注意事项： 1. 如果用户提供的是本地路径，请原样传入。 2. 如果用户提供的是网页链接或下载 URL，请传入 URL。 3. 获取到 Markdown
+  文本后，请根据用户的具体指令（如总结摘要、提取表格、翻译等）对文本进行二次处理并回复用户。
+
+  '
+disable: false
 ---
+
 
 # Convert Document to Markdown (智能文档解析/转换)
 

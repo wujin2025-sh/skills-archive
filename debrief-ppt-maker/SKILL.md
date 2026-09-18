@@ -1,7 +1,9 @@
 ---
 name: debrief-ppt-maker
 description: 专业述职PPT制作技能。根据用户提供的工作大纲，基于默认模板自动生成完整HTML述职演示文稿。触发词：述职PPT、述职报告、工作汇报PPT、季度总结PPT、年度述职、阶段汇报、slide_edit、slide_present。
+disable: false
 ---
+
 
 # Debrief PPT Maker
 

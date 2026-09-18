@@ -1,12 +1,10 @@
 ---
 name: wujin-focus-demands
-description: "根据大宽表数据，提取吴进名下的重点关注需求，并自动同步追加到腾讯文档「重点需求」子表。支持大宽表 API 高速匹配、本地缓存兜底以及通过 tencent-docs MCP 与腾讯文档进行双向通信。"
-agent_created: true
-allowed-tools:
-  - Bash
-  - Read
-  - Write
+description: 根据大宽表数据，提取吴进名下的重点关注需求，并自动同步追加到腾讯文档「重点需求」子表。支持大宽表 API 高速匹配、本地缓存兜底以及通过
+  tencent-docs MCP 与腾讯文档进行双向通信。
+disable: false
 ---
+
 
 # 吴进重点需求提取与同步技能
 
@@ -29,10 +27,11 @@ allowed-tools:
 
 ### 功能特点
 
-1. **自动清理上线需求**：自动识别腾讯文档中已经是“已上线”或者在宽表中最新状态更新为“已上线”的需求行，并从表格中自动删除。
+1. **自动清理上线需求**：自动识别腾讯文档中已经是“已上线”或者在宽表中最新状态更新为“已上线”的需求行，并从表格中自动删除。使用 `sheet.delete_dimension(dimension_type="ROWS")` 进行可靠的行删除，**切勿使用 `sheet.operation_sheet` + `deleteRow()`**（该方式存在已知静默失败限制：`deleteRow may have silently failed`，腾讯文档 MCP 返回 error code 999 但脚本无法感知，导致已上线需求残留）。
 2. **自动去重比对**：读取腾讯文档已有的记录，差量找出新产生的重点需求进行追加。
 3. **高保真单元格超链接**：写入腾讯文档时，会对需求详情 URL 进行高保真超链接配置（调用 `sheet.set_link`），让用户可在文档中直接点击打开 Fintech 详情页。
 4. **高速 API 及缓存兜底**：大宽表数据的拉取首先尝试使用平台高速 API。如果鉴权失效或网络不通，会自动读取 `/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/.table_cache.json` 进行本地兜底，确保在任何情况下脚本均能正常工作。
+5. **mcporter 代理自动注入**：`run_mcp_command` 已内置 `NODE_USE_ENV_PROXY=1` + 系统 Wi-Fi 代理注入（自动探测 `networksetup -getwebproxy Wi-Fi`，兜底 `http://172.16.0.11:3128`）。原因：公司网络封锁 `docs.qq.com` 直连，且 Node fetch 默认不读代理环境变量；浏览器能访问是因为走系统 Wi-Fi 代理，而命令行需要显式注入。若换网络环境后失败，可用 `MCPORTER_PROXY` 环境变量显式指定代理地址。
 
 ## 字段映射关系
 

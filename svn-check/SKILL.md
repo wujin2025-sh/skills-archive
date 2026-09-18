@@ -1,13 +1,14 @@
 ---
 name: svn-check
-description: >
-  主要用于检查针对需求编号或任务编号（一个或多个），UAT仓库提交记录晚于生产仓库的差异版本（仅做差异检查，不修改代码）。
-  支持并发多线程核对，性能极佳。
-  支持通过 --system 参数指定分支系统（默认 jzjy 集中交易，可切换为 cszx 参数中心）。
-  支持解析Excel复制的多行Tab分隔数据或以逗号/空格分隔的列表。
-  触发词：svn-check、svn检查、svn差异检查、检查svn、svn 检查、svncheck、cszx-svn-check、cszx-svn检查、cszx-svn差异检查、cszx-svn 检查、cszx-svncheck。
-agent_created: true
+description: '主要用于检查针对需求编号或任务编号（一个或多个），UAT仓库提交记录晚于生产仓库的差异版本（仅做差异检查，不修改代码）。 支持并发多线程核对，性能极佳。
+  支持通过 --system 参数指定分支系统（默认 jzjy 集中交易，可切换为 cszx 参数中心）。 支持解析Excel复制的多行Tab分隔数据或以逗号/空格分隔的列表。
+  触发词：svn-check、svn检查、svn差异检查、检查svn、svn 检查、svncheck、cszx-svn-check、cszx-svn检查、cszx-svn差异检查、cszx-svn
+  检查、cszx-svncheck。
+
+  '
+disable: false
 ---
+
 
 # svn-check (SVN 分支差异并发检查技能)
 

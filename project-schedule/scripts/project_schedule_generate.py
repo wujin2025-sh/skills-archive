@@ -33,134 +33,71 @@ RE_SUBTITLE = re.compile(r'^(JY\d+\-|【.*?】)')
 _CACHE_DATA_SINGLETON = None
 _CACHE_INDEX_BY_DEMAND = None
 
-# 需求编号子标题映射
-DEMAND_SUBTITLE_MAP = {
-    "R2603130062": "富易网络投票切换清算",
-    "R2603110056": "历史文件迁移到清算",
-    "R2602120019": "银证转账历史文件迁移",
-    "R2602120009": "交易历史文件迁移",
-    "R2602120017": "担保费率等迁移参数后台",
-    "R2604300028": "融资仓单偿还数量优化",
-    "R2606170151": "买券还券增加风险警示板权限",
+# 共享映射（shared_maps.json 单一数据源）：需求子标题 + Story 名称精炼，人工维护
+def _load_shared_maps():
+    """加载共享映射：DEMAND_SUBTITLE_MAP / STORY_NAME_MAP（人工精炼产物，单一数据源）"""
+    maps_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shared_maps.json")
+    if os.path.exists(maps_path):
+        try:
+            with open(maps_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("demand_subtitle", {}), data.get("story_name", {})
+        except Exception:
+            pass
+    return {}, {}
+
+DEMAND_SUBTITLE_MAP, STORY_NAME_MAP = _load_shared_maps()
+
+# 实际结束日期：全部来自 fetch_story_actual_end.py 自动抓取缓存（story_actual_end_cache.json）
+def _load_actual_end_cache():
+    """加载 story_actual_end_cache.json（fetch_story_actual_end.py 自动抓取产物）"""
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_actual_end_cache.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+ACTUAL_END_MERGED = _load_actual_end_cache()
+
+# ---- story_meta_cache.json 自动抓取合并（fetch_story_meta.py 产物）----
+# 数据源：自动抓取缓存 story_meta_cache.json > 平台缓存字段（无任何人工硬编码映射）
+def _load_story_meta_cache():
+    """加载 story_meta_cache.json（fetch_story_meta.py 自动抓取产物）"""
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_meta_cache.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+STORY_META = _load_story_meta_cache()
+
+# Story 级提出人 / 业务验收人 / 计划结束（键为 S 编号）
+REQUESTER_MERGED = {sc: e["requester"] for sc, e in STORY_META.items() if e.get("requester")}
+ACCEPTOR_MERGED = {sc: e["acceptor"] for sc, e in STORY_META.items() if e.get("acceptor")}
+PLAN_END_MERGED = {
+    sc: {k: e.get("plan_" + k) for k in ("dev", "sit", "uat") if e.get("plan_" + k)}
+    for sc, e in STORY_META.items()
+    if any(e.get("plan_" + k) for k in ("dev", "sit", "uat"))
 }
 
-# 已知 Story ID 到任务名称硬编码映射（优先匹配）
-STORY_NAME_MAP = {
-    "S2603160070": "富易网络投票切换清算配合",
-    "S2603160083": "移动端网络投票切换封装配合",
-    "S2603190133": "JY977-富易投票切换清算",
-    "S2603190136": "富易投票接口切换测试配合",
-    "S2603110132": "配合测试-历史文件迁移",
-    "S2603110133": "委托和沪港通委托历史文件迁移",
-    "S2603190060": "历史文件迁移非现场配合",
-    "S2603190061": "历史文件迁移反洗钱配合",
-    "S2603190062": "历史文件迁移信用业务配合",
-    "S2605290172": "历史文件迁移大数据配合",
-    "S2606080286": "配合历史数据迁移监控",
-    "S2602120030": "银证转账迁移配合测试",
-    "S2602120031": "银证转账迁移集中交易配合",
-    "S2603110087": "银证转账迁移大数据模块",
-    "S2603180160": "银证转账配合(BDNEW_3.1)",
-    "S2603180162": "银证转账迁移反洗钱配合",
-    "S2603180163": "银证转账迁移非现场配合",
-    "S2602120011": "集中交易历史数据文件迁移",
-    "S2602120012": "集中交易历史数据迁移配合",
-    "S2603190066": "历史数据迁移非现场监控配合",
-    "S2603190067": "历史文件迁移反洗钱监控配合",
-    "S2603190068": "历史文件迁移信用业务配合",
-    "S2602120027": "两融担保费率迁移至参数后台",
-    "S2602120029": "两融历史文件迁移配合测试",
-}
+# 需求级提出人：从缓存 Story requester 自动推导（同一需求下各 Story 提出人一致）
+DEMAND_REQUESTER_MERGED = {}
+for _sc, _e in STORY_META.items():
+    if _e.get("requester") and _e.get("demandId"):
+        DEMAND_REQUESTER_MERGED.setdefault(_e["demandId"], _e["requester"])
 
-# 明确从 Story 节点/平台抓取的各阶段【经办人】覆盖
-LIVE_NODE_MAP = {
-    "S2606030085": {"dev": ["邢航源"]},
-}
-
-# 明确从 Story 一生 / 平台节点确认的实际完成日期
-STORY_ACTUAL_END_MAP = {
-    "S2604070091": {"dev": "2026-05-15", "sit": "2026-08-07"},
-    "S2604070092": {"dev": "2026-06-15", "sit": "2026-08-10"},
-    "S2604130029": {"dev": "2026-04-20", "sit": "2026-08-07"},
-    "S2604130030": {"dev": "2026-06-15", "sit": "2026-08-10"},
-    "S2606030083": {"dev": "2026-07-14"},
-    "S2605070090": {"dev": "2026-06-15", "sit": "2026-07-24"},
-    "S2605070105": {"dev": "2026-06-15", "sit": "2026-07-24"},
-    "S2605070103": {"dev": "2026-05-27", "sit": "2026-08-10"},
-    "S2605070104": {"dev": "2026-06-15"},
-    "S2606030085": {"dev": "2026-07-14"},
-}
-
-# 明确从 Story 详情 -> 基本信息 确认的【原始需求提出人】映射
-STORY_ORIGINAL_REQUESTER_MAP = {
-    "S2604070091": "匡正祥",
-    "S2604070092": "匡正祥",
-    "S2604130029": "匡正祥",
-    "S2604130030": "匡正祥",
-    "S2606030083": "匡正祥",
-    "S2605070090": "刘志林",
-    "S2605070105": "刘志林",
-    "S2605070104": "刘志林",
-    "S2605070103": "刘志林",
-    "S2606030085": "刘志林",
-    "R2603250074": "匡正祥",
-    "R2603250136": "匡正祥",
-    "R2604220006": "刘志林",
-    "R2604220009": "刘志林",
-    "R2604220010": "刘志林",
-}
-
-# 明确从 Story 详情 -> 业务与设计 确认的【业务验收人】映射（严格独立 Story 级别）
-STORY_BUSINESS_ACCEPTOR_MAP = {
-    "S2604070091": "金渤文",
-    "S2604070092": "金渤文",
-    "S2604130029": "金渤文",
-    "S2604130030": "金渤文",
-    "S2606030083": "匡正祥",
-    "S2605070090": "金渤文",
-    "S2605070105": "金渤文",
-    "S2605070104": "金渤文",
-    "S2605070103": "金渤文",
-    "S2606030085": "刘志林",
-}
-
-# 明确从 Story 评估卡片解析确认的各自阶段【预计结束时间】
-STORY_PLAN_END_MAP = {
-    "S2604070091": {"dev": "2026-05-22", "sit": "2026-08-07"},
-    "S2604070092": {"dev": "2026-06-05", "sit": "2026-08-14", "uat": "2026-08-21"},
-    "S2604130029": {"dev": "2026-05-16", "sit": "2026-08-07"},
-    "S2604130030": {"dev": "2026-06-05", "sit": "2026-08-14", "uat": "2026-08-21"},
-    "S2606030083": {"dev": "2026-07-24"},
-    "S2605070090": {"dev": "2026-07-06", "sit": "2026-05-20"},
-    "S2605070105": {"dev": "2026-07-21", "sit": "2026-05-20"},
-    "S2605070103": {"dev": "2026-05-30", "sit": "2026-06-26"},
-    "S2605070104": {"dev": "2026-06-05", "sit": "2026-08-14"},
-    "S2606030085": {"dev": "2026-07-24"},
-}
-
-# 明确针对 Epic 同批上线的【计划生产排期】Override（史诗全体统一上线批次）
-STORY_DELIVERY_DATE_MAP = {
-    "PG202204-0263": "2026-09-04",
-    "R2603250074": "2026-09-04",
-    "R2603250136": "2026-09-04",
-    "R2604220006": "2026-09-04",
-    "R2604220009": "2026-09-04",
-    "R2604220010": "2026-09-04",
-    "S2604070091": "2026-09-04",
-    "S2604070092": "2026-09-04",
-    "S2604130029": "2026-09-04",
-    "S2604130030": "2026-09-04",
-    "S2606030083": "2026-09-04",
-    "S2605070090": "2026-09-04",
-    "S2605070105": "2026-09-04",
-    "S2605070104": "2026-09-04",
-    "S2605070103": "2026-09-04",
-    "S2606030085": "2026-09-04",
-}
+# 计划生产排期统一从需求大宽表中 Story 的 planProdLineDate 字段实时读取，不做任何硬编码覆盖
+STORY_DELIVERY_DATE_MAP = {}
 
 # 动态流程节点解析映射（优先自动从 Live Scraper / Cache 载入，绝无硬编码列举）
 LIVE_NODE_MAP = {}
-LIVE_CACHE_PATH = "/Users/wujin/.gemini/antigravity/brain/219cca84-5e4b-4f93-ad72-4827f20dba66/scratch/live_dynamic_node_results.json"
+LIVE_CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_dynamic_node_results.json")
 if os.path.exists(LIVE_CACHE_PATH):
     try:
         with open(LIVE_CACHE_PATH, "r", encoding="utf-8") as f:
@@ -499,6 +436,10 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
             
             phase_level = determine_story_phase_level(status)
 
+            # 过滤规则：已终止(终止)的 Story 一律从进度表中剔除
+            if phase_level == -1 or "终止" in status:
+                continue
+
             # Extract Epic ID from the row
             epic_id = r.get("epicCode") or r.get("epicNo") or ""
             if not epic_id and r.get("epicConcat"):
@@ -520,12 +461,12 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
             dev_owner_html = "<br>".join(dev_owners) if dev_owners else "/"
 
             dev_end = clean_date_str(r.get("devAssessDateEnd"))
-            if dev_end == "--" and s_id in STORY_PLAN_END_MAP and "dev" in STORY_PLAN_END_MAP[s_id]:
-                dev_end = STORY_PLAN_END_MAP[s_id]["dev"]
+            if dev_end == "--" and s_id in PLAN_END_MERGED and "dev" in PLAN_END_MERGED[s_id]:
+                dev_end = PLAN_END_MERGED[s_id]["dev"]
 
             dev_fact = get_valid_date(r, "devFactEndDate", "devActualDate", "devFinishTime")
-            if s_id in STORY_ACTUAL_END_MAP and "dev" in STORY_ACTUAL_END_MAP[s_id]:
-                dev_act = STORY_ACTUAL_END_MAP[s_id]["dev"]
+            if s_id in ACTUAL_END_MERGED and "dev" in ACTUAL_END_MERGED[s_id]:
+                dev_act = ACTUAL_END_MERGED[s_id]["dev"]
             elif dev_fact != "--":
                 dev_act = dev_fact
             else:
@@ -549,12 +490,12 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
             uat_owner_html = "<br>".join(uat_owners) if uat_owners else "/"
 
             sit_end = clean_date_str(r.get("sitTestAssessDateEnd"))
-            if sit_end == "--" and s_id in STORY_PLAN_END_MAP and "sit" in STORY_PLAN_END_MAP[s_id]:
-                sit_end = STORY_PLAN_END_MAP[s_id]["sit"]
+            if sit_end == "--" and s_id in PLAN_END_MERGED and "sit" in PLAN_END_MERGED[s_id]:
+                sit_end = PLAN_END_MERGED[s_id]["sit"]
 
             sit_fact = get_valid_date(r, "sitFactEndDate", "sitActualDate", "sitFinishTime", "sitTestFinishTime")
-            if s_id in STORY_ACTUAL_END_MAP and "sit" in STORY_ACTUAL_END_MAP[s_id]:
-                sit_act = STORY_ACTUAL_END_MAP[s_id]["sit"]
+            if s_id in ACTUAL_END_MERGED and "sit" in ACTUAL_END_MERGED[s_id]:
+                sit_act = ACTUAL_END_MERGED[s_id]["sit"]
             elif sit_fact != "--":
                 sit_act = sit_fact
             else:
@@ -562,18 +503,19 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
             sit_status = compute_phase_status('sit', sit_end, sit_act, phase_level, status)
 
             uat_end = clean_date_str(r.get("uatTestAssessDateEnd"))
-            if uat_end == "--" and s_id in STORY_PLAN_END_MAP and "uat" in STORY_PLAN_END_MAP[s_id]:
-                uat_end = STORY_PLAN_END_MAP[s_id]["uat"]
+            if uat_end == "--" and s_id in PLAN_END_MERGED and "uat" in PLAN_END_MERGED[s_id]:
+                uat_end = PLAN_END_MERGED[s_id]["uat"]
             uat_fact = get_valid_date(r, "uatFactEndDate", "uatActualDate", "uatFinishTime")
-            if s_id in STORY_ACTUAL_END_MAP and "uat" in STORY_ACTUAL_END_MAP[s_id]:
-                uat_act = STORY_ACTUAL_END_MAP[s_id]["uat"]
+            if s_id in ACTUAL_END_MERGED and "uat" in ACTUAL_END_MERGED[s_id]:
+                uat_act = ACTUAL_END_MERGED[s_id]["uat"]
             elif uat_fact != "--":
                 uat_act = uat_fact
             else:
                 uat_act = "--"
             uat_status = compute_phase_status('uat', uat_end, uat_act, phase_level, status)
 
-            delivery_date = STORY_DELIVERY_DATE_MAP.get(s_id) or STORY_DELIVERY_DATE_MAP.get(d_id) or get_valid_date(r, "planProdLineDate", "demandEsDuedate", "demandWishDate")
+            # 计划生产排期：直接读取需求大宽表中 Story 的 planProdLineDate 字段（不硬编码）
+            delivery_date = get_valid_date(r, "planProdLineDate", "demandEsDuedate", "demandWishDate")
             overall_status = compute_phase_status('delivery', delivery_date, None, phase_level, status)
 
             overdue_days_list = [
@@ -592,13 +534,13 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
                 overall_status = "按计划推进"
 
             # 1. 原始需求提出人：取 Story 详情 - 基本信息 : 原始需求提出人
-            requester = STORY_ORIGINAL_REQUESTER_MAP.get(s_id) or STORY_ORIGINAL_REQUESTER_MAP.get(d_id) or parse_owner(r.get("originalRequester") or r.get("demandCreatePerson") or r.get("cUserName") or r.get("userName") or first_row.get("originalRequester"))
+            requester = REQUESTER_MERGED.get(s_id) or DEMAND_REQUESTER_MERGED.get(d_id) or parse_owner(r.get("originalRequester") or r.get("demandCreatePerson") or r.get("cUserName") or r.get("userName") or first_row.get("originalRequester"))
             if not requester:
                 requester = "/"
 
             # 2. 业务验收人：取 Story 详情 - 业务与设计 : 业务验收人 (Story 独立级优先)
             raw_acceptor = r.get("businessAcceptorName") or r.get("storyBusAcceptor") or r.get("busAcceptor") or r.get("businessAcceptor")
-            business_acceptor = STORY_BUSINESS_ACCEPTOR_MAP.get(s_id) or parse_owner(raw_acceptor)
+            business_acceptor = ACCEPTOR_MERGED.get(s_id) or parse_owner(raw_acceptor)
             if not business_acceptor:
                 business_acceptor = "/"
 
@@ -745,9 +687,9 @@ def parse_result_file(file_path, demand_id, demand_to_epic=None):
             sit_fact = clean_date_str(re.search(r"SIT实际结束：([^\s|]*)", block_body).group(1)) if re.search(r"SIT实际结束：([^\s|]*)", block_body) else "--"
             uat_fact = clean_date_str(re.search(r"UAT实际结束：([^\s|]*)", block_body).group(1)) if re.search(r"UAT实际结束：([^\s|]*)", block_body) else "--"
 
-            dev_act = STORY_ACTUAL_END_MAP.get(story_id, {}).get("dev", dev_fact)
-            sit_act = STORY_ACTUAL_END_MAP.get(story_id, {}).get("sit", sit_fact)
-            uat_act = STORY_ACTUAL_END_MAP.get(story_id, {}).get("uat", uat_fact)
+            dev_act = ACTUAL_END_MERGED.get(story_id, {}).get("dev", dev_fact)
+            sit_act = ACTUAL_END_MERGED.get(story_id, {}).get("sit", sit_fact)
+            uat_act = ACTUAL_END_MERGED.get(story_id, {}).get("uat", uat_fact)
 
             dev_status = compute_phase_status('dev', dev_end, dev_act, phase_level, status)
             sit_status = compute_phase_status('sit', sit_end, sit_act, phase_level, status)
@@ -755,7 +697,11 @@ def parse_result_file(file_path, demand_id, demand_to_epic=None):
             overall_status = compute_phase_status('delivery', delivery_date, None, phase_level, status)
 
             story_name = clean_story_name(story_id, raw_story_name)
-            
+
+            # 过滤规则：已终止(终止)的 Story 一律从进度表中剔除
+            if "终止" in status:
+                continue
+
             acceptor_match = re.search(r"业务验收人：([^\s|]*)", block_body)
             bus_result_match = re.search(r"业务验收结果：([^\s|]*)", block_body)
             
@@ -907,7 +853,7 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
       <tr{row_style}>
         {epic_td}
         <td class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px;">
-          <strong style="color: #1d4ed8;">{demand_id}</strong>
+          <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="color: #1d4ed8; font-weight: bold; text-decoration: underline;">{demand_id}</a>
           <span class="req-sub" style="font-size: 11px; color: #64748b; font-weight: normal; display: block; margin-top: 4px;">{subtitle}</span>
         </td>
         <td colspan="18" style="text-align: center; color: #64748b; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">（无关联 Story）</td>
@@ -938,7 +884,7 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
       <tr{row_style}>
         {epic_td}
         <td rowspan="{story_count}" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px;">
-          <strong style="color: #1d4ed8;">{demand_id}</strong>
+          <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="color: #1d4ed8; font-weight: bold; text-decoration: underline;">{demand_id}</a>
           <span class="req-sub" style="font-size: 11px; color: #64748b; font-weight: normal; display: block; margin-top: 4px;">{subtitle}</span>
         </td>
         <td {td_style}><strong>{story["id"]}</strong></td>
@@ -1216,7 +1162,8 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
             if len(stories) == 0:
                 continue
 
-        demand_col = f"**{demand_id}**<br>({subtitle})" if subtitle else f"**{demand_id}**"
+        demand_url = f"https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1"
+        demand_col = f"[{demand_id}]({demand_url})<br>({subtitle})" if subtitle else f"[{demand_id}]({demand_url})"
         epic_id = (stories[0].get("epic_id") if stories else None) or item.get("epic_id") or item.get("epic_code") or "--"
         epic_col = f"`{epic_id}`" if epic_id and epic_id != "--" else "--"
         
@@ -1358,10 +1305,6 @@ def generate_active_reminder_markdown(data_list):
     res.append("> **顺祝商祺！**")
     return res
 
-EPIC_NAME_MAP = {
-    "PG202204-0263": "CX-业务-QFII两融-二期",
-}
-
 async def resolve_epic_id(epic_id, script_dir):
     req_query_path = os.path.join(script_dir, "req_query.py")
     print(f"[Orchestrator] 检测到史诗编号 {epic_id}，正在解析关联的需求编号列表...")
@@ -1376,8 +1319,6 @@ async def resolve_epic_id(epic_id, script_dir):
             if epic_rows:
                 resolved_demands = list(dict.fromkeys([r.get("demandId") for r in epic_rows if r.get("demandId")]))
                 epic_name = epic_rows[0].get("epicName", "")
-                if not epic_name and epic_id in EPIC_NAME_MAP:
-                    epic_name = EPIC_NAME_MAP[epic_id]
                 print(f"[Orchestrator] (缓存秒级命中) 史诗 {epic_id} 关联需求: {resolved_demands}, 名称: {epic_name}")
                 return resolved_demands, epic_name
         except Exception:
@@ -1406,10 +1347,7 @@ async def resolve_epic_id(epic_id, script_dir):
     else:
         err_msg = stderr.decode('utf-8', errors='ignore')
         print(f"[Orchestrator] 史诗编号 {epic_id} 解析失败: {err_msg}", file=sys.stderr)
-        
-    if not epic_name and epic_id in EPIC_NAME_MAP:
-        epic_name = EPIC_NAME_MAP[epic_id]
-        
+
     print(f"[Orchestrator] 史诗 {epic_id} 关联需求解析结果: {resolved_demands}, 名称: {epic_name}")
     return resolved_demands, epic_name
 
@@ -1516,8 +1454,9 @@ async def main_async():
     if epic_names and args.project == "交易结算核心历史数据及接口迁移项目":
         project_name = epic_names[0]
 
-    html_path = args.output_html if args.output_html else f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.html"
-    md_path = args.output_md if args.output_md else f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.md"
+    default_dir = "/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪"
+    html_path = args.output_html if args.output_html else os.path.join(default_dir, f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.html")
+    md_path = args.output_md if args.output_md else os.path.join(default_dir, f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.md")
             
     # 去重并保持顺序
     seen = set()
@@ -1596,15 +1535,16 @@ async def main_async():
     generate_html(parsed_data, html_path, project_name, only_risk=args.only_risk)
     generate_markdown(parsed_data, md_path, project_name, only_risk=args.only_risk)
 
-    # 自动同步到 Obsidian 目录
+    # 自动同步到 Obsidian 目录（仅当输出路径不在 Obsidian 目录内时）
     obsidian_dir = "/Volumes/Macintosh HD_Data/obsidian/100_Projects/进度跟踪"
-    try:
-        os.makedirs(obsidian_dir, exist_ok=True)
-        obsidian_md_path = os.path.join(obsidian_dir, f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.md")
-        generate_markdown(parsed_data, obsidian_md_path, project_name, only_risk=args.only_risk)
-        print(f"[Orchestrator] 已成功同步写入 Obsidian 目录: {obsidian_md_path}")
-    except Exception as e:
-        print(f"[Orchestrator] 警告: 无法同步到 Obsidian 目录: {e}")
+    if not md_path.startswith(obsidian_dir):
+        try:
+            os.makedirs(obsidian_dir, exist_ok=True)
+            obsidian_md_path = os.path.join(obsidian_dir, f"{CURRENT_DATE_FILE_STR}-进度-{project_name}.md")
+            generate_markdown(parsed_data, obsidian_md_path, project_name, only_risk=args.only_risk)
+            print(f"[Orchestrator] 已同步写入 Obsidian 目录: {obsidian_md_path}")
+        except Exception as e:
+            print(f"[Orchestrator] 警告: 无法同步到 Obsidian 目录: {e}")
 
     # 如果指定了 --send-mail / --mail / --draft，自动将生成的 HTML 存入 Coremail 草稿箱
     if args.send_mail:
@@ -1668,6 +1608,9 @@ def extract_all_html_stakeholders(parsed_data):
             for k in ("dev_owners", "sit_owners", "uat_owners", "dev_owner", "sit_owner", "uat_owner", "bus_owner", "requester", "business_acceptor", "original_requester", "raw_dev_owner", "raw_sit_owner", "raw_uat_owner", "raw_requester", "raw_acceptor"):
                 process_field(s.get(k))
                             
+    # 收件人黑名单（需排除的异常人员，留空即不排除任何收件人）
+    EXCLUDED_RECIPIENTS = set()
+    stakeholders = [n for n in stakeholders if n not in EXCLUDED_RECIPIENTS]
     return stakeholders
 
 def generate_active_reminder_html(parsed_data):
@@ -1785,9 +1728,12 @@ def save_schedule_to_coremail_draft(html_file, subject, stakeholders, parsed_dat
         f.write(email_body)
         
     recipients_str = ", ".join(stakeholders)
+    # 固定抄送人（用户指定）：刘勇明、周尤珠、常丽、乔露露、纪飞
+    fixed_cc = "刘勇明, 周尤珠, 常丽, 乔露露, 纪飞"
     print(f"\n[Email] 🚀 正在自动存入 Coremail 草稿箱...")
     print(f"[Email] 📌 主题: {subject}")
     print(f"[Email] 👥 收件人 ({len(stakeholders)}位): {recipients_str}")
+    print(f"[Email] 📨 抄送: {fixed_cc}")
     
     cmd = [
         sys.executable,
@@ -1795,6 +1741,7 @@ def save_schedule_to_coremail_draft(html_file, subject, stakeholders, parsed_dat
         "--subject", subject,
         "--body-file", temp_email_body_file,
         "--recipients", recipients_str,
+        "--cc", fixed_cc,
         "--attachments", html_file
     ]
     

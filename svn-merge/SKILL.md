@@ -1,12 +1,13 @@
 ---
 name: svn-merge
-description: >
-  SVN Task编号粒度代码合并工具。从指定的源分支（UAT）搜索与给定Task编号（例如 JZJYPT-T202504823）
-  相关的提交修订版本（Revision），并一次性合并到本地工作目录中。若合并无冲突，则自动提交并附加标准日志；
-  若有冲突，则自动回滚（revert）并重新更新本地，确保工作副本干净。运行结束后会生成冲突报告与执行汇总。
-  触发词：svn-merge、dyssvn-merge、svn代码合并、代码合并、svn merge、svn 合并、dyssvn_merge_V3.py。
-agent_created: true
+description: 'SVN Task编号粒度代码合并工具。从指定的源分支（UAT）搜索与给定Task编号（例如 JZJYPT-T202504823） 相关的提交修订版本（Revision），并一次性合并到本地工作目录中。若合并无冲突，则自动提交并附加标准日志；
+  若有冲突，则自动回滚（revert）并重新更新本地，确保工作副本干净。运行结束后会生成冲突报告与执行汇总。 触发词：svn-merge、dyssvn-merge、svn代码合并、代码合并、svn
+  merge、svn 合并、dyssvn_merge_V3.py。
+
+  '
+disable: false
 ---
+
 
 # svn-merge (SVN代码合并技能)
 

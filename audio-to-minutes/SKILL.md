@@ -1,13 +1,10 @@
 ---
 name: audio-to-minutes
-description: 将录音/语音/音频文件（如 .m4a, .mp3, .wav, .flac 等）自动进行本地 Whisper 高精度语音转写，并结合《人员部门对应关系表》提炼、生成专业排版的券商 IT 会议纪要，自动归档 Markdown 到 Obsidian 并联动需求单融入 (meet-to-req)。当用户提供音频文件路径并要求生成会议纪要，或使用“音频转纪要”、“语音转纪要”、“/audio-to-minutes”时触发本技能。
-agent_created: true
-version: 1.0.0
-read_when:
-  - User passes an audio file path (e.g. 交易系统兼容性问题讨论.m4a) asking to transcribe or generate meeting minutes
-  - User says 音频转纪要, 语音转纪要, 录音转纪要, 音频转会议纪要, meeting minutes from audio
-  - User says /audio-to-minutes or /audio-minutes with optional audio file path and demand_id
+description: 将录音/语音/音频文件（如 .m4a, .mp3, .wav, .flac 等）自动进行本地 Whisper 高精度语音转写，并结合《人员部门对应关系表》提炼、生成专业排版的券商
+  IT 会议纪要，自动归档 Markdown 到 Obsidian 并联动需求单融入 (meet-to-req)。当用户提供音频文件路径并要求生成会议纪要，或使用“音频转纪要”、“语音转纪要”、“/audio-to-minutes”时触发本技能。
+disable: false
 ---
+
 
 # audio-to-minutes 音频转纪要技能
 

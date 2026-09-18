@@ -1,15 +1,10 @@
 ---
 name: next-ai-draw-io
-displayName: Next AI Draw.io（AI 驱动 Draw.io 实时绘图）
-version: "0.2.3"
-description: 基于 Next AI Draw.io 与 MCP 协议的智能图表生成与实时协作技能。支持自然语言生成/修改 Draw.io 图表、浏览器画布实时渲染同步、云原生架构图（AWS/GCP/Azure/阿里云/微服务）、多页面标签管理及 .drawio/.png/.svg 多格式导出。
-homepage: https://github.com/DayuanJiang/next-ai-draw-io
-license: Apache-2.0
-metadata:
-  author: DayuanJiang
-  repo: https://github.com/DayuanJiang/next-ai-draw-io
-  mcp_package: "@next-ai-drawio/mcp-server"
+description: 基于 Next AI Draw.io 与 MCP 协议的智能图表生成与实时协作技能。支持自然语言生成/修改 Draw.io 图表、浏览器画布实时渲染同步、云原生架构图（AWS/GCP/Azure/阿里云/微服务）、多页面标签管理及
+  .drawio/.png/.svg 多格式导出。
+disable: false
 ---
+
 
 # Next AI Draw.io: AI 驱动 Draw.io 实时绘图与多端联动
 

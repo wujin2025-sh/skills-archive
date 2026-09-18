@@ -105,7 +105,7 @@ def load_credentials():
 # ============================================================
 #  配置区域
 # ============================================================
-BASE_VERSION = "SPB_V2.2.19"
+BASE_VERSION = "SPB-V0.26."
 
 USERNAME, PASSWORD, PLATFORM_URL = load_credentials()
 
@@ -182,6 +182,16 @@ def parse_version():
     return version, plan_date, ver_date, ver_only
 
 
+def to_short_version(version):
+    """将 20260904 转为 9.4（月.日，去前导零），保留后缀如 _hotfix"""
+    if len(version) >= 8 and version[:8].isdigit():
+        month = str(int(version[4:6]))
+        day = str(int(version[6:8]))
+        suffix = version[8:]
+        return f"{month}.{day}{suffix}"
+    return version
+
+
 # === 拼音工具 ===
 def name_to_pinyin(name_str):
     if pd.isna(name_str) or not str(name_str).strip():
@@ -200,6 +210,7 @@ def name_to_pinyin(name_str):
 def parse_path_string(path_str):
     """
     路径解析：逗号/分号/顿号/空格 → [['dir','file'],...]
+    同时支持正斜杠 / 与反斜杠 \\ 作为目录分隔符
     """
     if not path_str or str(path_str).lower() == 'nan':
         return None
@@ -209,9 +220,10 @@ def parse_path_string(path_str):
         item = item.strip()
         if not item:
             continue
-        if '/' in item:
-            parts = item.split('/', 1)
-            d, f = parts[0].strip(), parts[1].strip() if len(parts) > 1 else ''
+        if '/' in item or '\\' in item:
+            parts = re.split(r'[/\\]', item, maxsplit=1)
+            d = parts[0].strip()
+            f = parts[1].strip() if len(parts) > 1 else ''
             path_items.append(f"['{d}','{f}']")
         else:
             path_items.append(f"['{item}','']")
@@ -410,14 +422,15 @@ def filter_data(source_file, plan_date, ver_date, ver_only=False):
 # ============================================================
 #  Phase 3 — 文件生成
 # ============================================================
-def save_main_file(source_file, keep_indices, version):
+def save_main_file(source_file, keep_indices, version, short_ver=None):
     """直接操作源文件副本：保留筛选行，删除其余 → 完整保留原始格式/样式/列宽"""
     print("\n" + "=" * 60)
     print("Phase 3: 文件生成")
     print("=" * 60)
 
-    main_name = f"{BASE_VERSION}_{version}.xlsx"
-    backup_name = f"{BASE_VERSION}_{version}_backup.xlsx"
+    ver = short_ver if short_ver else version
+    main_name = f"{BASE_VERSION}{ver}.xlsx"
+    backup_name = f"{BASE_VERSION}{ver}_backup.xlsx"
     main_path = os.path.join(EXPORT_DIR, main_name)
     backup_path = os.path.join(EXPORT_DIR, backup_name)
 
@@ -429,7 +442,7 @@ def save_main_file(source_file, keep_indices, version):
         # 如果是增量/热修复版本且主文件不存在，尝试寻找基线版本主文件进行备份
         if "_" in version:
             base_ver = version.split("_")[0]
-            base_main_path = os.path.join(EXPORT_DIR, f"{BASE_VERSION}_{base_ver}.xlsx")
+            base_main_path = os.path.join(EXPORT_DIR, f"{BASE_VERSION}{base_ver}.xlsx")
             if os.path.exists(base_main_path):
                 shutil.copy2(base_main_path, backup_path)
                 print(f"[OK] 未找到当前主文件，已自动复制基线版本主文件为备份 → {backup_name}")
@@ -458,15 +471,16 @@ def save_main_file(source_file, keep_indices, version):
     return main_path
 
 
-def generate_upt_report(source_file, keep_indices, filtered_rows, col_tid, version):
+def generate_upt_report(source_file, keep_indices, filtered_rows, col_tid, version, short_ver=None):
     """增量报告：直接从源文件保留新增行 → 原始格式不丢失"""
     print("\n" + "=" * 60)
     print("增量变动报告")
     print("=" * 60)
 
-    upt_name = f"{BASE_VERSION}_{version}_upt.xlsx"
+    ver = short_ver if short_ver else version
+    upt_name = f"{BASE_VERSION}{ver}_upt.xlsx"
     upt_path = os.path.join(EXPORT_DIR, upt_name)
-    backup_path = os.path.join(EXPORT_DIR, f"{BASE_VERSION}_{version}_backup.xlsx")
+    backup_path = os.path.join(EXPORT_DIR, f"{BASE_VERSION}{ver}_backup.xlsx")
 
     # 读取上期 Task
     prev_ids = set()
@@ -565,7 +579,7 @@ def _collect_path(df, col, list_var, output_lines, account_suffix=""):
     return cnt, skipped
 
 
-def run_template_processing(main_path, version, output_name=None):
+def run_template_processing(main_path, version, output_name=None, short_ver=None):
     print("\n" + "=" * 60)
     print("Phase 4: 模板处理")
     print("=" * 60)
@@ -584,18 +598,20 @@ def run_template_processing(main_path, version, output_name=None):
         print(f"[ERROR] 读取失败: {e}")
         sys.exit(1)
 
+    ver = short_ver if short_ver else version
     out = []
     out.append(
         f"# 自动生成报告\n"
-        f"# 版本: {BASE_VERSION}_{version}\n"
+        f"# 版本: {BASE_VERSION}{ver}\n"
         f"# 源文件: {os.path.basename(main_path)}\n"
         f"# 模块: CLI, DLL, Table, HisRunTable, HisTable, Proc, ProcAdd, "
         f"TableDevelop, UpgradeRemark, Remark, Init\n\n"
     )
 
-    # Task编号 汇总
+    # Task编号 汇总（按史诗编号分组）
     if 'Task编号' in df.columns:
         tid_to_info = {}
+        tid_to_epic = {}
         for _, row in df.iterrows():
             tid = str(row.get('Task编号', '')).strip()
             operator = str(row.get('经办人', '')).strip()
@@ -605,16 +621,40 @@ def run_template_processing(main_path, version, output_name=None):
             title = str(row.get('Task标题', '')).strip()
             if pd.isna(row.get('Task标题')) or title.lower() == 'nan':
                 title = ''
-                
+            
+            epic = str(row.get('史诗编号', '')).strip()
+            if pd.isna(row.get('史诗编号')) or epic.lower() == 'nan' or epic == '':
+                epic = ''
+            
             if tid and tid.lower() != 'nan':
                 tid_to_info[tid] = (operator, title)
+                tid_to_epic[tid] = epic
         
         tids = sorted(list(tid_to_info.keys()))
         if tids:
             out.append(f"# Task编号 (共 {len(tids)} 项):\n")
+            
+            # 按史诗编号分组
+            epic_groups = {}  # epic -> [tids]
+            no_epic_tids = []  # tids without epic
             for t in tids:
+                epic = tid_to_epic.get(t, '')
+                if epic:
+                    epic_groups.setdefault(epic, []).append(t)
+                else:
+                    no_epic_tids.append(t)
+            
+            # 输出有史诗编号的分组（史诗编号排序，组内Task编号升序）
+            for epic in sorted(epic_groups.keys()):
+                group_tids = sorted(epic_groups[epic])
+                out.append(f"{epic}\n")
+                out.append(" + ".join(group_tids) + "\n\n")
+            
+            # 输出无史诗编号的Task（升序）
+            for t in no_epic_tids:
                 out.append(f"{t}\n")
-            out.append("\n")
+            if no_epic_tids:
+                out.append("\n")
             
             out.append("# Task编号详细\n")
             for t in tids:
@@ -630,7 +670,7 @@ def run_template_processing(main_path, version, output_name=None):
             out.append("\n")
 
     tasks = [
-        ("CLI",              lambda: _do_simple(df, "cli", "cli_list", out)),
+        ("CLI",              lambda: _do_cli(df, out)),
         ("DLL",              lambda: _do_dll(df, out)),
         ("Table",            lambda: _do_table(df, out)),
         ("HisRunTable",      lambda: _do_path(df, "历史run表名/表文件", "table_his_list_run", out)),
@@ -665,6 +705,25 @@ def _do_simple(df, col, list_name, out):
         return
     out.append(f"# === {col} (共 {len(items)} 项) ===\n")
     out.append(f"{list_name} = {items}\n\n")
+    out.append("\n".join(items) + "\n\n")
+
+
+def _do_cli(df, out):
+    """CLI 特殊处理：去掉 .dll 后缀"""
+    raw = df.get("cli")
+    if raw is None:
+        return
+    items = []
+    for text in raw.dropna().astype(str):
+        for part in re.split(r'[;,；，、\s]+', text):
+            p = part.replace('.dll', '').strip()
+            if p:
+                items.append(p)
+    items = list(dict.fromkeys(items))
+    if not items:
+        return
+    out.append(f"# === cli (共 {len(items)} 项) ===\n")
+    out.append(f"cli_list = {items}\n\n")
     out.append("\n".join(items) + "\n\n")
 
 
@@ -771,17 +830,17 @@ def print_summary(version, plan_date, ver_date, main_path, upt_path,
     print("=" * 60)
 
 
-def clean_old_versions(export_dir, current_version):
+def clean_old_versions(export_dir, current_version, short_ver=None):
     """自动清理目录下非当前版本日期的文件和文件夹"""
     print("\n" + "=" * 60)
     print("清理历史版本文件")
     print("=" * 60)
     pattern_prefix = BASE_VERSION.lower()
-    base_date = current_version[:8]
+    base_date = (short_ver if short_ver else current_version[:8]).lower()
     cleaned_count = 0
     for filename in os.listdir(export_dir):
         fn_lower = filename.lower()
-        if fn_lower.startswith(pattern_prefix + "_") or fn_lower.startswith(pattern_prefix + "-"):
+        if fn_lower.startswith(pattern_prefix):
             if base_date.lower() not in fn_lower:
                 file_path = os.path.join(export_dir, filename)
                 try:
@@ -805,6 +864,7 @@ def clean_old_versions(export_dir, current_version):
 # ============================================================
 def main():
     version, plan_date, ver_date, ver_only = parse_version()
+    short_ver = to_short_version(version)
 
     print("\n" + "=" * 60)
     print(f"国泰海通 SPB 自动化导出工具")
@@ -831,12 +891,12 @@ def main():
     col_tid = headers.index('Task编号')
 
     # Phase 3: 存文件（直接操作源文件保留格式）
-    main_path = save_main_file(source_file, keep_indices, version)
-    upt_path = generate_upt_report(source_file, keep_indices, filtered_rows, col_tid, version)
+    main_path = save_main_file(source_file, keep_indices, version, short_ver)
+    upt_path = generate_upt_report(source_file, keep_indices, filtered_rows, col_tid, version, short_ver)
 
     # Phase 4: 模板处理（全量 + 增量）
     print("\n  [全量模式] 处理主文件 -> excel_output.txt")
-    run_template_processing(main_path, version)
+    run_template_processing(main_path, version, short_ver=short_ver)
     if os.path.exists(upt_path):
         try:
             upt_wb = openpyxl.load_workbook(upt_path, read_only=True)
@@ -845,9 +905,14 @@ def main():
             upt_wb.close()
             if upt_row_count > 0:
                 print("\n  [增量模式] 处理增量报告 -> upt_excel_output.txt")
-                run_template_processing(upt_path, version, OUTPUT_UPT_TXT)
+                run_template_processing(upt_path, version, OUTPUT_UPT_TXT, short_ver)
             else:
-                print(f"\n  [增量模式] 跳过：增量报告无新增数据 ({upt_row_count} 条)")
+                # 无新增数据时清理旧增量模板文件，避免残留旧格式误导
+                if os.path.exists(OUTPUT_UPT_TXT):
+                    os.remove(OUTPUT_UPT_TXT)
+                    print(f"\n  [增量模式] 无新增数据 ({upt_row_count} 条)，已清理旧增量模板文件 {OUTPUT_UPT_TXT}")
+                else:
+                    print(f"\n  [增量模式] 跳过：增量报告无新增数据 ({upt_row_count} 条)")
         except Exception as e:
             print(f"\n  [增量模式] 跳过：读取增量报告失败 ({e})")
     else:
@@ -858,7 +923,7 @@ def main():
                   len(filtered_rows) - 1, original_count)
 
     # 自动清理历史版本
-    clean_old_versions(EXPORT_DIR, version)
+    clean_old_versions(EXPORT_DIR, version, short_ver)
 
 
 if __name__ == "__main__":

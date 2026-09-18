@@ -1,7 +1,9 @@
 ---
 name: slidev
 description: 使用基于 Markdown、Vue 组件、代码高亮、动画与交互功能的 Slidev，为开发者创建和演示网页版幻灯片（Slidedecks）。在制作技术汇报、会议演讲、代码讲解、教学材料或开发者演示文稿时使用。
+disable: false
 ---
+
 
 # Slidev - 开发者专属幻灯片系统
 

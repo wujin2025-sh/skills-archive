@@ -1,15 +1,11 @@
 ---
 name: find-skills
-slug: guipi-find-skills
-displayName: Find Skills（场景驱动技能发现）
-version: "1.7.0"
-description: 场景驱动+关键词双模式技能发现工具。当用户用自然语言描述场景/需求（如"我想做一个海报""帮我分析股票"），或明确说"安装技能/find skills/找个skill"时，自动从官方内置、本地已安装、SkillHub、虾评、GitHub、ClawHub 六层联合搜索并推荐最合适的技能，支持一键安装。已完全替代官方原 find-skills 插件。
-agent_created: true
-xiaping_trigger: ["AI","效率","技能","工具"]
-xiaping_category: ["效率工具"]
-xiaping_tags: ["AI工具","技能发现","WorkBuddy"]
-xiaping_eval_strategy: developer
+description: 场景驱动+关键词双模式技能发现工具。当用户用自然语言描述场景/需求（如"我想做一个海报""帮我分析股票"），或明确说"安装技能/find
+  skills/找个skill"时，自动从官方内置、本地已安装、SkillHub、虾评、GitHub、ClawHub 六层联合搜索并推荐最合适的技能，支持一键安装。已完全替代官方原
+  find-skills 插件。
+disable: false
 ---
+
 
 # find-skills（场景技能匹配器）
 

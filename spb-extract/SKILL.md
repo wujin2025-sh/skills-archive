@@ -1,13 +1,13 @@
 ---
 name: spb-extract
-description: >
-  SPB版本升级包内容提取工具。根据输入系统（jzjy集中交易、cszx参数中心）及版本号，
-  提取对应升级包内的变更文件（dll, sql, xml等）并分类汇总。
-  针对 cszx 自动生成包含 CMDB 字段与主备库配置的输出结构。
-  输出文件 upt_content.txt 将保存在版本目录下及当前工作目录下。
+description: 'SPB版本升级包内容提取工具。根据输入系统（jzjy集中交易、cszx参数中心）及版本号， 提取对应升级包内的变更文件（dll, sql,
+  xml等）并分类汇总。 针对 cszx 自动生成包含 CMDB 字段与主备库配置的输出结构。 输出文件 upt_content.txt 将保存在版本目录下及当前工作目录下。
   触发词：spb-extract、版本内容、提取版本内容、upt_extract、提取变更文件、生成变更内容。
-agent_created: true
+
+  '
+disable: false
 ---
+
 
 # spb-extract (版本内容)
 
