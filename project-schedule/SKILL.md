@@ -38,6 +38,8 @@ python3 scripts/fetch_story_actual_end.py --demand R2609080068 R2607090114
 python3 scripts/fetch_story_actual_end.py --epic E2603040001 --force
 ```
 
+> 🆕 **已集成自动抓取（2026-10-08）**：`project_schedule_generate.py` 生成前会自动检查 `story_actual_end_cache.json` 是否覆盖所有 Story，缺失时**自动调用 `fetch_story_actual_end.py` 抓取**并重新加载缓存，无需手动先运行抓取脚本。可用 `--no-auto-fetch` 禁用自动抓取。
+
 - 取数规则严格对齐「Story 一生」：开发实际结束 → `开发实际结束时间`；SIT → `SIT自测实际结束时间`；UAT → `UAT自测实际结束时间`。
 - 关键 URL：`/kjpt/StoryManage/storyDetail?storyNo={R格式storyNo}`（storyNo 取大宽表缓存 `storyNo`/`dataUniqueNo` 字段，如 `R2410140070-1`，**非 S 编号**）。
 - 幂等合并：默认仅更新成功抓取到的条目，不覆盖已有值；`--force` 全量刷新。

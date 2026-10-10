@@ -38,12 +38,36 @@ def convert_html_to_pdf(html_path, pdf_path=None):
         
         # Export PDF using Playwright's native PDF generation with print media style injection
         print("Generating vector PDF...")
-        # Inject print styles to hide navigation and make clean page breaks
+        # Inject print styles to hide navigation, normalize body, and guarantee exact 1280x720 page breaks without blank pages
         print_style = """
         @media print {
+            @page {
+                size: 1280px 720px;
+                margin: 0;
+            }
+            html, body {
+                width: 1280px !important;
+                height: auto !important;
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                gap: 0 !important;
+                display: block !important;
+            }
             .nav { display: none !important; }
             .slides-wrapper { margin: 0 !important; padding: 0 !important; gap: 0 !important; display: block !important; }
-            .slide { page-break-after: always !important; page-break-inside: avoid !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+            .slide {
+                width: 1280px !important;
+                height: 720px !important;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
+            .slide:last-child {
+                page-break-after: auto !important;
+            }
         }
         """
         page.add_style_tag(content=print_style)

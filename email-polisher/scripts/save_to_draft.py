@@ -24,6 +24,7 @@ OUT_DIR = "/Volumes/Macintosh HD_Data/WorkBuddy/邮件发送"
 SEL_COMPOSE = "button.btn-compose, button:has-text('写 信'), button:has-text('写信'), .btn-compose, a:has-text('写信')"
 SEL_SUBJ = "input[name='subject'], input#subject, input#subj, input[placeholder*='主题']"
 SEL_TO = "input#toInput, input[name='to'], input#to, input[placeholder*='收件人'], #toAddrInput"
+SEL_CC = "input#ccInput, input[name='cc'], input#cc, input[placeholder*='抄送'], #ccAddrInput"
 
 def decrypt_password(enc_pwd, key_path):
     if not enc_pwd:
@@ -224,6 +225,7 @@ def main():
     parser.add_argument("--subject", default="", help="Email Subject")
     parser.add_argument("--body-file", required=True, help="Path to plain text email body file")
     parser.add_argument("--recipients", default="", help="Email recipients (comma or space separated)")
+    parser.add_argument("--cc", default="", help="Email CC recipients (comma or space separated)")
     parser.add_argument("--send", action="store_true", help="Send the email immediately instead of saving as draft")
     args = parser.parse_args()
 
@@ -260,6 +262,12 @@ def main():
     if args.recipients:
         recipients = [r.strip() for r in re.split(r'[,，\s]+', args.recipients) if r.strip()]
         print(f"🎯 Overridden recipients from CLI: {recipients}")
+
+    # Parse CC recipients
+    cc = []
+    if args.cc:
+        cc = [r.strip() for r in re.split(r'[,，\s]+', args.cc) if r.strip()]
+        print(f"🎯 CC recipients from CLI: {cc}")
 
     if not recipients:
         recipient_name = resolve_recipient_from_body(body, csv_path)
@@ -384,6 +392,42 @@ def main():
                     print(f"    Filled To: {recipients}")
             else:
                 print("    Skipped To field (no recipient resolved/provided)")
+
+            # Fill CC
+            if cc:
+                cc_el = compose_frame.query_selector(SEL_CC)
+                if not cc_el:
+                    # 部分版本需先展开"抄送"字段
+                    for expand_sel in ['a:has-text("抄送"), span:has-text("添加抄送"), a:has-text("添加抄送"), span:has-text("抄送")']:
+                        try:
+                            ex = compose_frame.query_selector(expand_sel)
+                            if ex:
+                                ex.click(force=True)
+                                compose_frame.wait_for_timeout(500)
+                                break
+                        except:
+                            pass
+                    cc_el = compose_frame.query_selector(SEL_CC)
+                if cc_el:
+                    try:
+                        cc_el.focus()
+                    except Exception as fe:
+                        print(f"    Failed to focus cc_el: {fe}")
+                    for r in cc:
+                        print(f"    Typing CC recipient: {r}")
+                        try:
+                            cc_el.focus()
+                        except:
+                            pass
+                        compose_frame.keyboard.type(r, delay=30)
+                        compose_frame.wait_for_timeout(800)
+                        compose_frame.keyboard.press("Enter")
+                        compose_frame.wait_for_timeout(400)
+                    print(f"    Filled CC: {cc}")
+                else:
+                    print("    CC input not found; skipped CC field")
+            else:
+                print("    Skipped CC field (no cc provided)")
 
             # Fill Subject
             subj_el.fill(subject)

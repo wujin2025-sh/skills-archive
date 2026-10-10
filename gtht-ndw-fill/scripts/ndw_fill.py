@@ -117,6 +117,27 @@ def compute_ndw_period(fill_date=None) -> tuple:
     return start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
 
 
+def compute_first_half_period(fill_date=None) -> tuple:
+    """计算「上半个月」工作量周期（版本排期登记固定模式）
+    
+    规则：
+      - 开始时间 = 当月第一个工作日
+      - 结束时间 = 当月 15 日（若为周六/周日，取之前最近的工作日）
+    示例：2026-09填写 -> 2026-09-01(周二) ~ 2026-09-15(周二)
+    """
+    if fill_date is None:
+        fill_date = datetime.now().date()
+    else:
+        fill_date = _parse_date(fill_date)
+
+    year, month = fill_date.year, fill_date.month
+    start_date = _first_workday_from(datetime(year, month, 1).date())
+    end_date = datetime(year, month, 15).date()
+    while end_date.weekday() >= 5:
+        end_date -= timedelta(days=1)
+    return start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+
+
 def compute_schedule_period(schedule_date) -> tuple:
     """按「计划生产排期」推算工作量周期（排期工作量登记模式）
     
@@ -203,46 +224,33 @@ def get_existing_ndw_by_title(task_title: str) -> list:
         return []
 
 
-def fill_version_schedule(text: str, value: float = None,
-                          status: int = DEFAULT_STATUS_DONE,
-                          assign_user_no: str = DEFAULT_ASSIGN_USER_NO,
-                          evaluator_no: str = None,
-                          start_date: str = None, end_date: str = None,
-                          schedule_date: str = None,
-                          force_recreate: bool = False,
-                          dry_run: bool = False,
-                          yes_mode: bool = False) -> dict:
-    """版本排期工作量登记（项目管理类，taskType=2，无需求关联）
-
-    输入：'20261009版本预排期' / '20261009版本排期'
-    登记要素：
-      - taskTitle = 【版本排期】{输入文本}
-      - taskType  = 2（项目管理）
-      - systemId  = 集中交易系统
-      - 价值量    = 预排期默认 0.3 / 排期默认 0.2（可 --value 显式覆盖）
-      - relateType= 2（版本类，无需求），demandId 为空
-      - 周期      = 默认半月推断；可 --schedule 按排期日期推算
-      - 经办/主管评估/状态 与需求分析登记一致（其他不变）
+def _submit_project_workload(task_title: str, system_id: str, sys_name: str,
+                             default_value: float, value: float = None,
+                             status: int = DEFAULT_STATUS_DONE,
+                             assign_user_no: str = DEFAULT_ASSIGN_USER_NO,
+                             evaluator_no: str = None,
+                             start_date: str = None, end_date: str = None,
+                             schedule_date: str = None,
+                             period_mode: str = "auto",
+                             force_recreate: bool = False,
+                             dry_run: bool = False,
+                             yes_mode: bool = False,
+                             parsed_extra: dict = None) -> dict:
+    """项目管理类工作量（taskType=2，无需求关联）通用登记核心
+    任务标题/所属系统/默认价值量由调用方给出；幂等按标题精确匹配。
+    供版本排期（fill_version_schedule）与版本发布（fill_version_release）共用。
+    period_mode：auto=按填写日半月推断；first_half=固定上半月；schedule=按 --schedule 排期推算。
     """
-    parsed = parse_version_schedule(text)
-    if not parsed:
-        return {
-            "ok": False, "skipped": True,
-            "reason": f"无法解析版本排期输入：{text!r}（期望格式如 20261009版本预排期 / 20261009版本排期）"
-        }
-    ver_date, kind, default_value = parsed
     actual_value = float(value) if value is not None else default_value
-
-    task_title = f"【版本排期】{str(text).strip()}"
-    system_id = SYSTEM_ID_MAP.get(VERSION_SCHEDULE_SYSTEM, "142891263425277DZ1")
-    sys_name = VERSION_SCHEDULE_SYSTEM
 
     eval_info = get_evaluator_from_platform(assign_user_no)
     evaluator_no = evaluator_no or eval_info["evaluatorNo"]
 
-    # 周期：显式 --schedule 按排期推算，否则默认半月推断（其他不变）
+    # 周期：显式 --schedule 按排期推算；period_mode=first_half 固定上半月；否则默认半月推断
     if schedule_date:
         calc_start, calc_end = compute_schedule_period(schedule_date)
+    elif period_mode == "first_half":
+        calc_start, calc_end = compute_first_half_period()
     else:
         calc_start, calc_end = compute_ndw_period()
     start = start_date or calc_start
@@ -260,7 +268,7 @@ def fill_version_schedule(text: str, value: float = None,
             if has_eval_name and is_correct_eval and is_same_period and is_same_status and is_same_value and not force_recreate:
                 return {
                     "ok": True, "skipped": True, "taskTitle": task_title,
-                    "reason": "已存在符合规范（含主管评估人、正确周期/价值量/已完成状态）的版本排期记录",
+                    "reason": "已存在符合规范（含主管评估人、正确周期/价值量/已完成状态）的登记记录",
                     "record": {
                         "id": r.get("id"),
                         "taskNo": r.get("taskNo"),
@@ -297,7 +305,7 @@ def fill_version_schedule(text: str, value: float = None,
 
     if dry_run and not yes_mode:
         return {"ok": True, "dry_run": True, "taskTitle": task_title, "payload": payload,
-                "evaluatorInfo": eval_info, "parsed": {"verDate": ver_date, "kind": kind}}
+                "evaluatorInfo": eval_info, "parsed": parsed_extra or {}}
 
     resp = SESSION.api_post("/task-service/nonDevTask/addNonDevTask", payload)
 
@@ -325,6 +333,114 @@ def fill_version_schedule(text: str, value: float = None,
         "systemName": rec.get("systemName") or sys_name,
         "data": resp
     }
+
+
+def fill_version_schedule(text: str, value: float = None,
+                          status: int = DEFAULT_STATUS_DONE,
+                          assign_user_no: str = DEFAULT_ASSIGN_USER_NO,
+                          evaluator_no: str = None,
+                          start_date: str = None, end_date: str = None,
+                          schedule_date: str = None,
+                          force_recreate: bool = False,
+                          dry_run: bool = False,
+                          yes_mode: bool = False) -> dict:
+    """版本排期工作量登记（项目管理类，taskType=2，无需求关联）
+
+    输入：'20261009版本预排期' / '20261009版本排期'
+    登记要素：
+      - taskTitle = 【版本排期】{输入文本}
+      - taskType  = 2（项目管理）
+      - systemId  = 集中交易系统
+      - 价值量    = 预排期默认 0.3 / 排期默认 0.2（可 --value 显式覆盖）
+      - relateType= 2（版本类，无需求），demandId 为空
+      - 周期      = 固定当月上半月（开始=当月首个工作日，结束=当月15日或之前最近工作日）；可 --schedule 按排期日期推算
+      - 经办/主管评估/状态 与需求分析登记一致（其他不变）
+    """
+    parsed = parse_version_schedule(text)
+    if not parsed:
+        return {
+            "ok": False, "skipped": True,
+            "reason": f"无法解析版本排期输入：{text!r}（期望格式如 20261009版本预排期 / 20261009版本排期）"
+        }
+    ver_date, kind, default_value = parsed
+    task_title = f"【版本排期】{str(text).strip()}"
+    system_id = SYSTEM_ID_MAP.get(VERSION_SCHEDULE_SYSTEM, "142891263425277DZ1")
+    return _submit_project_workload(
+        task_title, system_id, VERSION_SCHEDULE_SYSTEM, default_value, value,
+        status=status, assign_user_no=assign_user_no, evaluator_no=evaluator_no,
+        start_date=start_date, end_date=end_date, schedule_date=schedule_date,
+        period_mode="first_half",
+        force_recreate=force_recreate, dry_run=dry_run, yes_mode=yes_mode,
+        parsed_extra={"verDate": ver_date, "kind": kind})
+
+
+# ---------------------------------------------------------------------------
+# 版本发布工作量登记（项目管理类，taskType=2，无需求关联）
+# 输入示例：'参数中心20260918版本' → 【版本发布】参数中心20260918版本集成发布 / 项目管理 / 交易参数管理后台系统 / 1.0
+#           '集中交易20260918版本' → 【版本发布】集中交易20260918版本集成发布 / 项目管理 / 集中交易系统 / 2.5
+# 参考：版本发布类集成发布登记（非研发工时，taskType=2、relateType=2、无 demandId）
+# ---------------------------------------------------------------------------
+VERSION_RELEASE_RE = re.compile(r"(参数中心|集中交易)\s*(\d{4}[-/]?\d{2}[-/]?\d{2})\s*版本")
+VERSION_RELEASE_MAP = {
+    "参数中心": {"system_name": "交易参数管理后台系统", "default_value": 1.0},
+    "集中交易": {"system_name": "集中交易系统", "default_value": 2.5},
+}
+
+
+def parse_version_release(text: str):
+    """解析版本发布输入文本 → (系统键, 版本日期YYYYMMDD)
+    例：'参数中心20260918版本' → ('参数中心', '20260918')
+        '集中交易20260918版本' → ('集中交易', '20260918')
+    无法解析返回 None。
+    """
+    m = VERSION_RELEASE_RE.search(str(text))
+    if not m:
+        return None
+    sys_key = m.group(1)
+    ver_date = m.group(2).replace("-", "").replace("/", "")
+    return sys_key, ver_date
+
+
+def fill_version_release(text: str, value: float = None,
+                         status: int = DEFAULT_STATUS_DONE,
+                         assign_user_no: str = DEFAULT_ASSIGN_USER_NO,
+                         evaluator_no: str = None,
+                         start_date: str = None, end_date: str = None,
+                         schedule_date: str = None,
+                         force_recreate: bool = False,
+                         dry_run: bool = False,
+                         yes_mode: bool = False) -> dict:
+    """版本发布工作量登记（项目管理类，taskType=2，无需求关联）
+
+    输入：'参数中心20260918版本' → 交易参数管理后台系统 / 价值量 1.0
+          '集中交易20260918版本' → 集中交易系统 / 价值量 2.5
+    登记要素：
+      - taskTitle = 【版本发布】{输入文本}集成发布
+      - taskType  = 2（项目管理）
+      - systemId  = 按系统键映射（参数中心→交易参数管理后台系统，集中交易→集中交易系统）
+      - 价值量    = 参数中心默认 1.0 / 集中交易默认 2.5（可 --value 显式覆盖）
+      - relateType= 2（版本类，无需求），demandId 为空
+      - 周期      = 固定当月上半月（开始=当月首个工作日，结束=当月15日或之前最近工作日）；可 --schedule 按排期日期推算
+    """
+    parsed = parse_version_release(text)
+    if not parsed:
+        return {
+            "ok": False, "skipped": True,
+            "reason": f"无法解析版本发布输入：{text!r}（期望格式如 参数中心20260918版本 / 集中交易20260918版本）"
+        }
+    sys_key, ver_date = parsed
+    cfg = VERSION_RELEASE_MAP[sys_key]
+    sys_name = cfg["system_name"]
+    default_value = cfg["default_value"]
+    system_id = SYSTEM_ID_MAP.get(sys_name, "")
+    task_title = f"【版本发布】{str(text).strip()}集成发布"
+    return _submit_project_workload(
+        task_title, system_id, sys_name, default_value, value,
+        status=status, assign_user_no=assign_user_no, evaluator_no=evaluator_no,
+        start_date=start_date, end_date=end_date, schedule_date=schedule_date,
+        period_mode="first_half",
+        force_recreate=force_recreate, dry_run=dry_run, yes_mode=yes_mode,
+        parsed_extra={"sysKey": sys_key, "verDate": ver_date})
 
 
 def get_evaluator_from_platform(assign_user_no: str = DEFAULT_ASSIGN_USER_NO):
@@ -528,6 +644,14 @@ def infer_ndw_value(demand_id: str, info: dict, stories: list = None, passed_val
     if any(kw in summary for kw in ["跨系统", "低延时两融", "集中交易与低延时", "低延时与集中交易", "集中交易与集中清算", "清算与交易"]):
         return 0.5
 
+    # 4. 配合测试类 Story（单系统联调验证，受理人创建的配合测试）价值量较低
+    #    注：传入的 stories 若已按「吴进创建的 Story」过滤（--my-story），此处仅针对该 Story 判断
+    if stories:
+        for s in stories:
+            s_title = (s.get("summary") or "") + " " + (s.get("storyTitle") or "")
+            if "配合测试" in s_title:
+                return 0.2
+
     return 0.3
 
 
@@ -540,7 +664,8 @@ def fill_ndw(demand_id: str, value: float = None, system_name: str = None,
              force_recreate: bool = False,
              ignore_story_check: bool = False,
              dry_run: bool = False,
-             yes_mode: bool = False) -> dict:
+             yes_mode: bool = False,
+             my_story: str = None) -> dict:
     """登记非开发工作量"""
     # 1. 前置强约束：Story 未拆分则不填写（强制重查，防 Story 被删倒挂）
     stories = get_stories(demand_id)
@@ -569,10 +694,24 @@ def fill_ndw(demand_id: str, value: float = None, system_name: str = None,
     if not title:
         raise ValueError(f"未找到需求 {demand_id} 的详情信息")
 
-    # 智能推断价值量（多系统改造默认 0.5，单系统默认 0.3）
-    actual_value = infer_ndw_value(demand_id, info, stories, value)
+    # 吴进创建的 Story 口径（2026-09-21 新增）：价值量评估与所属系统均按「吴进创建的 Story」统计
+    # 通过 --my-story <Story编号> 指定，脚本自动定位该 Story 并以其系统为所属系统；
+    # 跨系统需求只统计吴进创建的那条 Story，而非需求下全部 Story（如 R2609110103-2 集中清算系统）
+    my_stories = []
+    if my_story:
+        my_stories = [s for s in stories if s.get("id") == my_story or s.get("storyCode") == my_story]
 
-    system_id, matched_sys_name = determine_system_id(info, stories, system_name)
+    # 智能推断价值量（多系统改造默认 0.5，单系统默认 0.3；配合测试单系统默认 0.2）
+    # 指定 --my-story 时仅按吴进创建的 Story 评估；否则按需求下全部 Story 评估
+    actual_value = infer_ndw_value(demand_id, info, my_stories or stories, value)
+
+    # 所属系统优先级：显式 --system > 吴进创建的 Story（--my-story）> 默认推断
+    if my_stories and not system_name:
+        my_s = my_stories[0]
+        system_id = str(my_s.get("systemId"))
+        matched_sys_name = str(my_s.get("systemName"))
+    else:
+        system_id, matched_sys_name = determine_system_id(info, stories, system_name)
 
     # 跨系统判定（2026-09-16 修复：去掉 actual_value>=0.5 启发式判据，单系统高复杂度需求误判如 R2609160070）
     # 正确判据 = 多 Story / 多不同系统 / 标题显式标注跨系统
@@ -696,12 +835,15 @@ def main():
     parser.add_argument("--value", "-v", "--ndw", type=float, default=None, help="申请价值量 (人月)，未指定时自动智能推断：多系统改造默认 0.5，单系统默认 0.3")
     parser.add_argument("--status", type=int, default=DEFAULT_STATUS_DONE, help="状态 (默认 2:已完成，1:未完成)")
     parser.add_argument("--system", "-s", help="所属系统名称")
+    parser.add_argument("--my-story", help="吴进创建的 Story 编号（如 R2609110103-2），价值量评估与所属系统均按该 Story 统计（跨系统需求只统计吴进创建的那条 Story）")
     parser.add_argument("--schedule", help="排期日期 YYYYMMDD（排期工作量登记）：工作量周期=排期所在月首个工作日 ~ 排期日")
     parser.add_argument("--by-schedule", action="store_true",
                         help="自动从需求详情读取排期（wishDate>launchTime>esDuedate）推算工作量周期；读不到回退半月推断")
     parser.add_argument("--batch", "-b", help="批量格式: 'R2608030112:0.3,R2608120012:0.5,R2608110032:0.3'")
     parser.add_argument("--version-schedule", "--vs",
                         help="版本排期工作量登记（项目管理类，无需求）：输入如 '20261009版本预排期'(默认0.3) 或 '20261009版本排期'(默认0.2)，系统=集中交易系统")
+    parser.add_argument("--version-release", "--vr",
+                        help="版本发布工作量登记（项目管理类，无需求）：输入如 '参数中心20260918版本'(默认价值量1/交易参数管理后台系统) 或 '集中交易20260918版本'(默认价值量2.5/集中交易系统)")
     parser.add_argument("--ignore-story", action="store_true", help="忽略 Story 拆分状态强行登记")
     parser.add_argument("--force", action="store_true", help="强制删除旧记录并重新创建")
     parser.add_argument("--dry-run", action="store_true", help="只预览 payload，不实际提交（默认两段式先 dry-run 展示再确认落库）")
@@ -725,10 +867,20 @@ def main():
                            force_recreate=args.force,
                            ignore_story_check=args.ignore_story,
                            dry_run=args.dry_run and not args.yes,
-                           yes_mode=args.yes)
+                           yes_mode=args.yes,
+                           my_story=args.my_story)
             results.append(res)
         print(json.dumps(results, ensure_ascii=False, indent=2))
         return
+
+    # 自动识别：位置参数若为版本排期/版本发布文本（非 R 需求编号），自动分流
+    auto_text = None
+    if not args.version_schedule and not args.version_release and args.demand_id \
+            and not str(args.demand_id).strip().upper().startswith("R"):
+        if parse_version_release(args.demand_id):
+            args.version_release = args.demand_id
+        elif parse_version_schedule(args.demand_id):
+            args.version_schedule = args.demand_id
 
     if args.version_schedule:
         res = fill_version_schedule(args.version_schedule, value=args.value, status=args.status,
@@ -736,6 +888,15 @@ def main():
                                     force_recreate=args.force,
                                     dry_run=args.dry_run and not args.yes,
                                     yes_mode=args.yes)
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return
+
+    if args.version_release:
+        res = fill_version_release(args.version_release, value=args.value, status=args.status,
+                                   schedule_date=args.schedule,
+                                   force_recreate=args.force,
+                                   dry_run=args.dry_run and not args.yes,
+                                   yes_mode=args.yes)
         print(json.dumps(res, ensure_ascii=False, indent=2))
         return
 
@@ -749,7 +910,8 @@ def main():
                    force_recreate=args.force,
                    ignore_story_check=args.ignore_story,
                    dry_run=args.dry_run and not args.yes,
-                   yes_mode=args.yes)
+                   yes_mode=args.yes,
+                   my_story=args.my_story)
     print(json.dumps(res, ensure_ascii=False, indent=2))
 
 

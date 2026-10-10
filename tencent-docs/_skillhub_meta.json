@@ -19,5 +19,6 @@
   "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-docs.png",
   "skillName": "tencent-docs",
   "description_zh": "腾讯文档在线云文档平台，创建、编辑、管理多种类型文档",
-  "description_en": "Tencent Docs cloud platform for creating, editing & managing online documents"
+  "description_en": "Tencent Docs cloud platform for creating, editing & managing online documents",
+  "installedContentHash": "sha256:c6c5171d7473e3ff94ab00adb761f8f07956b4ff781d65cd2e86c5323b41b10b"
 }

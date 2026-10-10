@@ -138,15 +138,33 @@ def generate(version_dir, is_cszx=False):
 
     # Parse upgrade remarks from excel_output.txt in the parent directory
     remarks = {}
+    task_to_epic = {}  # Map task ID to epic prefix for epic-level matching
     parent_dir = os.path.dirname(current_dir)
+    # Unified: both jzjy and cszx use excel_output.txt
     excel_output_path = os.path.join(parent_dir, 'excel_output.txt')
     if os.path.isfile(excel_output_path):
         try:
             with open(excel_output_path, 'r', encoding='utf-8') as f:
                 content = f.read()
+            
+            # Parse task-to-epic mapping from "# Task编号 (共 X 项)" section
+            import re
+            task_section_match = re.search(r'# Task 编号 \(共.*?\n(.*?\n)+?(?=\n#|$)', content)
+            if task_section_match:
+                task_section = task_section_match.group(0)
+                # Match lines like "CSZXCXJS-T202601507 + CSZXCXJS-T202601510"
+                task_line_match = re.search(r'(PG\d{6}-\d+)\s*\n([A-Z]+-\w+)(?:\s*\+\s*([A-Z]+-\w+))?', task_section)
+                if task_line_match:
+                    epic_prefix = task_line_match.group(1)
+                    task1 = task_line_match.group(2)
+                    task2 = task_line_match.group(3)
+                    if task1:
+                        task_to_epic[task1.strip()] = epic_prefix
+                    if task2:
+                        task_to_epic[task2.strip()] = epic_prefix
+            
             # Find the section starting with "# === 升级备注"
             # It ends at the next "# ===" or EOF
-            import re
             match = re.search(r'# === 升级备注.*?\n(.*?)(?=\n# ===|\Z)', content, re.DOTALL)
             if match:
                 section_content = match.group(1)
@@ -159,13 +177,32 @@ def generate(version_dir, is_cszx=False):
                         task_id, remark = parts
                         remarks[task_id.strip()] = remark.strip()
         except Exception as e:
-            print(f"警告：读取或解析 excel_output.txt 失败: {e}")
+            print(f"警告：读取或解析 {os.path.basename(excel_output_path)} 失败：{e}")
 
     def get_note(title, files_text, default_note=None):
         matched = []
+        # First pass: direct task ID match
         for task_id, remark in remarks.items():
             if task_id in files_text:
                 matched.append(remark)
+        
+        # Second pass: epic-level matching (if no direct matches found)
+        if not matched and task_to_epic:
+            # Extract task IDs from files_text
+            file_task_ids = set()
+            for task_id in task_to_epic.keys():
+                if task_id in files_text:
+                    file_task_ids.add(task_id)
+            
+            # Check if any remark's task ID shares the same epic with file task IDs
+            if file_task_ids:
+                file_epic_prefixes = set(task_to_epic[tid] for tid in file_task_ids if tid in task_to_epic)
+                for remark_task_id, remark in remarks.items():
+                    if remark_task_id in task_to_epic:
+                        remark_epic = task_to_epic[remark_task_id]
+                        if remark_epic in file_epic_prefixes:
+                            matched.append(remark)
+        
         all_notes = []
         if default_note:
             all_notes.append(default_note)

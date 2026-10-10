@@ -70,7 +70,7 @@ disable: false
 > - **按需求涉及系统定向检索图谱准则**：
 >   - **必须严格按需求实际涉及的系统（改造系统 + 联测系统）**定向检索对应的代码知识图谱数据库；
 >   - **未涉及的系统决不盲目跨系统检索或列出无关代码节点**（例如：本需求未涉及参数中心，则绝对不去检索 `cszx` 图谱或列出参数中心代码）。
->   - **图谱库与源码目录绝对映射**（严禁搞混系统归属）：
+>   - **图谱库与源码目录绝对映射**（严禁搞混系统归属；⚠️ 主图谱已迁移至 codebase-memory-mcp 缓存，**CBM 缓存项目名映射见下方「图谱检索方式」小节**；`.code-review-graph/graph.db` 现仅作 sqlite 直连降级用，`cszx` 无 graph.db）：
 >     - **集中交易代码图谱 (`jzjy`)**：源码 `/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc/`，图谱 `.code-review-graph/graph.db`
 >     - **低延时代码图谱 (`dys`)**：源码 `/Volumes/Macintosh HD_Data/Project/dys/`，图谱 `.code-review-graph/graph.db`
 >     - **集中清算代码图谱 (`jzqs`)**：源码 `/Volumes/Macintosh HD_Data/Project/jzqs/src/`，图谱 `.code-review-graph/graph.db`
@@ -81,27 +81,44 @@ disable: false
 >     - 图谱溯源仍按低延时代码图谱 `dys`（`/Volumes/Macintosh HD_Data/Project/dys/`）定向检索（dys 为低延时体系统一图谱，两融创新域代码同源）；
 >     - 若需求仅泛称「低延时」未指明域，按业务归属推断：两融/信用业务默认 95 信创域；仅「个微/98/G1」或明确创新域才用创新域（两融创新域）；
 >     - **⚠️ 严禁**将「个微/98」需求误判为其他系统（如集中交易、参数中心），也**严禁**跨系统借用代码节点。
-> - **图谱检索方式（性能优化，codebase-memory-mcp 优先）**：
->   - **第一优先级：图谱 DB 结构化查询（替代原始 grep，提速 100 倍+）**。对已接入图谱的系统（`jzjy`/`dys`/`jzqs`/`cszx`），**必须首选 `codebase-memory-mcp` 的 `search_symbols` / `cypher_query` / `trace_dependencies` 工具**直接检索图谱 SQLite DB（`.code-review-graph/graph.db`，已建 Tree-sitter AST 索引），**严禁默认用 `grep` 遍历 2.1GB+ 源码目录**。典型用法：
->     - 符号/文件定位：`search_symbols(name="YWHB")` 或 `search_symbols(name="sh_ywhb")` → 秒级返回精确文件与函数；
->     - 自定义图查询：`cypher_query`（如 `MATCH (n:Node) WHERE n.name CONTAINS 'YWHB' RETURN n.file, n.name, n.kind`）；
->     - 依赖/影响分析：`trace_dependencies` / `analyze_impact` 追踪核心函数上下游调用与变更影响面。
->   - **⚡ 图谱查询批量化（P0-1 优化，2026-09-15）**：核心符号定位后，**优先用一条 `cypher_query` 同时完成「符号→文件→依赖→调用链」多跳查询**，避免逐符号多次 `search_symbols` / `trace_dependencies` 往返（R2609090101 实测：符号检索 85s→3s 后，多跳查询仍可再省 30-60s）：
+> - **图谱检索方式（性能优化，codebase-memory-mcp CLI 优先，2026-10-09 v0.10.0 实测）**：
+>   - **第一优先级：CBM CLI 结构化查询（替代原始 grep，提速 100 倍+）**。对已接入图谱的系统（`jzjy`/`dys`/`jzqs`；`cszx` 若 CBM 未索引则按降级链走 sqlite/grep），**必须首选 `codebase-memory-mcp cli` 的 `search_graph` / `get_code_snippet` 子命令**检索本地持久化 SQLite 知识图谱（Tree-sitter AST 索引），**严禁默认用 `grep` 遍历 2.1GB+ 源码目录**。典型用法（⚠️ 可执行文件不在 PATH，须全路径 `/Users/wujin/.local/bin/codebase-memory-mcp`；输出尾部含 `level=info` 日志，用 `2>&1 | grep -v "level=info"` 过滤）：
+>     - 符号/文件定位：`codebase-memory-mcp cli search_graph --project <CBM项目名> --query <关键词> --limit 20 --format tree`（文件级检索用 `--file-pattern <文件名>`，2026-10-09 实测 `acctStkpledge.cpp` 毫秒级 30 命中：File + 7 Function）→ 秒级返回精确文件与函数；
+>     - 代码片段回读：`codebase-memory-mcp cli get_code_snippet --project <CBM项目名> --qualified-name <完整qn> --include-neighbors`——**必须先经 `search_graph` 拿到完整 qualified_name，短函数名直接传会返回 `{"status":"ambiguous"}`**（实测 `perLoanFundRepay` → 完整 qn `Volumes-Macintosh-HD_Data-Project-jzjy-spbsrc.lbmdll.lbm_periphery.loantran.Cperiphery.perLoanFundRepay`，⚠️ 类名是 `Cperiphery` 非 `Cperipher`，类名拼错即查不到）；
+>     - **CBM 缓存项目名映射（`cli list_projects` 实测 2026-10-09，严禁搞混）**：
+>       - `jzjy` = `Volumes-Macintosh-HD_Data-Project-jzjy-spbsrc`（root `/Volumes/Macintosh HD_Data/Project/jzjy/spbsrc`，38 万节点）
+>       - `dys` = `Volumes-Macintosh-HD_Data-Project-dys-branches-master-tree`（root `/Volumes/Macintosh HD_Data/Project/dys/branches/master/tree`，6.5 万节点）
+>       - `jzqs` = `Volumes-Macintosh-HD_Data-Project-jzqs-src-src`（root `/Volumes/Macintosh HD_Data/Project/jzqs/src/src`，42 万节点）
+>       - `cszx` = 待确认（CBM 未建图谱时按降级链 sqlite 直连 graph.db / 定向 grep）
+>   - **⚡ 图谱查询批量化（P0-1 优化，2026-09-15 沉淀，sqlite/cypher 批量路径优先复用）**：核心符号定位后，**优先用一条批量查询同时完成「符号→文件→依赖→调用链」多跳分析**，避免逐符号多次往返（R2609090101 实测：符号检索 85s→3s 后，多跳查询仍可再省 30-60s）；CBM CLI 路径下一条 `search_graph --file-pattern` 即可返回文件+全部函数节点，与下列 sqlite 直连同源复用（cszx 等 CBM 未索引系统的批量查询走 sqlite `MATCH...RETURN`）：
 >     - 示例（一次查符号+文件+上下游函数）：`MATCH (n:Node)-[:CALLS*1..2]->(m:Node) WHERE n.name IN ['YWHB','ProcessMarginTradingOrder'] RETURN n.file, n.name, m.file, m.name LIMIT 50`；
 >     - **字段名先探一次**：`MATCH (n:Node) RETURN n LIMIT 1` 确认 `file_path`/`name`/`kind` 等实际字段名，避免首查报错（R2609090101 实测「nodes 表字段名 `file_path`」教训）；
+>     - **文件定位用 `file_path LIKE`（R2609220085 -force 实测，P0）**：`MATCH (n:Node) WHERE n.file_path CONTAINS 'stkpledge' RETURN n.file_path, n.name, n.kind LIMIT 50`——文件级符号在 `file_path` 列，`name` 列仅存函数/类名；sqlite 直连降级时同义写法为 `WHERE file_path LIKE '%stkpledge%'`；
 >     - 批量查询结果落盘为临时 JSON 供文档生成直接引用，**同一会话内不重复查询同一符号**（幂等节流）。
+>   - **🚨 MCP 不可用降级策略（2026-09-28 R2609220085 沉淀，09-28 -force 重跑实测再修正）**：当 `codebase-memory-mcp` 工具调用失败/不可用时（报「工具不可用」「连接失败」「超时」等），**严禁直接退回逐符号 grep 遍历**，按以下降级链执行：
+>     - ① **sqlite3 直连 graph.db 批量查询**：`sqlite3 /Volumes/Macintosh HD_Data/Project/{jzjy|dys|jzqs|cszx}/.code-review-graph/graph.db` 一次性完成「符号→文件→函数→依赖」定位；连接 + 全量扫描是最耗时环节，**批量合并查询可省 60%+ 时间**（逐符号 grep 是 R2609220085 总耗时 21 分钟的主因）；GBK 中文表名/注释须 `iconv` 转码适配；
+>       - **⚠️ 检索模式铁律（R2609220085 -force 重跑实测，P0）**：
+>         - **文件级检索必须用 `WHERE file_path LIKE '%文件名%'`**（实测 263.9ms / 30 命中：`acctStkpledge.cpp` 命中 File + 7 Function 含 `acctSPQualificationSet`、`loantran.cpp` 命中 File + 12 Function 含 `perLoanRightSet`）——**文件级符号存放在 `file_path` 列，`name` 列仅存函数/类名**；
+>         - **严禁用 `WHERE name IN ('xxx.cpp', ...)` 检索文件名**（实测 544.7ms / 0 命中，纯浪费时间）；
+>         - **批量 `IN (...)` 仅适用于符号名（函数/类名）检索**（如 `WHERE name IN ('sysSetStkpledgeTargetStk','sysGetStkpledgeTargetStk')`），不适用于文件名；文件检索以 `file_path LIKE` 单模式为准；
+>         - **结果集瘦身（P1）**：文件检索命中多文件/多节点时，加 `DISTINCT file_path` 或优先取 `kind='File'` 节点过滤，避免后续遍历冗余结果。
+>     - ② graph.db 也不可用时才走定向 grep 兜底（仍须遵守下述 4 约束 + 5s 超时熔断）；
+>     - ③ 降级仍无法定位时，如实标注「未定位到精确代码，待研发确认」，**严禁为检索长时间阻塞产出**。
 >   - **第二优先级：定向 grep 兜底（仅当图谱查询无结果或需确认字段细节时）**，且必须遵守以下约束（规避 R2609090101 实测痛点）：
 >     - **单词边界**：用 `grep -E "(^|[^A-Za-z0-9_])L22([^A-Za-z0-9_]|$)"` 等限定单词边界，避免 `sql22` 等子串误匹配；
 >     - **编码感知**：券商 C++ 多为 GBK/CP936，中文关键词搜索前必须 `iconv -f GBK -t UTF-8` 转码；英文符号/表名可直接搜；
 >     - **目录定向**：先按已知模块目录缩小范围（如 YWHB 类表在 `tables/`、数据库交互在 `database_ob/`），杜绝全量遍历；
 >     - **超时熔断**：单次 grep 超过 5s 未返回即终止，降级为「未定位到精确代码，待研发确认」，严禁长时间阻塞产出。
->   - **结果校验**：图谱/检索命中的物理文件，落盘前必须用 `ls` 确认绝对路径存在，方可挂载 `file://` 链接（见下条「存在性门禁」）。
+>   - **结果校验（CBM file 字段 + 文件系统双重验证）**：图谱/检索命中的物理文件，落盘前必须**同时**满足：① CBM 图谱返回的 `file` 字段归属正确——**跨工程文件须实际验证所属工程**（实测 `dysfastcallback_match.cpp` 名为 dys 相关实为 jzjy 工程 `memdb/src/lbm/lbm_stdfast_memdb/` 联动层，dys tree 无 memdb，勿按文件名臆断归属）；② 文件系统 `test -f` 确认绝对路径存在。双重验证通过后方可挂载 `file://` 链接（见下条「存在性门禁」）。
+>   - **溯源覆盖全部涉及系统（2026-10-09 三系统实测沉淀，严禁逃避）**：凡涉及系统已接入 CBM 图谱（`jzjy`/`dys`/`jzqs`），**必须逐系统溯源并落地证据表**，严禁以「本地无图谱，待开发确认」敷衍（该表述仅限 `djgl`/`ssjs`/`grc` 等确无图谱系统）；图谱未索引的头文件（实测 `lbmdll/GeneralBus/digest.h`）可用定向 grep 验证符号摘要号（`D_LOAN_FUND_REPAY_CUST` 222405、`D_LOAN_FUND_REPAY_SPECI` 222415）与行号后再落文档。
+>   - **溯源结论业务语义防混淆（2026-10-09 R2609160118 实测）**：涉业务命名相近的符号时，落结论前必须区分业务线，**严禁仅凭函数名/表名相似即引入证据**——实测 `digest.h` 摘要 `_CUST`=客户、`_SPECI`=专户，**均非「指定合约」**；集中清算 `GqjlRepay`=约定购回融资线，**非**两融直接还款（两融偿还合约负债核心为 `RepayContractDebets`）；溯源证据须能与需求改造点一一对应，归属成疑时列入逻辑审计 S1 交评审确认。
 > - **证据提取与深度融入**：
 >   - 将从图谱数据库中提取的代码证据作为**第一权威证据**，无缝融入 **三、技术实现** 的核心计算规则、Pseudocode 与 C++ 映射表中。
 >   - **净新增逻辑判定与外部依赖核验**：若图谱中检索不到需求核心逻辑的既有函数，应明确标注为**净新增业务逻辑**；并进一步核验该逻辑所依赖的**外部数据状态源**（如证券停牌状态、行情标记、席位状态等）在本系统图谱中是否存在对应查询函数——若不存在，则结论应为「需依赖外部系统（行情 / 证券基础信息 / 上游系统）提供」，并在评审纪要「接口交互」与「业务关注点」中显式标注该外部依赖（示例：集中清算 `jzqs` 无停牌查询函数 → 顺延逻辑依赖外部停牌状态源）。
 > - **Mermaid 语法规范**：生成 Mermaid 顺序图时，控制流消息文本中**严禁出现未加双引号的英文分号 `;`**（英文分号会被 Mermaid 解析器误判为语句分隔符，导致 Obsidian 报 `Parse error`）。
 > - **物理文件链接 `file://` 规范**：格式为 `[文件名.h](file:///绝对路径/文件名.h)`。**严禁在 URI 结尾挂载 `#L47-L98` 行号 Hash 锚点**（行号统一填入表格独立的“行号”列）。尾部包含 `#Lxx` 锚点会导致 macOS 协议解析失败从而无法正常跳转打开！同时**严禁将反引号包裹在 `[]` 链接内部**。
 > - **⚠️ `file://` 链接的「存在性门禁」**：仅**已确认存在的源码文件**可使用 `file://` 链接格式支持 Obsidian 自动跳转；**待新建/待确认的文件**必须使用纯文本路径并标注「（待新建）」或「（待确认）」，**严禁为不存在的文件挂载 `file://` 链接**，否则 Obsidian 无法跳转并产生「文件不存在」报错。
+> - **溯源表格文件列强制 `file://` 链接（2026-10-09 R2609160118 用户反馈固化）**：「（四）代码知识图谱与架构溯源」的**源码物理文件路径列必须用 `[文件名](file:///绝对路径…)` 可点击链接**（空格 `%20` 编码），**严禁只写纯文本反引号路径**（Obsidian 不可点击跳转）；**函数列为代码符号无法点击**，须在函数名处附行号区间（如 `Cperiphery::perLoanFundRepay`：行号 8659-9424），或借表格「行号」列承载；遗漏该规范会直接导致溯源成品不可用（参考 R2609160118 修复闭环）。
 > 
 > **9. OpenViking 知识检索（交易所语料库 & 历史需求资料）**
 > - **用途**：获取交易所业务规则、交易品种变动、结算规则、监管通知、以及过往类似需求的简要背景。
@@ -109,6 +126,8 @@ disable: false
 > 
 > **10. 源码文件编码处理**
 > - 券商传统 C++ 源码多为 **GBK / CP936** 编码。若 Agent 直接读取源码出现中文乱码，应自动执行 GBK → UTF-8 转码后再引用，确保 Obsidian / IDE 右侧窗口正文中文显示正常、不乱码。
+> - **⚠️ CBM 图谱输出中文注释乱码属正常（2026-10-09 实测）**：codebase-memory-mcp 对 GBK 源码输出的中文注释同样乱码（如 `��ȯ���`=融券负债），分析时按业务上下文推断语义即可，**禁止逐字引用乱码中文**；函数名/行号为 ASCII 不受影响，可直接引用。
+> - **⚠️ 部分索引 coverage_note**：图谱对个别大文件（如 `DealCredit.cpp` / `loantran.cpp`）可能仅解析部分代码行（DB 带 coverage_note 标记），此时 graph 查询可能**漏报 callers/callees**——调用关系结论须以源码行号实测为准（`get_code_snippet` 输出即源码真身），**严禁仅凭图谱空结果断言「无调用关系」**。
 > 
 > **11. 前序需求智能关联与历史溯源**
 > - 当需求涉及已有功能的**优化、迭代或缺陷修复**时，自动通过 `gtht-req-query` 或 OpenViking 检索同一业务域的前序需求；
@@ -155,12 +174,13 @@ disable: false
 >   - **只有当用户明确要求强制刷新时**（如命令中包含 `--force` / `--remote` / `--refresh` / `-f` 参数，或在对话中明确提示“强制去科技平台查询”、“重新从平台拉取覆盖本地”、“以科技平台为准重新生成”等），才穿透本地缓存重新调用 `gtht-req-query`，拉取科技平台最新数据并覆盖更新现有文档。
 > - **日常交互与微调二次节流**：
 >   - 在后续的迭代修改、格式微调、人员姓名更新等日常交互过程中，一律基于本地 MD 操作，**严禁再次自动发起 API 请求和知识图谱检索**。应直接读取本地缓存及现有 MD 文档内容进行编辑，从而大幅缩短响应时间、避免网络超时。
-> - **科技平台 API 响应本地缓存（P0-2 优化，2026-09-15）**：
->   - 首次 `gtht-req-query` 拉取的需求详情 JSON 落盘到 `~/.chat/cache/req_{需求编号}.json`（带 `fetched_at` 时间戳），**24 小时内再次需要同一需求数据直接读缓存，不再发起 API 请求**（省 1-2s/次）；
+> - **科技平台 API 响应本地缓存（P0-2 优化，2026-09-15；立即落盘强化 09-28）**：
+>   - 首次 `gtht-req-query` 拉取成功拿到需求详情 JSON 后，**必须在发起下一步（附件下载/图谱检索）之前第一时间落盘**到 `~/.chat/cache/req_{需求编号}.json`（带 `fetched_at` 时间戳）——即使后续流程中断/重发，缓存已就绪可直接续跑复用（R2609220085 实测：首次执行未落缓存，重发后二次拉取，重复网络往返）；24 小时内再次需要同一需求数据直接读缓存，不再发起 API 请求（省 1-2s/次）；
 >   - 仅 `--force`/`--remote` 强制刷新或缓存超 24h 时才重新拉取并覆盖缓存；
 >   - 缓存文件为临时产物，可随时删除，不影响本地 MD 权威性（MD 仍为最终落盘产物）。
-> - **需求分析目录检索索引缓存（P1-3 优化，2026-09-15）**：
+> - **需求分析目录检索索引缓存（P1-3 优化，2026-09-15；首扫即写强化 09-28）**：
 >   - 首次扫描 `/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/` 时生成索引文件 `~/.chat/cache/req_index.json`（文件名 + Front Matter 的 `req_id`/`title`/`updated` 摘要），后续三路并行检索**优先命中索引**，避免每次全目录 grep（数百文件时省 1-3s）；
+>   - **首次扫描完成立即写盘**，「扫描→写盘→检索」分步执行，不等待后续流程全部结束；中断重跑时索引缺失自动补齐重建（R2609220085 实测：cache 目录无 `req_index.json`，索引未落盘）；
 >   - 索引在「新建/更新 MD 落盘后」增量更新，或检测到目录 mtime 变化时重建。
 > 
 > **15. 低延时与集中交易系统双轨精准分析与对齐准则 (系统架构差异化处理)**
@@ -196,7 +216,7 @@ disable: false
 **16. 执行后性能自省与优化点输出（每次执行必做）**
 - 每次实际执行 `/ba-to-dev` 生成或更新文档后，在最终回复的「📌 后续建议」部分**必须新增「🔧 本技能优化点」小节**，主动输出本次执行中暴露的优化点与改进建议，持续驱动技能迭代。
 - **输出结构（统一模板，四段式）**：
-  - **① 执行摘要**：本次执行总耗时（如 `~6.5s`），并标注耗时占比最高的环节（源码/图谱检索、MCP 往返、文档生成等）；
+  - **① 执行摘要**：本次执行总耗时（如 `~6.5s`），并标注耗时占比最高的环节（源码/图谱检索、MCP 往返、文档生成等）；**分环节标注各步骤耗时**（需求拉取→附件解析→图谱检索→文档生成，可参考文件 mtime/fetched_at 还原），便于对照定位瓶颈；
   - **② 优化点清单**：以 Markdown 表格输出，列固定为 `# | 类别 | 优化点 | 影响（耗时/质量） | 优先级 | 状态`：**仅输出「待落地」优化点**（已落地的不再重复提示）；
     | # | 类别 | 优化点 | 影响（耗时/质量） | 优先级 | 状态 |
     |:-:|:---|:---|:---|:---:|:---:|
@@ -207,8 +227,18 @@ disable: false
 - **优化点分类**（覆盖三类，每类≥1条或如实说明无）：
   - **性能优化点**：耗时瓶颈环节（源码搜索、图谱查询、MCP 往返、文档生成）的耗时分布与可优化方案（图谱 DB 查询替代 grep、热缓存复用、目录定向检索、超时熔断、本地命中零延迟）；
   - **准确性优化点**：误匹配（`sql22` 误判 L22）、GBK 乱码、占位符残留、字段缺失、附件未解析、图谱字段名试错等；
-  - **流程优化点**：接口号自动补全、Mermaid 模板复用、tags 自动推断、评审纪要接口交互自动推导等。
+  - **流程优化点**：接口号自动补全、Mermaid 模板复用、tags 自动推断、评审纪要接口交互自动推导、断点续跑/中间产物复用（规则17）等。
 - 优化点须**基于本次实际执行情况**输出，避免空泛套话；若本次执行已足够高效（如本地命中 0 秒复用、图谱秒级返回），应如实标注「本次执行高效，无显著优化点」，不得为凑数编造优化点。
+
+**17. 中间产物落盘与断点续跑（流程幂等，2026-09-28 新增）**
+- **背景**：R2609220085 实测全流程 ~21 分钟，主因是执行中断后重发指令全量重跑 + 中间产物（需求详情/附件解析/图谱结果）未在首次执行即落盘，无法续跑复用。
+- **三类中间产物首生成即落盘（禁止仅存内存）**：
+  1. **需求详情缓存**：`gtht-req-query` 响应 → `~/.chat/cache/req_{需求编号}.json`（规则14 P0-2）；
+  2. **附件解析结果**：平台附件下载转 Markdown 后 → `~/.chat/cache/attach_{需求编号}.md`，避免中断后重复下载解析（网络 + docx/pdf 解析为高耗时环节）；
+  3. **图谱/源码检索结果**：批量查询 JSON（符号→文件→函数映射）→ `~/.chat/cache/graph_{需求编号}.json`，重跑时直接引用。
+- **断点续跑判定（重发/中断恢复必做）**：用户重发同一需求编号或对话中断恢复后，**先探测上述三类缓存**：命中则跳过对应环节（API 往返/附件下载/源码检索），仅重跑「未完成/缺失」环节（如文档生成、评审纪要），**严禁全量重跑**。
+- **幂等节流**：同一会话内已查询的符号/附件/需求详情，重复需要一律读缓存，不二次发起网络/MCP 请求。
+- **文档落盘收尾**：MD 落盘后同步增量更新 `req_index.json`（新增/更新条目），保持索引与目录一致。
 
 
 ---
@@ -273,6 +303,14 @@ disable: false
 > 4. **互斥规则严守**：第 8 项【联测涉及系统】与第 2 项【改造范围】绝对互斥，**严禁同一系统在两项中重复出现**。
 > 5. **保存前完整性校验**：在保存 Markdown 文件前，必须校验评审纪要 9 项是否全部完整，缺失任何一项则必须重新生成直至完整。
 > 6. **业务语言表达**：功能点描述必须使用业务语言（如「新增两融合同前置校验」），**严禁直接暴露技术细节**（表名、字段名、函数名、接口号等），技术细节仅置于「三、技术实现」章节。
+> 7. **落盘门禁脚本（P0，2026-10-08 落地）**：评审纪要 9 项校验 + 文件名（R1）/Front Matter（R2）/纪要 9 项齐全及**第 2 项【改造范围】与第 8 项【联测涉及系统】系统名互斥校验**（R3）/末尾红线（R4，严禁「涉及系统：」行，预计上线日期后仅允许附件清单）/分点缩进（R5）全部由脚本统一把关。文档落盘前必须运行：
+>    ```bash
+>    python3 /Users/wujin/.chat/skills/ba-to-dev/scripts/validate_ba_md.py <文件路径> [--fix]
+>    ```
+>    - 无 `--fix` 时只读校验，退出码 0 = 全部通过（P0 门禁）；存在 FAIL 时必须修复后才可落盘；
+>    - 带 `--fix` 时自动修复 R4（删除违禁「涉及系统：」行）与 R5（缩进统一：(N) 分点 3 空格、① 功能点 8 空格）；
+>    - R1/R2 仅报告（文件名纠正、Front Matter 补全需结合上下文人工处理）；R3 自动校验 9 项齐全 + **第 8 项【联测涉及系统】与第 2 项【改造范围】系统名互斥**（两项系统名集合求交集，交集非空即报 P0，如「第8项【联测涉及系统】出现改造范围内系统『集中交易系统』」）；
+>    - 传目录参数可对 `100_Projects/需求分析/` 全量体检存量合规度（历史遗留文档会大量报 R2/R3，属预期）。
 
 ---
 
@@ -363,6 +401,8 @@ disable: false
 | 系统分类 | 源码物理文件路径 (file://) | 关键函数 / 类名 / 结构体 | 核心职责说明 |
 | :--- | :--- | :--- | :--- |
 | **集中交易系统** | [stkOrder.cpp](file:///Volumes/Macintosh%20HD_Data/Project/jzjy/spbsrc/lbmdll/lbm_stk/stkOrder.cpp) | `CStk::OrderCom` | 股票与申购委托申报公共入口函数，负责前置订单基础数据校验与强风控阻断 |
+
+> **溯源表格规范（2026-10-09 固化，细节见规则 8）**：① 多系统时**按系统分节**（每系统独立小节「#### 集中交易系统（jzjy）溯源」，节内表格 + 1-2 条「关键结论」与需求改造点一一对应）；② **文件列一律 `file://` 可点击链接**（经 CBM file 字段 + `test -f` 双重验证，空格 `%20` 编码）；③ **关键函数附行号区间**（如 `Cperiphery::perLoanFundRepay`：行号 8659-9424，函数为符号不可点击须以行号定位）；④ 表格仅列已接入图谱系统，无图谱系统文末统一注明「本地无图谱」。
 
 **2. 数据流转图（统一以纯系统维度绘制）**：
 

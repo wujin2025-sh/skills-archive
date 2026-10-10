@@ -39,8 +39,25 @@ import re
 import json
 import argparse
 import subprocess
+import warnings
 import requests
 from datetime import datetime
+
+
+def _http_request(method, url, timeout=20, **kwargs):
+    """requests 封装：系统代理（macOS 系统级）故障时自动降级绕过代理直连重试一次。
+
+    默认行为与 requests 一致（走系统代理）；仅当代理引起 ProxyError/ConnectionError 时，
+    改用 trust_env=False + verify=False 直连重试，避免代理异常（如隧道 502）导致全部请求失败。
+    """
+    try:
+        return requests.request(method, url, timeout=timeout, **kwargs)
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+        sess = requests.Session()
+        sess.trust_env = False
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
+            return sess.request(method, url, timeout=timeout, verify=False, **kwargs)
 
 # 动态获取系统当前日期
 CURRENT_NOW = datetime.now()
@@ -230,7 +247,7 @@ def update_and_load_data(script_dir):
                 headers["token"] = token
                 
             CONTENT_URL = "https://fintech.gtht.com.cn/api/table-service/table/row/getSheetContent?sheetId=1597051509256884224"
-            r = requests.get(CONTENT_URL, cookies=cookies, headers=headers, timeout=60)
+            r = _http_request("GET", CONTENT_URL, cookies=cookies, headers=headers, timeout=60)
             if r.status_code == 200:
                 resp_json = r.json()
                 if resp_json.get("code") == 200:

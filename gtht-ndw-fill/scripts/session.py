@@ -20,6 +20,7 @@ import json
 import time
 import base64
 import threading
+import warnings
 from pathlib import Path
 
 import requests
@@ -160,13 +161,30 @@ def get_session(force=False) -> dict:
         return fresh
 
 
+def _http_request(method: str, url: str, timeout: int = 20, **kwargs) -> requests.Response:
+    """发起 HTTP 请求；系统代理（macOS 系统级）故障时自动降级为绕过代理直连重试一次。
+
+    默认行为与 requests 一致（trust_env=True，走系统代理）；仅当代理引起
+    ProxyError/ConnectionError 时，改用 trust_env=False + verify=False 直连重试，
+    避免代理异常（如隧道 502）导致全部 API 失败。内网域名可控，安全风险低。
+    """
+    try:
+        return requests.request(method, url, timeout=timeout, **kwargs)
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+        sess = requests.Session()
+        sess.trust_env = False
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
+            return sess.request(method, url, timeout=timeout, verify=False, **kwargs)
+
+
 def api_post(path: str, json_body: dict = None, timeout: int = 20) -> dict:
     """POST API，返回 data 字段；401 自动重登重试一次"""
     sess = get_session()
     headers = dict(CLIENT_HEADERS, token=sess["token"])
     url = f"{API}{path}"
     for attempt in range(2):
-        r = requests.post(url, json=json_body or {}, headers=headers, timeout=timeout)
+        r = _http_request("POST", url, json=json_body or {}, headers=headers, timeout=timeout)
         if r.status_code == 401 and attempt == 0:
             sess = get_session(force=True)
             headers = dict(CLIENT_HEADERS, token=sess["token"])
@@ -184,7 +202,7 @@ def api_get(path: str, params: dict = None, timeout: int = 20) -> dict:
     headers = dict(CLIENT_HEADERS, token=sess["token"])
     url = f"{API}{path}"
     for attempt in range(2):
-        r = requests.get(url, params=params or {}, headers=headers, timeout=timeout)
+        r = _http_request("GET", url, params=params or {}, headers=headers, timeout=timeout)
         if r.status_code == 401 and attempt == 0:
             sess = get_session(force=True)
             headers = dict(CLIENT_HEADERS, token=sess["token"])
@@ -207,7 +225,7 @@ def api_download_ext(url: str, fpath: Path, timeout: int = 30):
     sess = get_session()
     headers = {"token": sess["token"], "user-agent": CLIENT_HEADERS["user-agent"]}
     for attempt in range(2):
-        r = requests.get(url, headers=headers, timeout=timeout, stream=True)
+        r = _http_request("GET", url, headers=headers, timeout=timeout, stream=True)
         if r.status_code == 401 and attempt == 0:
             sess = get_session(force=True)
             headers = {"token": sess["token"], "user-agent": CLIENT_HEADERS["user-agent"]}

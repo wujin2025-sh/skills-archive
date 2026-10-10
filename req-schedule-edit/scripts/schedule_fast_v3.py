@@ -26,6 +26,29 @@ import json
 import asyncio
 import argparse
 import base64
+import warnings
+
+# 强制本域名绕过系统代理（macOS 系统级代理故障时，websockets/urllib 探测会走坏代理）
+os.environ["NO_PROXY"] = "fintech.gtht.com.cn,*.gtht.com.cn"
+os.environ["no_proxy"] = "fintech.gtht.com.cn,*.gtht.com.cn"
+
+import requests
+
+
+def _http_request(method, url, timeout=20, **kwargs):
+    """requests 封装：系统代理（macOS 系统级）故障时自动降级绕过代理直连重试一次。
+
+    默认行为与 requests 一致（走系统代理）；仅当代理引起 ProxyError/ConnectionError 时，
+    改用 trust_env=False + verify=False 直连重试，避免代理异常（如隧道 502）导致全部请求失败。
+    """
+    try:
+        return requests.request(method, url, timeout=timeout, **kwargs)
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+        sess = requests.Session()
+        sess.trust_env = False
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
+            return sess.request(method, url, timeout=timeout, verify=False, **kwargs)
 
 # ============================================================
 # 配置常量
@@ -161,8 +184,8 @@ def quick_check_session():
 
     # 轻量 API 验证
     try:
-        import requests
-        r = requests.get(
+        r = _http_request(
+            "GET",
             "https://fintech.gtht.com.cn/api/permission-service/dfEmployee/getUserInfo",
             headers={
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
@@ -185,19 +208,35 @@ def api_login():
     """直接 API 登录（尝试明文密码，失败则降级到 Playwright 兜底）"""
     print("[登录] 正在通过 API 快速登录...")
     try:
-        import requests
         session = requests.Session()
         session.headers.update({
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "Referer": LOGIN_URL,
         })
-        session.get(LOGIN_URL, timeout=10)
-
         login_data = {"workno": USERNAME, "password": PASSWORD}
-        resp = session.post(
-            "https://fintech.gtht.com.cn/api/permission-service/dfEmployee/login",
-            json=login_data, timeout=15,
-        )
+
+        try:
+            session.get(LOGIN_URL, timeout=10)
+            resp = session.post(
+                "https://fintech.gtht.com.cn/api/permission-service/dfEmployee/login",
+                json=login_data, timeout=15,
+            )
+        except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+            # 系统代理故障 → 降级绕过代理直连重试（保留 cookie 会话）
+            session = requests.Session()
+            session.trust_env = False
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Referer": LOGIN_URL,
+            })
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
+                session.get(LOGIN_URL, timeout=10, verify=False)
+                resp = session.post(
+                    "https://fintech.gtht.com.cn/api/permission-service/dfEmployee/login",
+                    json=login_data, timeout=15, verify=False,
+                )
+
         if resp.status_code != 200:
             print(f"  API 登录返回 {resp.status_code}")
             return False
@@ -279,10 +318,10 @@ async def playwright_login():
 # 数据查询 — 热缓存（带预建索引）+ API 双路径
 # ============================================================
 def match_story(row, req_id, is_epic):
-    """判断单行是否匹配需求编号/史诗编号"""
-    status_name = str(row.get("storyStatusName") or row.get("statusName") or "").strip()
-    if status_name in ("终止", "已作废", "已取消", "已关闭", "删除") or \
-       str(row.get("delFlag")) == "1" or str(row.get("isDelete")) == "1":
+    """判断单行是否匹配需求编号/史诗编号（终止/作废等状态行也参与，
+    避免 WS 写回与 API 校验回读行为不一致导致「未回显」误报失败；
+    物理删除行仍排除，避免改动已删除行）"""
+    if str(row.get("delFlag")) == "1" or str(row.get("isDelete")) == "1":
         return False
     if is_epic:
         epic_code = str(row.get("epicCode") or "").strip()
@@ -348,7 +387,6 @@ def query_schedule(req_id, no_cache=False):
         return None, "Session token not found", 0
 
     try:
-        import requests
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "Referer": TABLE_URL,
@@ -358,7 +396,7 @@ def query_schedule(req_id, no_cache=False):
         }
         print("[数据] 正在拉取大宽表数据（14960 行）...")
         fetch_start = time.time()
-        r = requests.get(CONTENT_API, cookies=get_session_cookies(), headers=headers, timeout=120)
+        r = _http_request("GET", CONTENT_API, cookies=get_session_cookies(), headers=headers, timeout=120)
         print(f"[数据] 拉取完成 ({time.time() - fetch_start:.1f}s)")
 
         if r.status_code != 200:

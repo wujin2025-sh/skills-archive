@@ -77,6 +77,34 @@ def _load_story_meta_cache():
 
 STORY_META = _load_story_meta_cache()
 
+# ---- story_owners_cache.json 自动抓取合并（fetch_story_owners.py 产物）----
+# 数据源：Story 详情页「所属 Task」表格抓取的各环节 Task 经办人，键为 S 编号
+def _load_story_owners_cache():
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story_owners_cache.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+STORY_OWNERS = _load_story_owners_cache()
+
+def merge_phase_owners(responsible, task_owners):
+    """合并某环节「负责人 + Task 经办人」为去重后的经办人列表。
+    responsible: 负责人姓名或 None；task_owners: Task 经办人列表或 None。"""
+    merged = []
+    for name in [responsible] + (task_owners or []):
+        if not name:
+            continue
+        name = str(name).strip()
+        # 去掉工号后缀（如「石雪军-118389」→「石雪军」）
+        name = re.sub(r"[-_][A-Za-z0-9]+$", "", name).strip()
+        if name and name not in merged:
+            merged.append(name)
+    return merged
+
 # Story 级提出人 / 业务验收人 / 计划结束（键为 S 编号）
 REQUESTER_MERGED = {sc: e["requester"] for sc, e in STORY_META.items() if e.get("requester")}
 ACCEPTOR_MERGED = {sc: e["acceptor"] for sc, e in STORY_META.items() if e.get("acceptor")}
@@ -249,12 +277,12 @@ def compute_overdue_days(planned_end, actual_end=None):
         return 0
 
 BADGE_INLINE_STYLES = {
-    "badge-done": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background-color: #dcfce7; color: #15803d;",
-    "badge-terminated": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background-color: #f1f5f9; color: #64748b;",
-    "badge-overdue": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background-color: #fee2e2; color: #b91c1c;",
-    "badge-warning": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d;",
-    "badge-normal": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background-color: #e0f2fe; color: #0369a1;",
-    "badge-muted": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: #94a3b8;"
+    "badge-done": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; background-color: #dcfce7; color: #15803d;",
+    "badge-terminated": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; background-color: #f1f5f9; color: #64748b;",
+    "badge-overdue": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; background-color: #fee2e2; color: #b91c1c;",
+    "badge-warning": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d;",
+    "badge-normal": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; background-color: #e0f2fe; color: #0369a1;",
+    "badge-muted": "display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; word-break: break-all; overflow-wrap: anywhere; color: #94a3b8;"
 }
 
 def format_phase_status_html(status_str, planned_end, actual_end=None):
@@ -271,6 +299,26 @@ def format_phase_status_md(status_str, planned_end, actual_end=None):
     if days > 0:
         return f"{status_str}<br><span style='color:#b91c1c;'>逾期{days}天</span>"
     return status_str
+
+STORY_DETAIL_URL = "https://fintech.gtht.com.cn/kjpt/StoryManage/storyDetail?storyNo={storyNo}"
+
+def story_link_html(story):
+    """生成 Story 编号的可点击超链接（跳转平台 Story 详情页）。
+    链接使用 R 格式 storyNo（如 R2604160080-2）；无 storyNo 时回退为纯文本 S 编号。"""
+    s_id = story.get("id", "")
+    s_no = story.get("storyNo") or ""
+    if s_no:
+        return (f'<a href="{STORY_DETAIL_URL.format(storyNo=s_no)}" target="_blank" '
+                f'style="color: #1d4ed8; font-weight: bold; text-decoration: underline;">{s_id}</a>')
+    return f"<strong>{s_id}</strong>"
+
+def story_link_md(story):
+    """生成 Story 编号的 Markdown 超链接；无 storyNo 时回退为纯文本 S 编号。"""
+    s_id = story.get("id", "")
+    s_no = story.get("storyNo") or ""
+    if s_no:
+        return f"[{s_id}]({STORY_DETAIL_URL.format(storyNo=s_no)})"
+    return s_id
 
 def compute_phase_status(phase_name, planned_end_str, actual_end_str, phase_level, story_status=""):
     """
@@ -336,9 +384,9 @@ def is_risk_story(story):
     return False
 
 def get_badge_class(status_str):
-    if "已完成" in status_str:
+    if "已完成" in status_str or "完成" in status_str or "结束" in status_str or "通过" in status_str:
         return "badge-done"
-    elif "终止" in status_str:
+    elif "终止" in status_str or "不通过" in status_str or "失败" in status_str:
         return "badge-terminated"
     elif "开发中" in status_str or "自测中" in status_str or "待交付" in status_str:
         return "badge-normal"
@@ -456,6 +504,11 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
                 dev_owners = LIVE_NODE_MAP[s_id]["dev"]
             else:
                 dev_owners = get_valid_owner(r, "devManagePerson", "dev_owner")
+            # 合并负责人 + 开发 Task 经办人（支持多经办人）
+            dev_owners = merge_phase_owners(
+                dev_owners[0] if dev_owners else None,
+                STORY_OWNERS.get(s_id, {}).get("dev")
+            )
 
             dev_owner = ", ".join(dev_owners) if dev_owners else "/"
             dev_owner_html = "<br>".join(dev_owners) if dev_owners else "/"
@@ -477,11 +530,21 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
                 sit_owners = LIVE_NODE_MAP[s_id]["sit"]
             else:
                 sit_owners = get_valid_owner(r, "sitTestManagePerson", "sit_owner")
+            # 合并负责人 + SIT Task 经办人（支持多经办人）
+            sit_owners = merge_phase_owners(
+                sit_owners[0] if sit_owners else None,
+                STORY_OWNERS.get(s_id, {}).get("sit")
+            )
 
             if s_id in LIVE_NODE_MAP and LIVE_NODE_MAP[s_id].get("uat"):
                 uat_owners = LIVE_NODE_MAP[s_id]["uat"]
             else:
                 uat_owners = get_valid_owner(r, "uatTestManagePerson", "uat_owner")
+            # 合并负责人 + UAT Task 经办人（支持多经办人）
+            uat_owners = merge_phase_owners(
+                uat_owners[0] if uat_owners else None,
+                STORY_OWNERS.get(s_id, {}).get("uat")
+            )
 
             sit_owner = ", ".join(sit_owners) if sit_owners else "/"
             sit_owner_html = "<br>".join(sit_owners) if sit_owners else "/"
@@ -554,6 +617,7 @@ def load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=None):
 
             stories.append({
                 "id": s_id,
+                "storyNo": r.get("storyNo") or r.get("story_code") or "",
                 "name": s_name,
                 "system": system,
                 "status": status,
@@ -637,18 +701,33 @@ def parse_result_file(file_path, demand_id, demand_to_epic=None):
             else:
                 d_o = parse_owner(dev_match.group(1)) if dev_match else "/"
                 dev_owners = [d_o] if d_o != "/" else []
+            # 合并负责人 + 开发 Task 经办人（支持多经办人）
+            dev_owners = merge_phase_owners(
+                dev_owners[0] if dev_owners else None,
+                STORY_OWNERS.get(story_id, {}).get("dev")
+            )
 
             if story_id in LIVE_NODE_MAP and LIVE_NODE_MAP[story_id].get("sit"):
                 sit_owners = LIVE_NODE_MAP[story_id]["sit"]
             else:
                 s_o = parse_owner(sit_match.group(1)) if sit_match else "/"
                 sit_owners = [s_o] if s_o != "/" else []
+            # 合并负责人 + SIT Task 经办人（支持多经办人）
+            sit_owners = merge_phase_owners(
+                sit_owners[0] if sit_owners else None,
+                STORY_OWNERS.get(story_id, {}).get("sit")
+            )
 
             if story_id in LIVE_NODE_MAP and LIVE_NODE_MAP[story_id].get("uat"):
                 uat_owners = LIVE_NODE_MAP[story_id]["uat"]
             else:
                 u_o = parse_owner(uat_match.group(1)) if uat_match else "/"
                 uat_owners = [u_o] if u_o != "/" else []
+            # 合并负责人 + UAT Task 经办人（支持多经办人）
+            uat_owners = merge_phase_owners(
+                uat_owners[0] if uat_owners else None,
+                STORY_OWNERS.get(story_id, {}).get("uat")
+            )
 
             dev_owner = ", ".join(dev_owners) if dev_owners else "/"
             dev_owner_html = "<br>".join(dev_owners) if dev_owners else "/"
@@ -717,6 +796,7 @@ def parse_result_file(file_path, demand_id, demand_to_epic=None):
 
             stories.append({
                 "id": story_id,
+                "storyNo": STORY_META.get(story_id, {}).get("storyNo", ""),
                 "name": story_name,
                 "system": system,
                 "status": status,
@@ -783,6 +863,52 @@ async def run_single_query(req_id, script_dir):
 
 def generate_html(data_list, output_path, project_name, only_risk=False):
     rows_html = []
+
+    # 涉及系统筛选 JS（普通字符串，非 f-string，避免花括号被解析）
+    # 采用 proposed-schedule-confirm 技能的 data-flat 平铺行重建方式，彻底避免 rowspan 错位
+    filter_js = """<script>
+var originalTbodyHTML = '';
+function saveOriginalTbody() {
+  var tbody = document.getElementById('progressTable').querySelector('tbody');
+  if (tbody) originalTbodyHTML = tbody.innerHTML;
+}
+function filterBySystem() {
+  var select = document.getElementById('systemFilter');
+  var selected = select.value;
+  var tbody = document.getElementById('progressTable').querySelector('tbody');
+  if (!tbody) return;
+  if (!originalTbodyHTML) saveOriginalTbody();
+  if (!selected) {
+    // 全部：恢复原始 rowspan 布局
+    tbody.innerHTML = originalTbodyHTML;
+    var allRows = tbody.querySelectorAll('tr');
+    document.getElementById('filterCount').textContent = '共 ' + allRows.length + ' 条';
+    return;
+  }
+  // 筛选：用平铺行重建 tbody（无 rowspan，彻底避免错位）
+  var parser = new DOMParser();
+  var tempDoc = parser.parseFromString('<table><tbody>' + originalTbodyHTML + '</tbody></table>', 'text/html');
+  var origRows = tempDoc.querySelectorAll('tbody tr');
+  var fragment = document.createDocumentFragment();
+  var visibleCount = 0;
+  for (var i = 0; i < origRows.length; i++) {
+    var sys = origRows[i].getAttribute('data-system');
+    var flatHtml = origRows[i].getAttribute('data-flat');
+    if (sys && sys.indexOf(selected) !== -1 && flatHtml) {
+      var tempRowDoc = parser.parseFromString('<table><tbody>' + flatHtml + '</tbody></table>', 'text/html');
+      var flatRow = tempRowDoc.querySelector('tbody tr');
+      if (flatRow) {
+        fragment.appendChild(flatRow);
+        visibleCount++;
+      }
+    }
+  }
+  tbody.innerHTML = '';
+  tbody.appendChild(fragment);
+  document.getElementById('filterCount').textContent = '共 ' + visibleCount + ' 条（筛选后）';
+}
+window.onload = saveOriginalTbody;
+</script>"""
     
     # 1. 过滤数据，得到计算 rowspan 的真实列表
     filtered_data = []
@@ -795,6 +921,29 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
         item_copy = item.copy()
         item_copy["stories"] = stories
         filtered_data.append(item_copy)
+
+    # 统计指标（对齐 proposed-schedule-confirm 技能）
+    demands_count = len(set(item["demand_id"] for item in filtered_data if item.get("demand_id") and item["demand_id"] != "--"))
+    total_count = sum(len(item.get("stories", [])) for item in filtered_data)
+    sit_risk_count = 0
+    overdue_count = 0
+    for item in filtered_data:
+        for s in item.get("stories", []):
+            st = str(s.get("sit_status", ""))
+            if "待" in st and "生产" not in st:
+                sit_risk_count += 1
+            if "逾期" in str(s.get("overall_status", "")):
+                overdue_count += 1
+    # 从 filtered_data 重算涉及系统（确保与显示数据一致）
+    systems = set()
+    for item in filtered_data:
+        for s in item.get("stories", []):
+            sys_name = str(s.get("system", "")).strip()
+            if sys_name and sys_name not in ("--", "/", "None"):
+                systems.add(sys_name)
+    systems = sorted(systems)
+    system_options = "".join(f'<option value="{s}">{s}</option>' for s in systems)
+    systems_count = len(systems)
 
     # 2. 计算每个史诗块的 rowspan
     demand_rows = []
@@ -836,25 +985,30 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
         row_style = ' style="border-top: 2px solid #cbd5e1;"' if rendered_demands_count > 1 else ''
         
         epic_id = (stories[0].get("epic_id") if stories else None) or item.get("epic_id") or item.get("epic_code") or "--"
-        epic_show = f'<code style="background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569; font-size: 11px;">{epic_id}</code>' if epic_id and epic_id != "--" else "--"
+        epic_show = f'<code style="background-color: #f1f5f9; padding: 2px 2px; border-radius: 4px; color: #475569; font-size: 11px;">{epic_id}</code>' if epic_id and epic_id != "--" else "--"
         
         epic_rowspan = epic_rowspans.get(idx, 0)
         epic_td = ""
         if epic_rowspan > 0:
             epic_td = f"""
-        <td rowspan="{epic_rowspan}" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1e40af; vertical-align: middle; text-align: center; border: 1px solid #cbd5e1; font-family: ui-monospace, monospace; padding: 10px 8px;">
+        <td rowspan="{epic_rowspan}" data-role="epic" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1e40af; vertical-align: middle; text-align: center; border: 1px solid #cbd5e1; font-family: ui-monospace, monospace; padding: 10px 8px; white-space: nowrap;">
           {epic_show}
         </td>"""
         
-        td_style = 'style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;"'
+        td_style = 'style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: center; word-break: break-all; overflow-wrap: anywhere;"'
+        # 日期列：内容短，优先单行，放不下时强制断行
+        date_style = 'style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: center; word-break: break-all; overflow-wrap: anywhere;"'
+        # 经办人列：可能多人，强制断行、居中
+        owner_style = 'style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: center; word-break: break-all; overflow-wrap: anywhere;"'
+        # 编号列（史诗/需求/Story编号）：内容短，不换行、居中
+        id_style = 'style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: center; white-space: nowrap;"'
         
         if story_count == 0:
             rows_html.append(f"""
       <tr{row_style}>
         {epic_td}
-        <td class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px;">
+        <td data-role="demand" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px; white-space: nowrap;">
           <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="color: #1d4ed8; font-weight: bold; text-decoration: underline;">{demand_id}</a>
-          <span class="req-sub" style="font-size: 11px; color: #64748b; font-weight: normal; display: block; margin-top: 4px;">{subtitle}</span>
         </td>
         <td colspan="18" style="text-align: center; color: #64748b; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">（无关联 Story）</td>
       </tr>""")
@@ -864,75 +1018,56 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
                 sit_badge = format_phase_status_html(story["sit_status"], story["sit_end"], story.get("sit_act"))
                 uat_badge = format_phase_status_html(story["uat_status"], story["uat_end"], story.get("uat_act"))
                 overall_badge = format_phase_status_html(story["overall_status"], story["delivery_date"])
+                status_badge = format_phase_status_html(story["status"], "--", "--")
+                bus_badge = format_phase_status_html(story["business_result"], "--", "--")
 
-                system_td = f'<td class="system-highlight" style="font-weight: 600; color: #1d4ed8; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">{story["system"]}</td>' if "清算" in story["system"] else f'<td style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;">{story["system"]}</td>'
-                
-                status_style = f' style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;"'
-                if story["status"] in ("结束", "SIT大远期自测完成", "UAT验收完成"):
-                    status_style = ' style="color: #166534; font-weight: 500; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;"'
-                elif "SIT" in story["status"] or "开发" in story["status"] or "UAT" in story["status"]:
-                    status_style = ' style="color: #b45309; font-weight: 500; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;"'
+                system_td = f'<td data-system="{story["system"]}" style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: center; word-break: break-all; overflow-wrap: anywhere;">{story["system"]}</td>'
 
-                bus_result_style = f' style="padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;"'
-                if "通过" in story["business_result"]:
-                    bus_result_style = ' style="color: #166534; font-weight: 500; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;"'
-                elif "待" in story["business_result"]:
-                    bus_result_style = ' style="color: #b45309; font-weight: 500; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle;"'
+                # 21 个 Story 内容单元格（第 3~23 列），供正常行与平铺行共用
+                story_cells = [
+                    f'<td {id_style}>{story_link_html(story)}</td>',
+                    f'<td class="story-name-col" style="word-break: break-all; overflow-wrap: anywhere; padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle; text-align: left;">{story["name"]}</td>',
+                    system_td,
+                    f'<td {td_style}>{status_badge}</td>',
+                    f'<td {owner_style}>{story.get("dev_owner_html", story["dev_owner"])}</td>',
+                    f'<td {date_style}>{story["dev_end"]}</td>',
+                    f'<td {date_style}>{story.get("dev_act", "--")}</td>',
+                    f'<td {date_style}>{dev_badge}</td>',
+                    f'<td {owner_style}>{story.get("sit_owner_html", story["sit_owner"])}</td>',
+                    f'<td {date_style}>{story["sit_end"]}</td>',
+                    f'<td {date_style}>{story.get("sit_act", "--")}</td>',
+                    f'<td {date_style}>{sit_badge}</td>',
+                    f'<td {owner_style}>{story.get("uat_owner_html", story["uat_owner"])}</td>',
+                    f'<td {date_style}>{story["uat_end"]}</td>',
+                    f'<td {date_style}>{story.get("uat_act", "--")}</td>',
+                    f'<td {date_style}>{uat_badge}</td>',
+                    f'<td {td_style}>{story["requester"]}</td>',
+                    f'<td {td_style}>{story["business_acceptor"]}</td>',
+                    f'<td {td_style}>{bus_badge}</td>',
+                    f'<td {date_style}><strong>{story["delivery_date"]}</strong></td>',
+                    f'<td {date_style}>{overall_badge}</td>',
+                ]
+                story_cells_html = "".join(story_cells)
+
+                # 平铺行（无 rowspan，筛选重建用）：史诗/需求作为普通单元格
+                epic_plain = f'<td style="padding:10px 8px;border:1px solid #cbd5e1;color:#1e40af;font-weight:bold;vertical-align:middle;text-align:center;white-space:nowrap;background-color:#f8fafc;">{epic_show}</td>'
+                demand_plain = f'<td style="padding:10px 8px;border:1px solid #cbd5e1;color:#1d4ed8;font-weight:bold;vertical-align:middle;text-align:center;white-space:nowrap;background-color:#f8fafc;"><a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="color:#1d4ed8;font-weight:bold;text-decoration:underline;">{demand_id}</a></td>'
+                flat_row = f'<tr data-system="{story["system"]}">{epic_plain}{demand_plain}{story_cells_html}</tr>'
+                flat_row_html = "".join(line.strip() for line in flat_row.strip().split("\n")).replace("'", "&#39;")
 
                 if s_idx == 0:
                     rows_html.append(f"""
-      <tr{row_style}>
+      <tr{row_style} data-system="{story["system"]}" data-flat='{flat_row_html}'>
         {epic_td}
-        <td rowspan="{story_count}" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px;">
+        <td rowspan="{story_count}" data-role="demand" class="req-col" style="font-weight: bold; background-color: #f8fafc; color: #1d4ed8; vertical-align: middle; text-align: center; min-width: 110px; border: 1px solid #cbd5e1; padding: 10px 8px; white-space: nowrap;">
           <a href="https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1" target="_blank" style="color: #1d4ed8; font-weight: bold; text-decoration: underline;">{demand_id}</a>
-          <span class="req-sub" style="font-size: 11px; color: #64748b; font-weight: normal; display: block; margin-top: 4px;">{subtitle}</span>
         </td>
-        <td {td_style}><strong>{story["id"]}</strong></td>
-        <td class="story-name-col" style="max-width: 180px; word-break: break-all; padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;">{story["name"]}</td>
-        {system_td}
-        <td{status_style}>{story["status"]}</td>
-        <td {td_style}>{story.get("dev_owner_html", story["dev_owner"])}</td>
-        <td {td_style}>{story["dev_end"]}</td>
-        <td {td_style}>{story.get("dev_act", "--")}</td>
-        <td {td_style}>{dev_badge}</td>
-        <td {td_style}>{story.get("sit_owner_html", story["sit_owner"])}</td>
-        <td {td_style}>{story["sit_end"]}</td>
-        <td {td_style}>{story.get("sit_act", "--")}</td>
-        <td {td_style}>{sit_badge}</td>
-        <td {td_style}>{story.get("uat_owner_html", story["uat_owner"])}</td>
-        <td {td_style}>{story["uat_end"]}</td>
-        <td {td_style}>{story.get("uat_act", "--")}</td>
-        <td {td_style}>{uat_badge}</td>
-        <td {td_style}>{story["requester"]}</td>
-        <td {td_style}>{story["business_acceptor"]}</td>
-        <td{bus_result_style}>{story["business_result"]}</td>
-        <td {td_style}><strong>{story["delivery_date"]}</strong></td>
-        <td {td_style}>{overall_badge}</td>
+        {story_cells_html}
       </tr>""")
                 else:
                     rows_html.append(f"""
-      <tr>
-        <td {td_style}><strong>{story["id"]}</strong></td>
-        <td class="story-name-col" style="max-width: 180px; word-break: break-all; padding: 10px 8px; border: 1px solid #cbd5e1; color: #334155; vertical-align: middle;">{story["name"]}</td>
-        {system_td}
-        <td{status_style}>{story["status"]}</td>
-        <td {td_style}>{story.get("dev_owner_html", story["dev_owner"])}</td>
-        <td {td_style}>{story["dev_end"]}</td>
-        <td {td_style}>{story.get("dev_act", "--")}</td>
-        <td {td_style}>{dev_badge}</td>
-        <td {td_style}>{story.get("sit_owner_html", story["sit_owner"])}</td>
-        <td {td_style}>{story["sit_end"]}</td>
-        <td {td_style}>{story.get("sit_act", "--")}</td>
-        <td {td_style}>{sit_badge}</td>
-        <td {td_style}>{story.get("uat_owner_html", story["uat_owner"])}</td>
-        <td {td_style}>{story["uat_end"]}</td>
-        <td {td_style}>{story.get("uat_act", "--")}</td>
-        <td {td_style}>{uat_badge}</td>
-        <td {td_style}>{story["requester"]}</td>
-        <td {td_style}>{story["business_acceptor"]}</td>
-        <td{bus_result_style}>{story["business_result"]}</td>
-        <td {td_style}><strong>{story["delivery_date"]}</strong></td>
-        <td {td_style}>{overall_badge}</td>
+      <tr data-system="{story["system"]}" data-flat='{flat_row_html}'>
+        {story_cells_html}
       </tr>""")
 
     html_content = f"""<!DOCTYPE html>
@@ -1017,13 +1152,7 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
     text-align: center;
     min-width: 110px;
   }}
-  .req-sub {{
-    font-size: 11px;
-    color: #64748b;
-    font-weight: normal;
-    display: block;
-    margin-top: 4px;
-  }}
+  
   .story-name-col {{
     max-width: 180px;
     word-break: break-all;
@@ -1034,7 +1163,8 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
     border-radius: 9999px;
     font-size: 11px;
     font-weight: 600;
-    white-space: nowrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }}
   .badge-done {{
     background-color: #dcfce7;
@@ -1060,10 +1190,6 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
   .badge-muted {{
     color: #94a3b8;
   }}
-  .system-highlight {{
-    font-weight: 600;
-    color: #1d4ed8;
-  }}
   .legend-bar {{
     margin-top: 16px;
     font-size: 12px;
@@ -1071,6 +1197,74 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
     display: flex;
     gap: 16px;
     align-items: center;
+  }}
+  .stat-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 20px 32px;
+    background-color: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+  }}
+  .stat-card {{
+    background: #ffffff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }}
+  .stat-label {{
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+  }}
+  .stat-value {{
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+  }}
+  .stat-value.highlight {{
+    color: #c2410c;
+  }}
+  .stat-value.risk-highlight {{
+    color: #dc2626;
+  }}
+  .filter-bar {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 32px;
+    background-color: #f0f4ff;
+    border-bottom: 1px solid #e2e8f0;
+  }}
+  .filter-label {{
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e40af;
+    white-space: nowrap;
+  }}
+  .filter-select {{
+    padding: 6px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #ffffff;
+    color: #1e293b;
+    cursor: pointer;
+    min-width: 200px;
+    outline: none;
+  }}
+  .filter-select:focus {{
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }}
+  .filter-count {{
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    margin-left: auto;
   }}
 </style>
 </head>
@@ -1082,40 +1276,80 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
     <span class="sub-date" style="font-size: 13px; color: #64748b; font-weight: 500;">跟踪日期：{CURRENT_DATE_STR}（评估标准：结合阶段推进，仅评估活跃阶段与交付排期；包含未排期预警）</span>
   </div>
 
-  <table style="border-collapse: collapse; width: 100%; font-size: 12px; text-align: left;">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-label">关联需求总数</span>
+      <span class="stat-value">{demands_count}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">关联 Story 总数</span>
+      <span class="stat-value">{total_count}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">🔥 逾期 Story</span>
+      <span class="stat-value highlight">{overdue_count}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">🚨 SIT 进度风险 Story</span>
+      <span class="stat-value risk-highlight">{sit_risk_count}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">涉及系统数量</span>
+      <span class="stat-value">{systems_count}</span>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-label">🔍 筛选条件：</div>
+    <select id="systemFilter" class="filter-select" onchange="filterBySystem()">
+      <option value="">📋 全部系统（{systems_count} 个）</option>
+      {system_options}
+    </select>
+    <span class="filter-count" id="filterCount">共 {total_count} 条</span>
+  </div>
+
+  <table id="progressTable" style="border-collapse: collapse; width: 100%; font-size: 12px; text-align: left; table-layout: fixed;">
+    <colgroup>
+      <col style="width: 6%;"><col style="width: 6.5%;"><col style="width: 6.5%;"><col style="width: 10.5%;">
+      <col style="width: 4%;"><col style="width: 3%;"><col style="width: 3.5%;"><col style="width: 3.5%;">
+      <col style="width: 3.5%;"><col style="width: 3%;"><col style="width: 3.5%;"><col style="width: 3.5%;">
+      <col style="width: 3.5%;"><col style="width: 3%;"><col style="width: 3.5%;"><col style="width: 3.5%;">
+      <col style="width: 3.5%;"><col style="width: 3%;"><col style="width: 3.5%;"><col style="width: 3.5%;">
+      <col style="width: 3%;"><col style="width: 5%;"><col style="width: 4.5%;">
+    </colgroup>
     <thead>
       <tr class="group-header">
-        <th colspan="6" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">📌 Story 基础与当前状态</th>
-        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">💻 开发相关</th>
-        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">🧪 SIT 测试</th>
-        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">🔍 UAT 自测</th>
-        <th colspan="3" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">🤝 业务验收</th>
-        <th colspan="2" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px;">🚀 计划排期与综合预警</th>
+        <th colspan="6" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">📌 Story 基础与当前状态</th>
+        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">💻 开发相关</th>
+        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">🧪 SIT 测试</th>
+        <th colspan="4" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">🔍 UAT 自测</th>
+        <th colspan="3" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">🤝 业务验收</th>
+        <th colspan="2" style="background-color: #1e40af; color: #ffffff; font-weight: 700; text-align: center; border: 1px solid #1d4ed8; padding: 8px 6px; font-size: 13px; word-break: break-all; overflow-wrap: anywhere;">🚀 计划排期与综合预警</th>
       </tr>
       <tr class="sub-header">
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">史诗编号</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">需求编号</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">Story编号</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">任务名称</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">涉及系统</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">当前状态</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">开发经办人</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">预计结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">实际结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">开发状态</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">SIT经办人</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">预计结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">实际结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">SIT状态</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">UAT经办人</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">预计结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">实际结束</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">UAT状态</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">原始提出人</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">业务验收人</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">验收状态</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">计划生产排期</th>
-        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left;">综合预警</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">史诗编号</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">需求编号</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">Story编号</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">任务名称</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">涉及系统</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">当前状态</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">经办人</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">预计结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">实际结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">开发状态</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">经办人</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">预计结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">实际结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">SIT状态</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">经办人</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">预计结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">实际结束</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">UAT状态</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">提出人</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">验收人</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">验收状态</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">计划生产排期</th>
+        <th style="background-color: #f1f5f9; color: #334155; font-weight: 600; padding: 10px 8px; border: 1px solid #cbd5e1; text-align: left; word-break: break-all; overflow-wrap: anywhere;">综合预警</th>
       </tr>
     </thead>
     <tbody>{"".join(rows_html)}
@@ -1133,6 +1367,7 @@ def generate_html(data_list, output_path, project_name, only_risk=False):
 </div>
 
 </body>
+{filter_js}
 </html>
 """
 
@@ -1147,7 +1382,7 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
     lines.append("")
     lines.append(f"> **跟踪规则**：`{filter_desc}` | 结合 Story 状态推进，已通过阶段自动标记 `✅ 已完成`；仅评估活跃阶段与交付排期，已过预计结束时间为 `🚨 已逾期`；距预计结束时间 ≤3 天或书面活跃阶段缺失时间为 `⚠️ 临近到期 / ⚠️ 未排期`。")
     lines.append("")
-    lines.append("| 史诗编号 | 需求编号 | Story编号 | 任务名称 | 涉及系统 | 当前状态 | 开发经办人 | 开发预计结束 | 开发实际结束 | 开发状态 | SIT经办人 | SIT预计结束 | SIT实际结束 | SIT状态 | UAT经办人 | UAT预计结束 | UAT实际结束 | UAT状态 | 原始提出人 | 业务验收人 | 验收状态 | 计划生产排期 | 综合预警 |")
+    lines.append("| 史诗编号 | 需求编号 | Story编号 | 任务名称 | 涉及系统 | 当前状态 | 经办人 | 开发预计结束 | 开发实际结束 | 开发状态 | 经办人 | SIT预计结束 | SIT实际结束 | SIT状态 | 经办人 | UAT预计结束 | UAT实际结束 | UAT状态 | 提出人 | 验收人 | 验收状态 | 计划生产排期 | 综合预警 |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
     
     all_filtered_stories = []
@@ -1163,7 +1398,7 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
                 continue
 
         demand_url = f"https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={demand_id}&templateId=8888&flag=1"
-        demand_col = f"[{demand_id}]({demand_url})<br>({subtitle})" if subtitle else f"[{demand_id}]({demand_url})"
+        demand_col = f"[{demand_id}]({demand_url})"
         epic_id = (stories[0].get("epic_id") if stories else None) or item.get("epic_id") or item.get("epic_code") or "--"
         epic_col = f"`{epic_id}`" if epic_id and epic_id != "--" else "--"
         
@@ -1186,7 +1421,7 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
                 overall_st_md = format_phase_status_md(story['overall_status'], story['delivery_date'])
 
                 lines.append(
-                    f"| {e_col} | {d_col} | **{story['id']}** | {story['name']} | {story['system']} | {story['status']} | "
+                    f"| {e_col} | {d_col} | {story_link_md(story)} | {story['name']} | {story['system']} | {story['status']} | "
                     f"{story['dev_owner']} | {story['dev_end']} | {story.get('dev_act', '--')} | {dev_st_md} | "
                     f"{story['sit_owner']} | {story['sit_end']} | {story.get('sit_act', '--')} | {sit_st_md} | "
                     f"{story['uat_owner']} | {story['uat_end']} | {story.get('uat_act', '--')} | {uat_st_md} | "
@@ -1214,7 +1449,7 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
                 if s_days > 0: overdue_phases.append(f"SIT经办人 @{s['sit_owner']}(逾期{s_days}天)")
                 u_days = compute_overdue_days(s['uat_end'], s.get('uat_act'))
                 if u_days > 0: overdue_phases.append(f"UAT经办人 @{s['uat_owner']}(逾期{u_days}天)")
-                lines.append(f"- **{s['id']}** ({s['name']}) — 需求: `{s['demand_id']}` | 系统: `{s['system']}` | 逾期负责人: `{' / '.join(overdue_phases)}`")
+                lines.append(f"- **{story_link_md(s)}** ({s['name']}) — 需求: `{s['demand_id']}` | 系统: `{s['system']}` | 逾期负责人: `{' / '.join(overdue_phases)}`")
             lines.append("")
 
         if warning_list:
@@ -1224,7 +1459,7 @@ def generate_markdown(data_list, output_path, project_name, only_risk=False):
                 if "待排期" in s["dev_status"]: warn_phases.append(f"开发经办人 @{s['dev_owner']}({s['dev_status']})")
                 if "待排期" in s["sit_status"]: warn_phases.append(f"SIT经办人 @{s['sit_owner']}({s['sit_status']})")
                 if "待排期" in s["uat_status"]: warn_phases.append(f"UAT经办人 @{s['uat_owner']}({s['uat_status']})")
-                lines.append(f"- **{s['id']}** ({s['name']}) — 需求: `{s['demand_id']}` | 系统: `{s['system']}` | 需提醒负责人: `{' / '.join(warn_phases)}`")
+                lines.append(f"- **{story_link_md(s)}** ({s['name']}) — 需求: `{s['demand_id']}` | 系统: `{s['system']}` | 需提醒负责人: `{' / '.join(warn_phases)}`")
             lines.append("")
 
     lines.extend(generate_active_reminder_markdown(data_list))
@@ -1283,6 +1518,7 @@ def generate_active_reminder_markdown(data_list):
                 uncompleted_reminders.append({
                     "demand": d_title,
                     "story_id": s_id,
+                    "story_no": story.get("storyNo", ""),
                     "story_name": s_name,
                     "system": s_sys,
                     "phase": phase_label,
@@ -1296,7 +1532,7 @@ def generate_active_reminder_markdown(data_list):
     res.append("> ")
     if uncompleted_reminders:
         for item in uncompleted_reminders:
-            res.append(f"> - **{item['story_id']}** (`{item['system']}`) — 当前阶段: `{item['phase']}` | 责任人: **{item['ats']}**")
+            res.append(f"> - **{story_link_md({'id': item['story_id'], 'storyNo': item.get('story_no', '')})}** (`{item['system']}`) — 当前阶段: `{item['phase']}` | 责任人: **{item['ats']}**")
     else:
         res.append("> - **🎉 整体良好**：目前项目所有 Story 均已顺利推进完成！")
     res.append("> ")
@@ -1427,6 +1663,7 @@ async def main_async():
     parser.add_argument("--only_risk", action="store_true", help="仅显示高风险或逾期 Story")
     parser.add_argument("--send-mail", "--mail", "--send", "--draft", dest="send_mail", action="store_true", help="自动将生成的 HTML 进度跟踪表存入 Coremail 草稿箱")
     parser.add_argument("--refresh", "--live", "--no-cache", dest="refresh", action="store_true", help="强制实时从平台刷新提取最新数据 (跳过本地缓存)")
+    parser.add_argument("--no-auto-fetch", dest="no_auto_fetch", action="store_true", help="禁用自动抓取 Story 实际结束时间（默认自动抓取缺失项）")
     args = parser.parse_args()
 
     project_name = args.project.strip()
@@ -1526,6 +1763,36 @@ async def main_async():
                     s["epic_id"] = target_epic
                     
         parsed_data.append(d_obj)
+
+    # 自动抓取缺失的 Story 实际结束时间、提出人/验收人、各环节 Task 经办人（无需手动先运行 fetch 脚本）
+    if not args.no_auto_fetch:
+        fetched_actual = _ensure_actual_end_cache(parsed_data, script_dir)
+        fetched_meta = _ensure_story_meta_cache(parsed_data, script_dir)
+        fetched_owners = _ensure_story_owners_cache(parsed_data, script_dir)
+        # 若本次自动抓取了新数据，则必须基于更新后的全局缓存重建 parsed_data，
+        # 否则已构建的 dev_act/sit_act/uat_act、requester/business_acceptor、owner 仍为旧值，
+        # 导致 HTML 实际结束时间、原始需求提出人或经办人显示错误。
+        if fetched_actual or fetched_meta or fetched_owners:
+            print("[Orchestrator] 🔄 检测到实际结束时间/提出人已更新，重新构建需求数据...")
+            rebuilt = load_demand_data_from_cache(demand_ids, script_dir, demand_to_epic=demand_to_epic)
+            if rebuilt:
+                parsed_data = []
+                for d_id in demand_ids:
+                    if d_id in rebuilt and len(rebuilt[d_id]["stories"]) > 0:
+                        d_obj = rebuilt[d_id]
+                    elif d_id in live_parsed_dict:
+                        d_obj = live_parsed_dict[d_id]
+                    else:
+                        d_obj = {"demand_id": d_id, "title": "", "subtitle": DEMAND_SUBTITLE_MAP.get(d_id, ""), "stories": []}
+                    target_epic = demand_to_epic.get(d_id, "")
+                    if isinstance(target_epic, dict):
+                        target_epic = target_epic.get("epic_code", "")
+                    if target_epic:
+                        d_obj["epic_id"] = target_epic
+                        for s in d_obj.get("stories", []):
+                            if not s.get("epic_id") or s.get("epic_id") == "--":
+                                s["epic_id"] = target_epic
+                    parsed_data.append(d_obj)
 
     if not parsed_data:
         print("[Orchestrator] 错误: 没有成功获取到任何需求数据。")
@@ -1666,6 +1933,7 @@ def generate_active_reminder_html(parsed_data):
                 uncompleted_reminders.append({
                     "demand": d_title,
                     "story_id": s_id,
+                    "story_no": story.get("storyNo", ""),
                     "story_name": s_name,
                     "system": s_sys,
                     "phase": phase_label,
@@ -1695,7 +1963,7 @@ def generate_active_reminder_html(parsed_data):
     lines.append('  <ul style="margin: 0; padding-left: 20px; color: #1e293b;">')
     
     for item in uncompleted_reminders:
-        lines.append(f"    <li style='margin-bottom: 6px;'><b>{item['story_id']}</b> ({item['system']}) - 当前阶段: <span style='color:#b91c1c; font-weight:600;'>{item['phase']}</span> | 责任人: {item['ats']}</li>")
+        lines.append(f"    <li style='margin-bottom: 6px;'>{story_link_html({'id': item['story_id'], 'storyNo': item.get('story_no', '')})} ({item['system']}) - 当前阶段: <span style='color:#b91c1c; font-weight:600;'>{item['phase']}</span> | 责任人: {item['ats']}</li>")
 
     lines.append('  </ul>')
     lines.append('  <div style="margin-top: 14px; color: #475569; font-size: 13px;">')
@@ -1762,6 +2030,159 @@ def save_schedule_to_coremail_draft(html_file, subject, stakeholders, parsed_dat
     except Exception as e:
         print(f"[Email Error] ❌ 存入 Coremail 草稿箱异常: {e}")
         return False
+
+def _ensure_actual_end_cache(parsed_data, script_dir):
+    """自动抓取缺失的 Story 实际结束时间（story_actual_end_cache.json）。
+    收集所有 Story 编号，检查缓存缺失项，缺失时调用 fetch_story_actual_end.py 抓取。
+    抓取完成后重新加载缓存到全局 ACTUAL_END_MERGED，供后续生成使用。"""
+    global ACTUAL_END_MERGED
+    cache = dict(ACTUAL_END_MERGED)
+
+    # 收集所有 Story 编号，找出缓存中 dev/sit/uat 全部缺失的 Story
+    missing_story_ids = set()
+    missing_demand_ids = set()
+    for d_obj in parsed_data:
+        for s in d_obj.get("stories", []):
+            sid = s.get("id") or s.get("storyCode") or s.get("storyNo") or s.get("story_id") or ""
+            if not sid:
+                continue
+            cached = cache.get(sid, {})
+            if not (cached.get("dev") or cached.get("sit") or cached.get("uat")):
+                missing_story_ids.add(sid)
+                missing_demand_ids.add(d_obj.get("demand_id", ""))
+
+    if not missing_story_ids:
+        print("[Orchestrator] ✅ Story 实际结束时间缓存已完整，无需自动抓取。")
+        return False
+
+    fetch_script = os.path.join(script_dir, "fetch_story_actual_end.py")
+    if not os.path.exists(fetch_script):
+        print("[Orchestrator] ⚠️ 未找到 fetch_story_actual_end.py，跳过自动抓取实际结束时间。")
+        return False
+
+    missing_demand_ids.discard("")
+    if not missing_demand_ids:
+        return False
+
+    print(f"[Orchestrator] 🔄 自动抓取 {len(missing_story_ids)} 个 Story 的实际结束时间（缺失需求: {sorted(missing_demand_ids)}）...")
+    cmd = [sys.executable, fetch_script, "--demand"] + sorted(missing_demand_ids)
+    try:
+        subprocess.run(cmd, cwd=script_dir, timeout=600)
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 自动抓取实际结束时间失败（不影响生成）: {e}")
+        return False
+
+    # 重新加载缓存
+    cache_path = os.path.join(script_dir, "story_actual_end_cache.json")
+    try:
+        with open(cache_path, encoding="utf-8") as f:
+            ACTUAL_END_MERGED = json.load(f)
+        print("[Orchestrator] ✅ 已重新加载实际结束时间缓存。")
+        return True
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 重新加载缓存失败（使用原缓存）: {e}")
+        return False
+
+
+def _ensure_story_meta_cache(parsed_data, script_dir):
+    """自动抓取缺失的 Story 提出人/业务验收人元信息（story_meta_cache.json）。
+    若 parsed_data 中的 Story 在 story_meta_cache 中缺少 requester 或 acceptor，
+    则调用 fetch_story_meta.py --demand 抓取并重新加载全局缓存。
+    返回是否抓取了新数据（供调用方重建 parsed_data）。"""
+    global STORY_META, REQUESTER_MERGED, ACCEPTOR_MERGED, DEMAND_REQUESTER_MERGED
+
+    # 收集缺失提出人/验收人的 Story 所属需求
+    missing_demand_ids = set()
+    for d_obj in parsed_data:
+        for s in d_obj.get("stories", []):
+            sid = s.get("id") or s.get("storyCode") or s.get("storyNo") or ""
+            if not sid:
+                continue
+            meta = STORY_META.get(sid, {})
+            if not (meta.get("requester") and meta.get("acceptor")):
+                missing_demand_ids.add(d_obj.get("demand_id", ""))
+
+    missing_demand_ids.discard("")
+    if not missing_demand_ids:
+        print("[Orchestrator] ✅ Story 提出人/验收人元信息缓存已完整，无需自动抓取。")
+        return False
+
+    fetch_script = os.path.join(script_dir, "fetch_story_meta.py")
+    if not os.path.exists(fetch_script):
+        print("[Orchestrator] ⚠️ 未找到 fetch_story_meta.py，跳过自动抓取提出人/验收人。")
+        return False
+
+    print(f"[Orchestrator] 🔄 自动抓取缺失 Story 提出人/验收人（缺失需求: {sorted(missing_demand_ids)}）...")
+    cmd = [sys.executable, fetch_script, "--demand"] + sorted(missing_demand_ids)
+    try:
+        subprocess.run(cmd, cwd=script_dir, timeout=600)
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 自动抓取提出人/验收人失败（不影响生成）: {e}")
+        return False
+
+    # 重新加载缓存到全局
+    cache_path = os.path.join(script_dir, "story_meta_cache.json")
+    try:
+        with open(cache_path, encoding="utf-8") as f:
+            STORY_META = json.load(f)
+        REQUESTER_MERGED = {sc: e["requester"] for sc, e in STORY_META.items() if e.get("requester")}
+        ACCEPTOR_MERGED = {sc: e["acceptor"] for sc, e in STORY_META.items() if e.get("acceptor")}
+        DEMAND_REQUESTER_MERGED = {}
+        for _sc, _e in STORY_META.items():
+            if _e.get("requester") and _e.get("demandId"):
+                DEMAND_REQUESTER_MERGED.setdefault(_e["demandId"], _e["requester"])
+        print("[Orchestrator] ✅ 已重新加载提出人/验收人元信息缓存。")
+        return True
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 重新加载提出人/验收人缓存失败（使用原缓存）: {e}")
+        return False
+
+
+def _ensure_story_owners_cache(parsed_data, script_dir):
+    """自动抓取缺失的 Story 各环节 Task 经办人（story_owners_cache.json）。
+    parsed_data 中 Story 在 story_owners_cache 缺少 dev/sit/uat 任一时，调用
+    fetch_story_owners.py --demand 抓取并重新加载全局 STORY_OWNERS。
+    返回是否抓取了新数据（供调用方重建 parsed_data）。"""
+    global STORY_OWNERS
+
+    missing_demand_ids = set()
+    for d_obj in parsed_data:
+        for s in d_obj.get("stories", []):
+            sid = s.get("id") or s.get("storyCode") or s.get("storyNo") or ""
+            if not sid:
+                continue
+            owners = STORY_OWNERS.get(sid, {})
+            if not (owners.get("dev") or owners.get("sit") or owners.get("uat")):
+                missing_demand_ids.add(d_obj.get("demand_id", ""))
+
+    missing_demand_ids.discard("")
+    if not missing_demand_ids:
+        print("[Orchestrator] ✅ Story 各环节 Task 经办人缓存已完整，无需自动抓取。")
+        return False
+
+    fetch_script = os.path.join(script_dir, "fetch_story_owners.py")
+    if not os.path.exists(fetch_script):
+        print("[Orchestrator] ⚠️ 未找到 fetch_story_owners.py，跳过自动抓取经办人。")
+        return False
+
+    print(f"[Orchestrator] 🔄 自动抓取缺失 Story 各环节 Task 经办人（缺失需求: {sorted(missing_demand_ids)}）...")
+    cmd = [sys.executable, fetch_script, "--demand"] + sorted(missing_demand_ids)
+    try:
+        subprocess.run(cmd, cwd=script_dir, timeout=600)
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 自动抓取经办人失败（不影响生成）: {e}")
+        return False
+
+    cache_path = os.path.join(script_dir, "story_owners_cache.json")
+    try:
+        with open(cache_path, encoding="utf-8") as f:
+            STORY_OWNERS = json.load(f)
+        print("[Orchestrator] ✅ 已重新加载各环节 Task 经办人缓存。")
+        return True
+    except Exception as e:
+        print(f"[Orchestrator] ⚠️ 重新加载经办人缓存失败（使用原缓存）: {e}")
+        return False
+
 
 def main():
     asyncio.run(main_async())

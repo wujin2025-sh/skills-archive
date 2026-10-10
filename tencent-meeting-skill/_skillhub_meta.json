@@ -19,5 +19,6 @@
   "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/skills/icons/tencent-meeting-skill.png",
   "skillName": "tencent-meeting-skill",
   "description_zh": "腾讯会议管理助手，支持预约/创建/修改/取消会议、查询录制与转写、获取AI智能纪要",
-  "description_en": "Tencent Meeting assistant for scheduling, managing meetings, querying recordings, transcripts & AI summaries"
+  "description_en": "Tencent Meeting assistant for scheduling, managing meetings, querying recordings, transcripts & AI summaries",
+  "installedContentHash": "sha256:80a648b807ddec88f6d8be5ba83b498cbe13063b8c244852004041eeab974685"
 }

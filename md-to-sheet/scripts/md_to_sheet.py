@@ -90,11 +90,11 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
     name = filename[date_match.end():].replace('.md', '').strip()
     
     # 2. 提取需求描述（一、需求背景 + 二、需求内容）
-    bg_match = re.search(r'####\s*\*\*?[一二三四五六七八九十]+、\s*需求背景\*\*?', content)
-    content_match = re.search(r'####\s*\*\*?[原基二三四五六七八九十]+、\s*需求内容\*\*?', content)  # 兼容"二、需求内容"
+    bg_match = re.search(r'#{2,4}\s*\*?\*?[一二三四五六七八九十]+、\s*需求背景\*?\*?', content)
+    content_match = re.search(r'#{2,4}\s*\*?\*?[一二三四五六七八九十]+、\s*需求内容\*?\*?', content)
     # 如果没匹配到，可以用更宽泛的正则
     if not content_match:
-        content_match = re.search(r'####\s*\*\*?[一二三四五六七八九十]+、\s*需求内容\*\*?', content)
+        content_match = re.search(r'#{2,4}\s*\*?\*?[一二三四五六七八九十]+、\s*需求内容\*?\*?', content)
     
     bg_text = ""
     content_text = ""
@@ -105,7 +105,7 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
         
         content_start = content_match.end()
         next_matches = []
-        for m in re.finditer(r'(####\s*\*\*?[一二三四五六七八九十]+、|---|##\s+)', content):
+        for m in re.finditer(r'(#{2,4}\s*\*?\*?[一二三四五六七八九十]+、|---|##\s+)', content):
             if m.start() > content_start:
                 next_matches.append(m.start())
         content_end = min(next_matches) if next_matches else len(content)
@@ -184,7 +184,7 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
 
         
     # 6. 评审状态与参会人员 (从评审纪要)
-    review_match = re.search(r'####\s*\*\*?评审纪要\*\*?', content)
+    review_match = re.search(r'#{2,4}\s*\*?\*?评审纪要\*?\*?', content)
     review_status = "待评审"
     attendees = ""
     
@@ -194,9 +194,7 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
         
         # 校验是否含有占位符如 [部门名称A] [人员X] 等
         has_placeholders = "[" in first_line and "]" in first_line
-        if not has_placeholders and "沟通评审通过" in first_line:
-            review_status = "通过"
-            
+        
         # 提取真实姓名
         found_names = []
         for emp_name in dept_map.keys():
@@ -205,6 +203,12 @@ def parse_md_file(file_path: Path, dept_map: dict[str, str]) -> dict:
                 found_names.append((pos, emp_name))
         found_names.sort()
         attendees = "\n".join([name for pos, name in found_names])
+        
+        # 评审状态：若评审纪要已填写参会人员(attendees非空)则视为评审通过，同步L列参会人员、J列置为「通过」
+        if attendees and not has_placeholders:
+            review_status = "通过"
+        elif not has_placeholders and "沟通评审通过" in first_line:
+            review_status = "通过"
 
     # 7. 需求链接
     link_match = re.search(r'https://fintech\.gtht\.com\.cn/kjpt/DemandManage/details\?demandId=(R\d+)', content)
@@ -480,19 +484,24 @@ def main():
                 target_row_index, existing_row_data = existing_names_map[name]
                 print(f"🔄 [{name}]: 表格中已存在，准备更新行 {target_row_index}...")
                 
-                # 保留已有的 优先级、story拆分、评审状态(J列)、备注(K列)、参会人员(L列) 字段，避免覆盖人工修改
+                # 保留已有的 优先级、story拆分、备注(K列) 字段，避免覆盖人工修改
                 priority = existing_row_data[1].strip() or "正常"
                 story = existing_row_data[8].strip() or "否"
-                review_status = existing_row_data[9].strip() or "待评审"
                 remark = existing_row_data[10].strip()
-                attendees = existing_row_data[11].strip()
+                # 若评审纪要已填写参会人员，则同步L列参会人员并将J列置为「通过」；否则保留已有评审状态与参会人员
+                if d["attendees"]:
+                    review_status = "通过"
+                    attendees = d["attendees"]
+                else:
+                    review_status = existing_row_data[9].strip() or "待评审"
+                    attendees = existing_row_data[11].strip()
                 updated_count += 1
             else:
                 target_row_index = new_row_index
                 new_row_index += 1
                 priority = "正常"
                 story = "否"
-                review_status = "待评审"  # 第一次写入，默认值固定为「待评审」
+                review_status = d["review_status"]  # 若评审纪要已填写参会人员则为「通过」，否则「待评审」
                 remark = ""
                 attendees = d["attendees"]
                 print(f"➕ [{name}]: 表格中不存在，准备追加到行 {target_row_index}...")

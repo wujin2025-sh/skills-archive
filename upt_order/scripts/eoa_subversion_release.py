@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# EOA117 子版本上线发布 - 通用自动填报 v17.0
+# EOA117 子版本上线发布 - 通用自动填报 v17.1
+# 优化：执行摘要跟踪、日期参数支持、会话状态提示、配置验证
 # 支持系统：集中交易系统 (jzjy)、交易参数管理后台 (cszx)、95信创域 (95xinchuang)、98创新域 (98chuangxin) 等
 
 import json, time as real_time, traceback, sys, os, re, io, argparse
@@ -23,13 +24,84 @@ class TimeWrapper:
 
 time = TimeWrapper()
 
+# ==================== 执行摘要跟踪 ====================
+EXEC_SUMMARY = {
+    "steps": [],
+    "start_time": datetime.now(),
+    "end_time": None,
+    "status": "running",
+    "errors": []
+}
+
+def log_step(step_name, status="completed", details=""):
+    """记录执行步骤到摘要"""
+    EXEC_SUMMARY["steps"].append({
+        "step": step_name,
+        "status": status,
+        "details": details,
+        "timestamp": datetime.now().strftime("%H:%M:%S")
+    })
+    if status == "error":
+        EXEC_SUMMARY["errors"].append(f"{step_name}: {details}")
+
+def print_execution_summary():
+    """打印执行摘要"""
+    EXEC_SUMMARY["end_time"] = datetime.now()
+    duration = EXEC_SUMMARY["end_time"] - EXEC_SUMMARY["start_time"]
+    print("\n" + "=" * 55)
+    print("执行摘要")
+    print("=" * 55)
+    print(f"开始时间：{EXEC_SUMMARY['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"结束时间：{EXEC_SUMMARY['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"总耗时：{duration.total_seconds():.1f} 秒")
+    print(f"最终状态：{EXEC_SUMMARY['status']}")
+    if EXEC_SUMMARY["steps"]:
+        print("\n步骤详情:")
+        for s in EXEC_SUMMARY["steps"]:
+            icon = "✓" if s["status"] == "completed" else "✗" if s["status"] == "error" else "•"
+            print(f"  [{icon}] {s['timestamp']} - {s['step']}")
+            if s["details"]:
+                print(f"      {s['details']}")
+    if EXEC_SUMMARY["errors"]:
+        print("\n错误汇总:")
+        for err in EXEC_SUMMARY["errors"]:
+            print(f"  - {err}")
+    print("=" * 55)
+
 # 强制 UTF-8 编码，且开启行缓冲，确保后台执行时输出实时刷新
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
+# ==================== 配置加载与验证 ====================
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-    config = json.load(f)
+
+def validate_config(config):
+    """验证配置文件的完整性"""
+    required_keys = ["account", "browser"]
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"配置缺失：{key}")
+    
+    if "account" not in config or "username" not in config["account"]:
+        raise ValueError("配置缺失：account.username")
+    if "browser" not in config or "viewport" not in config["browser"]:
+        raise ValueError("配置缺失：browser.viewport")
+    
+    print(f"[✓] 配置文件验证通过：{os.path.basename(CONFIG_PATH)}")
+
+try:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        config = json.load(f)
+    validate_config(config)
+except FileNotFoundError:
+    print(f"[ERROR] 配置文件不存在：{CONFIG_PATH}")
+    sys.exit(1)
+except json.JSONDecodeError as e:
+    print(f"[ERROR] 配置文件 JSON 格式错误：{e}")
+    sys.exit(1)
+except ValueError as e:
+    print(f"[ERROR] 配置验证失败：{e}")
+    sys.exit(1)
 
 USERNAME = config["account"]["username"]
 PASSWORD = config["account"].get("PASSWORD", config["account"].get("password", ""))
@@ -63,9 +135,88 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SESSION_FILE = os.path.join(SCRIPT_DIR, ".fintech_session.json")
 KEYWORD_SIGNAL_FILE = os.path.join(SCRIPT_DIR, "eoa117_keyword_signal.json")
 
+def calculate_friday_date(date_str=None):
+    """
+    计算本周五日期（维护窗口）
+    :param date_str: 可选的 YYYYMMDD 格式日期字符串，用于指定基准日期
+    :return: (year, month, day_str, date_obj) 元组
+    """
+    if date_str:
+        try:
+            base_date = datetime.strptime(date_str, "%Y%m%d").date()
+        except ValueError:
+            print(f"[WARNING] 日期格式错误 '{date_str}'，使用当前日期")
+            base_date = date.today()
+    else:
+        base_date = date.today()
+    
+    # 计算本周五（周一=0, 周五=4）
+    friday = base_date + timedelta(days=(4 - base_date.weekday()) % 7)
+    return friday.year, friday.month, str(friday.day), friday
+
+def check_session_status():
+    """检查会话文件状态并提示"""
+    if os.path.exists(SESSION_FILE):
+        try:
+            with open(SESSION_FILE, "r", encoding="utf-8") as f:
+                session_data = json.load(f)
+            cookie_time = session_data.get("timestamp", 0)
+            if cookie_time:
+                cookie_age = (time.time() - cookie_time) / 3600  # 小时
+                if cookie_age < 2:
+                    print(f"[SESSION] ✓ 有效会话 (约{cookie_age:.1f}小时前)")
+                elif cookie_age < 24:
+                    print(f"[SESSION] • 会话可能有效 (约{cookie_age:.1f}小时前)")
+                else:
+                    print(f"[SESSION] 会话可能已过期 (约{cookie_age:.1f}小时前)")
+        except:
+            print("[SESSION] 无会话缓存")
+    else:
+        print("[SESSION] 无会话缓存，将执行完整登录流程")
+
+
+# ============================================================
+# 执行日志与总结
+# ============================================================
+
+EXECUTION_LOG = []  # 全局执行日志
+
+def log_step(step_name, status="pending", details=""):
+    """记录执行步骤状态"""
+    timestamp = time.strftime("%H:%M:%S")
+    EXECUTION_LOG.append({
+        "step": step_name,
+        "status": status,  # pending, running, success, failed, skipped
+        "details": details,
+        "timestamp": timestamp
+    })
+    status_icon = {"pending": "⏳", "running": "🔄", "success": "✓", "failed": "✗", "skipped": "⊘"}.get(status, "•")
+    print(f"[{timestamp}] {status_icon} {step_name}" + (f": {details}" if details else ""))
+
+def print_execution_summary():
+    """打印执行总结报告"""
+    print("\n" + "=" * 55)
+    print("执行总结报告")
+    print("=" * 55)
+    
+    total = len(EXECUTION_LOG)
+    success = sum(1 for s in EXECUTION_LOG if s["status"] == "success")
+    failed = sum(1 for s in EXECUTION_LOG if s["status"] == "failed")
+    skipped = sum(1 for s in EXECUTION_LOG if s["status"] == "skipped")
+    
+    print(f"总步骤数：{total}")
+    print(f"成功：{success} | 失败：{failed} | 跳过：{skipped}")
+    print("-" * 55)
+    
+    for entry in EXECUTION_LOG:
+        icon = {"pending": "⏳", "running": "🔄", "success": "✓", "failed": "✗", "skipped": "⊘"}.get(entry["status"], "•")
+        print(f"  {icon} [{entry['timestamp']}] {entry['step']}" + (f" - {entry['details']}" if entry['details'] else ""))
+    
+    print("=" * 55)
+
 today = date.today()
 friday = today + timedelta(days=(4 - today.weekday()) % 7)
-SAT_Y, SAT_M, SAT_D = friday.year, friday.month, str(friday.day)
+SAT_Y, SAT_M, SAT_D, SAT_DATE = calculate_friday_date()
 SAT_STR = friday.strftime("%Y-%m-%d")
 print(f"[INFO] 目标日期: {SAT_STR} 17:00~20:00")
 
@@ -2101,8 +2252,31 @@ active_browser = None
 # ============================================================
 # spb-extract 融合：自动提取升级包变更内容
 # ============================================================
-def locate_project_root():
-    """定位版本发布项目根目录（包含 jzjy/ 与 jygl/ 子目录）"""
+def get_project_root():
+    """
+    跨平台获取版本发布项目根目录。
+    优先级：
+    1. 环境变量 UPT_ORDER_PROJECT_ROOT
+    2. Windows 默认路径 D:/WorkBuddy/版本发布
+    3. macOS 默认路径 /Volumes/Macintosh HD_Data/WorkBuddy/版本发布
+    4. 相对路径自动发现（向上查找 jzjy/ + jygl/ + 版本地址.txt）
+    """
+    # 1. 环境变量优先
+    env_root = os.environ.get("UPT_ORDER_PROJECT_ROOT")
+    if env_root and os.path.isdir(env_root):
+        return env_root
+    
+    # 2. 平台特定默认路径
+    if sys.platform == "win32":
+        win_alt = "D:/WorkBuddy/版本发布"
+        if os.path.isdir(win_alt):
+            return win_alt
+    else:
+        mac_alt = "/Volumes/Macintosh HD_Data/WorkBuddy/版本发布"
+        if os.path.isdir(mac_alt):
+            return mac_alt
+    
+    # 3. 相对路径自动发现
     candidates = [os.getcwd(), SCRIPT_DIR]
     for start in candidates:
         cur = start
@@ -2115,10 +2289,12 @@ def locate_project_root():
             if parent == cur:
                 break
             cur = parent
-    alt = "/Volumes/Macintosh HD_Data/WorkBuddy/版本发布"
-    if os.path.isdir(alt):
-        return alt
     return None
+
+
+def locate_project_root():
+    """定位版本发布项目根目录（包含 jzjy/ 与 jygl/ 子目录）"""
+    return get_project_root()
 
 
 def auto_extract_upt_content(mode, project_root):
@@ -2183,13 +2359,35 @@ def auto_extract_upt_content(mode, project_root):
 # ============================================================
 def main():
     print("\n" + "=" * 55)
-    print("IT运维申请单 - 子版本上线发布通用自动填报 (EOA117) v17.0")
+    print("IT运维申请单 - 子版本上线发布通用自动填报 (EOA117) v17.1")
     print("=" * 55)
+    log_step("脚本启动", "running")
 
     parser = argparse.ArgumentParser(description='IT运维申请单 - 子版本上线发布通用版')
     parser.add_argument('变更系统', nargs='?', default=None)
+    parser.add_argument('--date', '-d', type=str, default=None, help='指定上线日期 (YYYYMMDD 格式)，默认使用本周五')
+    parser.add_argument('--headful', action='store_true', help='使用有头模式运行浏览器 (默认 headless)')
     args = parser.parse_args()
     raw_kw = args.变更系统
+    log_step("参数解析", "success")
+    
+    # 处理 --date 参数
+    if args.date:
+        global SAT_Y, SAT_M, SAT_D, SAT_DATE, SAT_STR
+        from datetime import datetime
+        try:
+            SAT_DATE = datetime.strptime(args.date, "%Y%m%d").date()
+            SAT_Y, SAT_M, SAT_D = str(SAT_DATE.year), str(SAT_DATE.month), str(SAT_DATE.day)
+            SAT_STR = SAT_DATE.strftime("%Y-%m-%d")
+            print(f"[参数] 使用指定日期：{SAT_STR}")
+        except ValueError as e:
+            print(f"[警告] 日期格式错误 {args.date}，使用默认本周五：{SAT_STR}")
+    log_step("日期配置", "success")
+    
+    # 处理 --headful 参数
+    HEADFUL_MODE = args.headful
+    if HEADFUL_MODE:
+        print("[参数] 使用有头模式运行浏览器")
 
     # 优先清空残留信号文件
     if os.path.exists(KEYWORD_SIGNAL_FILE):
@@ -2235,6 +2433,7 @@ def main():
         MODE = "dynamic"
 
     print(f"[模式] 识别为：{MODE}")
+    log_step("模式识别", "success", MODE)
 
     SYSTEM_CONFIGS = {
         "95xinchuang": {
@@ -2361,6 +2560,11 @@ def main():
     channel = config.get("browser", {}).get("channel", None)
     headless = config.get("browser", {}).get("headless", False)
     slow_mo = config.get("browser", {}).get("slow_mo", 50)
+    
+    # --headful 参数可覆盖配置文件的 headless 设置
+    if HEADFUL_MODE:
+        headless = False
+        print("[浏览器] 使用有头模式 (由 --headful 参数指定)")
     
     launch_kwargs = {
         "headless": headless,
@@ -3401,9 +3605,12 @@ def main():
             break
             
     if not addr_file:
-        alt_path = "/Volumes/Macintosh HD_Data/WorkBuddy/版本发布/版本地址.txt"
-        if os.path.exists(alt_path):
-            addr_file = alt_path
+        # 跨平台路径支持
+        project_root = get_project_root()
+        if project_root:
+            alt_path = os.path.join(project_root, "版本地址.txt")
+            if os.path.exists(alt_path):
+                addr_file = alt_path
 
     version_url = default_url
     if addr_file:
@@ -4017,10 +4224,12 @@ def main():
             break
     
     if not upt_content_file:
-        # 兜底查找绝对路径
-        alt_path = "/Volumes/Macintosh HD_Data/WorkBuddy/版本发布/upt_content.txt"
-        if os.path.exists(alt_path):
-            upt_content_file = alt_path
+        # 兜底查找绝对路径（跨平台支持）
+        project_root = get_project_root()
+        if project_root:
+            alt_path = os.path.join(project_root, "upt_content.txt")
+            if os.path.exists(alt_path):
+                upt_content_file = alt_path
 
     parsed_blocks = []
     if upt_content_file:
@@ -4347,6 +4556,7 @@ def main():
         time.sleep(60)
     else:
         print("\n  脚本在无头模式下执行完毕，立即退出...")
+    print_execution_summary()
     os._exit(0)
 
 
