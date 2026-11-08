@@ -57,6 +57,21 @@ disable: false
 > 规则：**不牺牲功能与安全**——两段式确认保留（`--yes` 仅命令显式 opt-in 时跳过，落库参数完全一致）；幂等（flow stories）保留；回查双保险保留；模板负责人强制映射保留；工号双体系注意保留。仅合并重复调用、并行 prepare、去脚本子进程、去冗余查询。
 >
 > 🚀 **`--yes` / `--auto` 预授权（opt-in，安全边界降低）**：命令显式带 `--yes`（如 `/gtht-story-split R26xxxxxxx --yes`）时，Step 4 的 3 条 Story 准备+提交全自动连跑（不再等用户"确认"），Step 6 发起评估**仍须用户明确同意**（对外通知动作，不纳入预授权）。默认不带 `--yes` 时仍走两段式确认。
+>
+> ⏱️ **极速路径（2026-10-14 新增，R2609280016 实测固化）**：**单系统需求**（最常见，如 R2609280016）Story 拆分仅 3 个 MCP 调用（flow 闸门 → prepare 直出令牌 → submit）且**无需 re-prepare**；确认摘要时回复 **「确认并评估」**（二合一授权，见 Step 4/Step 6），拆分提交后**直接发起技术评估（不再二次询问）**——全程用户仅 **1 次确认、对话 2 轮**（发指令 + 确认）。**多系统需求**（3 Story 级）因服务端 updateTime 并发控制，提交阶段必须串行（submit1→re-prepare2→submit2→re-prepare3→submit3），墙钟约 +5~10s，属服务端硬约束**不可并行**（re-prepare 依赖上一条提交完成后的新 updateTime）。
+>
+> 🔗 **跨技能全流程连跑入口（2026-10-14 新增）**：当由 `/gtht-accept-review` **全流程连跑**模式移交进入本技能时（用户已在评审确认时**一次授权**「拆 Story + 技术评估」），**免查 flow**——直接复用 accept-review 评审阶段已获取的 `query_requirement_flow` 结果（statusName/stories[]/receiver 均为评审后最新）作为 Step 1+2+3 闸门与幂等依据，**省 1 次 MCP 往返**；需求要素（优先级/改造范围/灰度）仍须从 ba-to-dev MD 提取（flow 不承载要素）；随后按 Step 4 create_story prepare→提交（**不再二次询问**，授权已在评审确认时获取）→ Step 6 start_technical_evaluation prepare→提交（技术评估授权同样已在评审确认时获取，遵循业务规则 #10 两段式原则——一次确认覆盖多写操作授权，非零确认）。**移交结果缺失/过期（跨会话）时才回退重新 `query_requirement_flow`**。
+>
+> ⚡ **级联探测极速路径 + 404 熔断（2026-11-04 R2610270069 20 轮实验实证修正）**：① **ID 字典收录系统（集中交易/集中清算/参数中心/低延时/交易参数管理后台等）prepare 免级联探测、一次到位**——全套直传 `tId`+`projectId`（名称或 option value）+`systemId`（**必须 option value**，查 ID 字典），**不触发**服务端 `getSystems` 调用；② **表外系统**：先传 `tId`+`projectId` → NEEDS_INPUT options 提取 systemId option value 回填，**1 次往返拿齐**；③ **报 404 → 先查当前参数是否带 `isEffectGrayUpgrade="1"`+`grayUpgradeRelateSystem` 非空**——是则**服务端 getSystems 路由缺失 bug**，改传 `isEffectGrayUpgrade="0"` 先建 Story 或 UI 手动拆（换参数/换 ID/调序均无效，J/K/L 三连 404 实证），最多 1 次「projectId → options 提取」标准重试后熔断报告，**严禁无限换参盲试**；④ **systemId 传名称 → Project 标 invalid（非 404）**，改用 option value 即恢复（实验4/5 vs 6/20）。
+>
+> 🚀 **一键拆分编排 `split_stories.py`（2026-11-05 R2610290057 提速固化）**：拆分慢的主因 = ①工具通道 prepare 大响应（数百 KB fields+options）进对话逐条消化；②手工拼 values 人员字段传纯工号触发「Confirmed values changed」失败重试；③flow 480K 大响应进对话。**一键脚本把 flow 闸门+幂等 → 并行 prepare（线程池）→ 串行提交（含 re-prepare）合并进单个进程**，大响应留在进程内，一次 run_command 完成：
+> ```
+> # --dry-run：flow 闸门+幂等+并行 prepare+确认摘要（不提交零副作用，产物落盘 /tmp/kjptai_story_*_prepare.json）
+> python3 split_stories.py --demandId R26xxxxxxx --stories '[{key,label,summary,args:{prepare参数全集}}]' --dry-run
+> # 提交：幂等跳过=exit 2；失败重试可直接复用 dry-run 产物
+> python3 split_stories.py --demandId R26xxxxxxx --stories '同前' [--verify]
+> ```
+> 实测 R2610290057 dry-run（2 条 Story 全部幂等 SKIP）**3.2s**；提交链路复用 accept-review 新版 kjptai_prepare（无状态 JWE 直连+禁代理）与 submit_stories 串行提交、values 双层回传服务端规范化全集，根治「Confirmed values changed」与重复握手。**旧路径 `kjptai_prepare.py` 子进程（gtht-story-split/scripts 5.4KB 版，有握手无禁代理）已弃用**，一律用 accept-review/scripts 下的新版。
 
 ---
 
@@ -86,7 +101,7 @@ disable: false
 
 ### 模式 A：解析 ba-to-dev 需求文档（推荐）
 用户给出需求编号或 `ba-to-dev` 产出的 Markdown 文档时：
-1. 若为文档路径，先读取文档，从【需求分析】/【改造范围】/【联测涉及系统】小节提取：需求编号、改造范围系统清单（**拆分对象**）、联测涉及系统（**仅白名单系统拆配合测试 Story**，见业务规则 #3）、灰度影响、业务验收推断；
+1. 若为文档路径，先读取文档，从【需求分析】/【改造范围】/【联测涉及系统】小节提取：需求编号、改造范围系统清单（**拆分对象，须先过滤非本组负责系统**——他组/厂商系统如互联网融资系统、互联网三方交易中台系统、君弘APP等不拆，见业务规则 #3）、联测涉及系统（**仅白名单系统拆配合测试 Story**，见业务规则 #3）、灰度影响、业务验收推断；
 2. 若为需求编号（`R26xxxxxxx`），直接进入 Step 1+2+3。
 
 ### 模式 B：命令行式（需求编号+系统清单）
@@ -99,7 +114,8 @@ disable: false
 ### Step 1+2+3：一次查询，完成校验+幂等检查（合并执行，2026-08-28 优化）
 - **模式A（有 ba-to-dev MD 文档，推荐）**：**仅调用 `mcp__kjptai__query_requirement_flow(demandId="R26xxxxxxx")` 一次**——其 `boardName`/`stories[]` 已覆盖闸门（状态/可执行操作/存量 Story 幂等），需求要素（优先级、改造范围、业务验收推断等）从已读取的 MD 文档提取，**跳过 `query_requirement`**（省 1 次往返）；
 - **模式B（纯需求编号，无 MD）**：**并行调用** `query_requirement` 与 `query_requirement_flow`（**同一条消息内发出，不串行**），一次性拿全要素 + 流程态；
-- 两种模式都从 `query_requirement_flow` 拿全：
+- **模式C（跨技能复用，🔗 accept-review 全流程连跑移交，2026-10-14 新增）**：由 `/gtht-accept-review` 连跑移交时**不查 flow**——直接采用 accept-review 评审阶段已获取的 `query_requirement_flow` 结果（statusName/stories[]/receiver 均为评审后最新）完成本步闸门与幂等检查，**省 1 次 MCP 往返**；需求要素从 MD 提取；仅当移交结果缺失/过期（跨会话）时才重新 `query_requirement_flow`；
+- 三种模式都从 `query_requirement_flow` 结果拿全：
 
 1. **前置硬闸门**（模式B 来自 `query_requirement`；模式A 来自 `query_requirement_flow` 的 `boardName` + 已读 MD 文档）：
    - **P1 需求状态**：`boardName` 须为「讨论中/待受理/待拆分」等可拆状态，已上线/已终止/草稿不可拆；
@@ -115,7 +131,7 @@ disable: false
 > ⛔ **硬闸门失败即停**：任一前置不满足，向用户说明原因并停止，不得强行拆分（防孤儿 Story）。
 
 ### Step 4：逐条创建 Story（两段式确认，核心）
-**仅对 Step 1+2+3 幂等检查判定为「未存在 Story」的改造范围系统创建改造类 Story**。
+**仅对 Step 1+2+3 幂等检查判定为「未存在 Story」的改造范围系统创建改造类 Story**（改造范围须已过滤**非本组负责系统**，见业务规则 #3——他组/厂商系统不拆，由他组自行拆分）。
 对「联测涉及系统」：**仅在涉及白名单系统（集中交易、低延时、集中清算、参数中心、三方存管）时自动拆分配合测试 Story**；其他系统（如集中营运）一律不拆 Story，仅在报告/纪要中记录其联测配合关系。
 
 对每个**待创建系统**，构造 `create_story` 参数：
@@ -124,12 +140,12 @@ disable: false
 |---|---|
 | `demandId` | 需求编号（必填） |
 | `summary` | Story 名称（2026-08-21 修订）：改造类=**需求名称**（与父需求同名，如「【低延时两融】上海董监高文件数据导入的优化需求」）；配合类=**`【配合测试】`+需求名称**（仅联测白名单系统自动创建，见业务规则 #3/#5） |
-| `systemId`/`systemModuleId`/`projectId`/`tId` | 从需求要素/模板继承，传名称或 ID 均可（服务端级联解析） |
+| `systemId`/`systemModuleId`/`projectId`/`tId` | **级联方向 = team(tId)→project(projectId)→system(systemId)**（2026-11-04 20 轮实验修正）：**先传 `tId` + `projectId`**（tId/projectId 传**名称**或 option value 均可，例如 tId=「交易技术组」、projectId=「集中交易平台持续建设项目」）→ 服务端返回 NEEDS_INPUT 且 options 含该 project 下 **system options → 提取 `systemId` 的 option value（长 ID 权威值）回填**再 prepare。⚠️ **`systemId` 必须传 option value，严禁传名称**：名称虽回显 `[ready]` 但服务端内部 project→system 归属校验失败（表现为 **Project 被标 invalid**，实验4/5 vs 实验6/20）；⚠️ **`systemId` 严禁传 demand.groupId 等短 ID**（如 37 系 R2610270069 的 groupId=信用，非系统 ID，曾误导排查）；表内系统直接全套装 option value 直传免探测（见业务规则 #4）；**getSystems 404 与 systemId 传参无关**（见 Step 4 修正：真正触发点是灰度关联系统校验） |
 | `priority` | 需求级别 P0-P4 |
-| `isHaveDev`/`isHaveTest`/`isHaveUat`/`isDesignWalkthrough`/`isHaveBus` | 1/0，按需求要素与系统角色推断 |
-| `devManagePersonId`/`testManagePersonId`/`uatUserId` | **一律按业务规则 #4 模版映射表的默认负责人填写**（模版 devHeader/testHeader/uatHeader），禁止用评审研发人员或近期 Story 惯例替代 |
-| `designerId`/`businessAcceptor` | 设计师按需填写；业务验收人=需求提出人（服务端解析） |
-| `description` | Story 富文本描述：**拷贝父需求描述**（`descSourceType=1`），可追加本系统改造要点 |
+| `isHaveDev`/`isHaveTest`/`isHaveUat`/`isDesignWalkthrough`/`isHaveBus` | 1/0，按需求要素与系统角色推断；⚠️ **配合测试类「是否需要开发」同样选「是」=1**（`isHaveDev` 不设 0，2026-10-12 用户纠正）；⚠️ **UAT 需要测试：`isHaveUat` 一律选「是」=1**（⛔ 不设 0，2026-10-12 用户手工修改 Story 后固化：创建时若设 0，服务端虽可能联动置 1 但不可依赖，须显式传 1）；⚠️ **设计走查：`isDesignWalkthrough` 一律选「否」=0**（⛔ 不设 1，2026-10-14 用户固化：走查=否时无需 Designer，同时不传 `designerId`） |
+| `devManagePersonId`/`testManagePersonId`/`uatUserId` | **一律按业务规则 #4 模版映射表的默认负责人填写**（模版 devHeader/testHeader/uatHeader），禁止用评审研发人员或近期 Story 惯例替代；⚠️ **配合测试类同样必须填 `devManagePersonId`**——用该系统模版默认开发负责人（如集中清算→周哲博-015880），**不得留空**（2026-10-12 用户要求固化）；⚠️ **人员三字段一律传「姓名-工号」完整格式**（如 `周哲博-015880`），**严禁传纯工号**——服务端按「姓名-工号」规范化，纯工号（`110091`）会与规范化全集不一致触发 `Confirmed values changed` 重试（2026-11-05 R2610290057 实测） |
+| `designerId`/`businessAcceptor` | **设计师不填**（`isDesignWalkthrough=0` 时一律不传 `designerId`，2026-10-14 用户固化）；业务验收人=需求提出人（服务端解析） |
+| `description` | Story 富文本描述：**拷贝父需求描述**（`descSourceType=1`），可追加本系统改造要点。⚠️ **必须显式传 `description` 字符串**（即使 `descSourceType=1`）——否则首次 prepare 返回 `NEEDS_INPUT`（missingFields:["description"]）需补填后重新 prepare，增加 1 轮往返（2026-10-14 R2609160118 实测）；改造类 Story 传父需求背景+本系统改造点，配合类/清算类传对应系统清算逻辑描述 |
 | `systemLabelId` | **所属系统标签**（扩展属性，随 `values` 传）：两融/质押业务 → `335`（场内信用交易）；其他 → `333`（场内现货交易）。详见业务规则 #11 |
 | `bchildTypeCode` | **二级需求类型**（扩展属性）：功能 → `"1000021"`。详见业务规则 #11 |
 | `isEffectGrayUpgrade` | **是否影响灰度升级**（扩展属性）：按评审纪要「灰度上线关注」判定，`1`/`0`。详见业务规则 #11 |
@@ -139,7 +155,13 @@ disable: false
 1. **并行 prepare（单消息）**：对全部「待创建系统」在**同一条消息内并行**调用 `create_story`（不传 `confirmed`）——工具通道直接返回每条的 `mcpContinuation`（含 `confirmationToken` + `expectedUpdateTime` + `requestId` + 规范化 `submitArguments`，Agent 可见，无需脚本/HTTP 重放）。汇总各条 normalizedValues 工号后**一次性展示确认摘要表**（系统 / 开发 / SIT / UAT / 标签）；
    > 旧路径 `kjptai_prepare.py` 子进程已弃用（`create_story` prepare 工具通道即可直出令牌）；该脚本仅保留作 `start_technical_evaluation` 的兜底（见 Step 6）。
 2. **用户确认（`--yes` 时跳过）**：默认等待对话中**明确确认**；命令带 `--yes` 时直接进入提交（落库参数与两段式完全一致）。
+   > 💡 **二合一授权（2026-10-14 新增）**：确认摘要展示后可回复 **「确认」**（仅拆分）或 **「确认并评估」**（拆分 + 随后自动发起技术评估）——后者等价于对 Step 6 发起评估的**明确同意**，拆分提交后直接预取令牌提交评估、**不再二次询问**（详见 Step 6），省 1 轮用户确认（典型单系统需求墙钟约省 30~60s）。
+> 💡 **编号快速确认（2026-10-14 新增，用户要求「回复 1、2 方便快速」）**：确认摘要末尾固定展示 **「回复 **1**=仅拆分（确认）；**2**=拆分并发起技术评估（确认并评估）」**，用户回复单数字 `1`/`2` 等价对应「确认」/「确认并评估」，减少打字负担；摘要末尾同时注明「回复其他内容=重新展示摘要核对参数」。
+   > 🔗 **跨技能移交时（2026-10-14 新增）**：若拆分授权已在 accept-review **全流程连跑**的评审确认时一并获取，本步**直接执行 Step 4 prepare→提交**、不再展示确认摘要等待二次确认（用户仅评审确认时已明确授权拆分）；仅当用户明确「仅评审/仅到评审为止」时，本步按两段式询问。
 3. **确认提交（串行，因 updateTime 前移）**：用户确认后逐条提交——首条携带 `confirmed=true` + 其 `confirmationToken`/`expectedUpdateTime`/`requestId` 提交；**每条提交成功后需求 `updateTime` 前移，后续条必须重新 prepare 取新令牌再提交**（re-prepare 同样走工具通道，单条消息即可）。典型 3 条：submit1 → re-prepare2 → submit2 → re-prepare3 → submit3。
+   > 📋 **提交参数模板（2026-11-04 R2610270069 三条全绿实证，防 `Confirmed values changed`）**：`arguments = {**base_args, "confirmed": True, "confirmationToken": token, "expectedUpdateTime": update, "requestId": rid, "_meta": {"sessionId": sid}}`，其中
+   > `base_args = {**prepare_args, **submit_values}` 且 **`base_args["values"] = submit_values`**（`submit_values` = 本次 prepare 返回的服务端 `submitArguments.values` 规范化全集）——**双重覆盖**：顶层平铺字段 + 嵌套 `values` 均以服务端全集为准，唯一例外保留 `demandId`（服务端全集无 demandId 时补回）。**首条可用 prepare 时已保留的令牌直接提交；后续条必须同参数 re-prepare 取新三件套**（requestId 须取 re-prepare 服务端新生成值，仅 confirmationToken 相同≠已 re-prepare）。实测：3 条 Story 全流程（prepare 并行 + submit1→re-prepare2→submit2→re-prepare3→submit3）墙钟 **<60s**。
+   > 🔌 **脚本直连（一键编排主路径，2026-11-05 提速固化；原「回退」语义升级）**：当工具通道 prepare 大响应（数百 KB fields+options）进对话拖慢节奏、或需批量执行/幂等重试时，**直接用 `scripts/split_stories.py` 一键编排**——`--stories` JSON 由 Agent 从上方参数表构造（`key`/`label`/`summary`/`args`=prepare 参数全集），单进程完成 flow 闸门+幂等 → 并行 prepare（线程池）→ 串行提交（含自动 re-prepare），`--dry-run` 演练零副作用、产物落盘 `/tmp/kjptai_story_*_prepare.json` 可复用，幂等全部跳过=exit 2。底层复用 `scripts/submit_stories.py`（自动扫描产物→首条缓存令牌→后续条自动 re-prepare→values 双层回传模板，`--dry-run` 预检）与 accept-review 新版 `kjptai_prepare.py`（无状态 JWE 直连+内置禁代理+会话缓存 5min TTL）；真实提交经 2 需求验证（R2610270069 三系统 prepare 并行+全命中 `{"created":true}` <60s；R2610290057 dry-run 2 条幂等 SKIP 3.2s）。工具通道不可用（ToolSearch 无 create_story）时同走本路径。旧版 `gtht-story-split/scripts/kjptai_prepare.py`（5.4KB，有 initialize 握手、无禁代理）**已弃用**。
 4. **提交后回查**：全部 Story 建完后统一回查一次 `query_requirement_flow` 验证（Step 5）。
 
 > ⚠️ **多条 Story 不得批量跳过确认**（默认模式）：每条系统都须出现在确认摘要表并经用户确认；`--yes` 仅命令显式 opt-in 时跳过。
@@ -151,11 +173,25 @@ disable: false
 > 💡 **单 Story 场景（2026-09-02 补充）**：改造范围仅 1 个系统时，prepare → 确认 → 提交即可，**无需 re-prepare**（无 updateTime 前移问题），提交后直接进入 Step 5 回查。
 >
 > ⚠️ **令牌时效与过期重试（2026-09-16 实测新增）**：`confirmationToken` 存在时效——prepare 后跨轮次确认（用户思考/回复间隔较长）会失效，提交报「确认令牌已过期，请重新准备并确认操作」。处理流程：① 先 `query_requirement_flow` 确认需求状态未变（stories[] 为空即未落库、参数未变）；② 同参数重新 prepare 取新令牌提交即可，**无需再次询问用户**（业务参数完全一致，用户已确认过该操作）。实测：R2609160070 首次提交令牌过期（Ihu9Ip0…）→ 重 prepare 新令牌（_Hg-Ejts…）一次成功。
+>
+> ⚠️ **提交参数完整性——必须携带 `expectedUpdateTime`（2026-10-14 R2609280016 实测 P0）**：提交请求（`confirmed=true`）必须携带**同一次 prepare** 返回的 `submitArguments.expectedUpdateTime`，与 `confirmationToken`、`requestId` **三者一体**提交，缺一不可——只带 `confirmationToken`+`requestId`+`confirmed`+`values` 会被服务端以 `NEEDS_INPUT` 拒绝（`missingFields: ["expectedUpdateTime"]`，提示「缺少：expectedUpdateTime」）。`expectedUpdateTime` 不可省略、不可猜测、不可跨 prepare 复用，必须取自**本次最新一次 prepare** 的 `submitArguments`。
+>
+> ⚠️ **提交失败恢复路径（令牌/requestId/expectedUpdateTime 三者一体，2026-10-14 R2609280016 实测 P1）**：提交被拒（令牌过期 / 缺参 / NEEDS_CONFIRMATION）时按序恢复：① 先 `query_requirement_flow` 校验幂等——需求状态未变（`boardName` 仍为可拆状态、`stories[]` 为空即未落库、业务参数一致）才继续；② 同参数**重新 prepare**；③ 用**本次重新 prepare 服务端新生成**的 `requestId` + `confirmationToken` + `expectedUpdateTime` 三者一体提交。⚠️ **判据=requestId 是否本次 prepare 新生成**——`confirmationToken` 是内容确定性哈希（同一状态内容结果相同），**不能作为「已重新 prepare」的判据**；复用旧 requestId/旧令牌必被拒。用户已确认过相同业务参数时**无需再次询问**，直接重 prepare 提交。实测：R2609280016 二轮提交缺 `expectedUpdateTime` 被拒（仍用旧 requestId）→ 重新 prepare 后新三件套（requestId=3ae03058…）一次提交 `{"created":true}` 成功。
+>
+> ⚠️ **提交 values 必须逐字等于服务端 `submitArguments.values`（normalizedValues，P0）**：`create_story` 提交（`confirmed=true`）时 `values` **必须原样回传本次 prepare 返回的服务端规范化全集（完整字段、类型一致）**，否则 EXECUTE 阶段报 **`Confirmed values changed; prepare again`**。⚠️ **服务端规范化结果因需求/版本而异，一律以本次返回的全集为准、严禁凭旧例自行删字段**：① 旧例 R2609210085（2026-10-28）服务端曾丢弃 `bchildTypeCode`；② 新实证 **R2610270069（2026-11-04 三条 Story 一次全绿）服务端 `submitArguments.values` 明确保留 `bchildTypeCode:"1000021"`**——直接原样全集回传（含 bchildTypeCode）提交一次 `{"created":true}` 成功；③ **`isEffectGrayUpgrade` 类型被规范化为字符串**——传 int `0` 返回 `"0"`，提交须用字符串。**最稳妥做法（2026-11-04 实证模板）**：提交 `base = {**args, **submitValues}` 且 `base["values"] = submitValues`（嵌套 values 同时替换为规范化全集，顶层平铺字段亦用全集覆盖），不自行增删/改类型。
+
+> ⚠️ **级联探测 + getSystems 404 熔断（2026-11-04 R2610270069 20 轮实验修正 P0，防盲目换参）**：
+> - **级联方向 = team→project→system，systemId 必须用 option value**：prepare 遇 NEEDS_INPUT 时**先传 `tId` + `projectId`（名称或 option value 均可）** → 服务端返回 NEEDS_INPUT 且 `questions[].options` 含该 project 下 **system options（`value`=systemId option value 长 ID）** → 自动提取回填 `systemId` 后再 prepare。**`systemId` 严禁传名称或短 ID**——名称虽回显 `[ready]` 但归属校验失败（Project 标 invalid），非 404；
+> - **getSystems 404 真正触发点 = 灰度关联系统校验（实验 J/K/L 三连 404 实证）**：`values.isEffectGrayUpgrade="1"` 且 `values.grayUpgradeRelateSystem` **非空**（无论传存量 ID 数组/名称/本需求 ID，全部 404）→ 服务端内部调 `api/pdmCmdb/getSystems` 校验关联系统 → **该 REST 接口路由缺失（Spring 404），系服务端 bug，非传参可解**。**识别口诀**：报错含 **`getSystems`/`api/pdmCmdb/getSystems`/HTTP 404** 且当前参数带 `isEffectGrayUpgrade=1`+关联系统 → 判定服务端故障，立即熔断停止换参，向用户报告「服务端 `getSystems` 接口故障，需平台修复或用 UI 手动拆分」；**唯一可行绕法**：`isEffectGrayUpgrade="0"` 先建 Story（实验 I 正常）→ 建好后平台 UI 补灰度，或 UI 手动拆；**最多仅允许 1 次**「projectId → options 提取 systemId」标准重试，其余一律熔断；
+> - **旧结论已推翻（勿再引用）**：①「flow 上下文存量系统=唯一绿洲」——实验 J 存量系统 ID（顶点两融 15613696414889GKY6）同样 404；②「systemId 名称传参触发 404」——名称导致的是 Project invalid 而非 404；③「换参数/调序可解」——404 与 systemId 传参无关，改参数无效；
+> - **速判口诀**：`Project: <empty> [invalid]` → 检查 systemId 是否传了名称（改用 option value）；报 404 且带灰度=1+关联系统 → 停，报告服务端故障；`systemId=37` 类短 ID 是 demand.groupId 混淆，不是系统 ID → 停。
 
 ### Step 5：回查双保险
 全部提交后回查核对（**优先用 `query_requirement_flow`**，其 `stories` 数组实时准确；`query_story` 按 demandId 过滤存在索引口径问题，可能误报"未查询到"）：
 - 核对创建的 Story 数与预期一致、状态正常（新建后应为「待同步/待确认、未发起评估」）；
 - 核对扩展属性三件套：`systemLabelName`（系统标签）、`bchildTypeCode`（二级需求类型）、`isEffectGrayUpgrade`（灰度升级）与业务规则 #11 取值一致；
+- 核对属性开关：`isDesignWalkthrough=0`（设计走查一律否，2026-10-14 固化）、无 `designerId`（未传 Designer）；
+- 核对**开发/UAT 属性**：`isHaveDev=1`、`isHaveUat=1`（UAT 需要测试，2026-10-12 用户固化）——若为 0 须报告并提示平台编辑该 Story（服务端可能因业务验收人联动置 1，但不可依赖）；
 - 不一致则向用户报告差异并定位原因。
 - ⚡ **并行合并（2026-09-10 新增）**：`create_story` 提交成功已返回完整 Story（含扩展属性三件套、负责人、系统），**Step 5 回查可并入 Step 6 检查**——直接调用 `query_technical_evaluation_progress`（其 `stories[]` 含全字段，可同时完成 Step 5 回查 + Step 6 幂等检查），**省 1 次 `query_requirement_flow` 往返**；仅当用户明确不发起评估时才单独 `query_requirement_flow` 做 Step 5 回查。
 
@@ -165,7 +201,7 @@ disable: false
 1. **检查（幂等 + 就绪）**：调用 `mcp__kjptai__query_technical_evaluation_progress(demandId="R26xxxxxxx")`：
    - 若**已发起过评估**（story 已有 `itEvaluationStatusName` / completed=true）→ **跳过**，告知用户「评估已发起」，流程结束；
    - 若未发起 → 确认 Step 5 回查通过（Story 齐全、状态正常）后，进入第 2 步。
-2. **询问用户 + 令牌预取（并行，2026-09-16 优化）**：向用户报告「Story 已就绪（N 个），评估尚未发起」，**明确询问是否现在发起技术评估**；**同时**（同一条消息内、不等用户回复）调用 DeferExecuteTool `start_technical_evaluation`（不传 `confirmed`）prepare——若工具通道直出 `confirmationToken` 则直接使用；若不直出（同 accept-review 的 review/accept 现象），回退运行 `scripts/kjptai_prepare.py --tool start_technical_evaluation --args '{"demandId":"R26xxxxxxx","reloadEvaluateMessage":"0"}'` 提取令牌。一步返回确认摘要（评估人、范围、待评估 Story 列表）+ 令牌参数；
+2. **询问用户 + 令牌预取（并行，2026-09-16 优化）**：**若 Step 4 用户已回复「确认并评估」（即已明确同意），跳过本步询问，直接进入预取+提交**；否则向用户报告「Story 已就绪（N 个），评估尚未发起」，**明确询问是否现在发起技术评估**；**同时**（同一条消息内、不等用户回复）调用 DeferExecuteTool `start_technical_evaluation`（不传 `confirmed`）prepare——若工具通道直出 `confirmationToken` 则直接使用；若不直出（同 accept-review 的 review/accept 现象），回退运行 `scripts/kjptai_prepare.py --tool start_technical_evaluation --args '{"demandId":"R26xxxxxxx","reloadEvaluateMessage":"0"}'` 提取令牌。一步返回确认摘要（评估人、范围、待评估 Story 列表）+ 令牌参数；
    > ⚡ **令牌预取收益**：prepare 与用户思考确认并行执行，用户同意后**直接提交**，省 1 次串行 prepare 往返（墙钟约 5~10s）。令牌无 updateTime 依赖风险（本步前无其他写操作，令牌不会失效）。
 3. **提交**：用户明确同意后，携带 `confirmed=true` + `confirmationToken` + `expectedUpdateTime` + `requestId` + `_meta.sessionId` 提交；
 4. **回查（可省，2026-09-10 优化）**：`start_technical_evaluation` 提交成功返回 `SUCCESS` 即已落库，**默认不再额外调用 `query_technical_evaluation_progress` 确认**（省 1 次往返）；仅当用户要求确认或需向用户展示评估后看板状态时，才回查确认：`allCompleted=true` 且各 Story 进入「待开发/SIT/UAT测试评估」看板（2026-08-21 实测：发起后 story `itEvaluationStatusName`=待开发/SIT测试评估（无UAT）或 待开发/SIT/UAT测试评估（有UAT），开发/SIT/UAT completed 均=true）。
@@ -189,23 +225,26 @@ disable: false
 
 1. **前置硬闸门**：P1 状态/P2 归属/P3 评审任一不满足即停，防孤儿 Story；
 2. **幂等**：已有同系统 Story 跳过创建，不重复拆；
-3. **拆分范围=改造范围+联测白名单**：改造范围系统一律创建改造类 Story；「联测涉及系统」**仅当涉及白名单系统（集中交易、低延时、集中清算、参数中心、三方存管）时才自动拆分配合测试 Story**，其他系统（如集中营运）一律不拆 Story，仅记录联测配合关系；
+3. **拆分范围=改造范围+联测白名单**：改造范围系统一律创建改造类 Story；「联测涉及系统」**仅当涉及白名单系统（集中交易、低延时、集中清算、参数中心、三方存管）时才自动拆分配合测试 Story**，其他系统（如集中营运）一律不拆 Story，仅记录联测配合关系；⛔ **「交易参数管理前台系统」豁免拆分（2026-10-15 用户固化，R2609220085 实测）**：改造范围即使出现该系统，**不创建独立 Story**——前台系统为后台系统的界面层（参数/办理端 web 界面，不承载独立业务逻辑），其改造随「交易参数管理后台系统」Story 一并评估；⛔ **「非本组负责系统」豁免拆分（2026-11-05 用户固化，R2610290057 实测）**：改造范围/联测涉及系统中出现的**他组负责系统**（如互联网融资系统、互联网三方交易中台系统、君弘APP交易大智慧子系统、顶点两融交易系统等厂商/他组系统）**一律不创建 Story**——由他组自行拆分，本技能仅处理**本组负责系统**（集中交易/低延时/集中清算/参数中心等，判定依据=评审纪要标注的系统归属，对齐 ba-to-dev P0 规则19「非本组系统改造描述不展开」），其改造/联测配合关系在报告与纪要中记录即可；实证：R2610290057 评审纪要【改造范围】含互联网融资系统（对应「富易和君弘客户端更换新跳转地址」），用户明确「**互联网融资系统 非我组系统，不需要拆 story**」，仅拆集中交易系统（改造类）+ 集中清算系统（联测配合测试类）两条 Story；**用户明确指示某改造范围系统不拆分时以用户指示为先**（用户指示＞改造范围）;
 4. **系统→模版映射（强制）**：按改造范围系统套用对应模版，模版决定 `systemId`/`projectId`/`tId`/`systemModuleId`/开发/SIT/UAT 负责人 的取值，禁止自行改用其他系统变体、禁止用评审研发人员替代模版默认负责人：
 
 | 改造范围系统 | 套用模版 | `systemId` 实际取值 | 所属组 | 实施工程 | 系统模块 | 开发负责人(底层工号) | SIT 负责人(底层工号) | UAT 负责人(底层工号) | 验证状态 |
 |---|---|---|---|---|---|---|---|---|---|
 | 低延时交易系统 | **低延时信创域** | `低延时交易系统(大集中-信创域)`（**不是** 信创域2） | — | NGTP持续建设 | 现货交易模块 | 刘勇明-014611 | 杜军辉-024090 | 刘慧雨-028581 | ✅已实建 |
-| 低延时交易系统 | **低延时创新域** | `低延时交易系统(两融创新域)` | 交易技术组 | NGTP持续建设 | 两融交易模块 | 刘勇明-014611 | 刘牧青-028643 | 聂章艳-025996 | ✅已实建(R2608070169) |
+| 低延时交易系统 | **低延时创新域** | `低延时交易系统（创新域）` | 交易技术组 | NGTP持续建设 | 两融交易模块 | 刘勇明-014611 | 刘牧青-028643 | 聂章艳-025996 | ✅已实建(R2608070169) |
 | 集中交易系统 | **集中交易系统** | `集中交易系统` | — | 集中交易平台持续建设项目 | 两融模块 | 胡玲杰-014013 | 高健-026249 | 李萍萍-017417 | ✅已实建 |
 | 交易参数管理后台系统 | **交易参数管理后台系统** | `交易参数管理后台系统` | 交易技术组 | 参数中心持续建设 | 业务模块 | 胡玲杰-014013 | 高健-026249 | 丁伟-022028 | ✅已实建(R2608210053) |
 | 客户登记管理系统 | **客户登记管理系统** | `客户登记管理系统` | 清算技术组 | 集中清算平台持续建设项目 | 中间件 | 孙茂文-待回查 | 茆莹莹-待回查 | 刘青-待回查 | ⚠️待回查底层工号 |
 | 集中清算系统 | **集中清算系统** | `集中清算系统` | 清算技术组 | 集中清算平台持续建设项目 | 经纪分区 | 周哲博-015880 | 曾娟-035764 | 刘青-016379 | ✅已实建(R2608070169) |
 | 低延时全局风控系统 | **低延时全局风控系统** | `低延时全局风控系统` | 交易技术组 | 低延时全局风控域持续建设 | 风控模块 | 刘勇明-014611 | 杜军辉-117790 | 刘慧雨-124577 | ⚠️待首次实建回查底层工号 |
+| 全业务实时资产计算中心系统 | **全业务实时资产计算中心系统** | `全业务实时资产计算中心系统` | 清算技术组 | 实时资产计算中心持续建设 | 资产核心 | 杨志华-待回查底层(New 111473) | 茆莹莹-待回查底层(New 117966) | —（UAT自测=否） | ⚠️待首次实建回查底层工号（2026-10-23 截图更新：实施工程/系统模块有变） |
+
+> ⚠️ **低延时创新域系统名称统一（2026-10-20 用户指示）**：低延时创新域系统名称**统一使用 `低延时交易系统（创新域）`（全角括号）**，**严禁再出现/选择「两融创新域」字样**（旧称 `低延时交易系统(两融创新域)` 已废弃）；拆分 Story、填写 systemId 字典、评审纪要/需求文档引用时一律用新名称，勿与「低延时交易系统(大集中-信创域)」混淆（括号内为「创新域」三字，无「两融」前缀）。
 
    > 🔀 **低延时交易系统「信创域 vs 创新域」分流规则（2026-09-02 修订）**：两个模版**系统标签都是 `335`(场内信用交易)**，易混淆，**必须按「运行域」分流，严禁仅凭业务关键词默认套用**：
    > | 判定依据 | 套用模版 | 适用场景 |
    > |---|---|---|
-   > | 需求运行在 **98 创新域**（内容涉及 **「个微」/「98」/「G1」** 任一关键词，或明确标注「创新域」「两融柜台节点」） | **低延时创新域** → `低延时交易系统(两融创新域)` | 98 创新域（与 EOA/upt_order 中的「98 创新域」对应），**系统模块=两融交易模块** |
+   > | 需求运行在 **98 创新域**（内容涉及 **「个微」/「98」/「G1」** 任一关键词，或明确标注「创新域」「两融柜台节点」） | **低延时创新域** → `低延时交易系统（创新域）` | 98 创新域（与 EOA/upt_order 中的「98 创新域」对应），**系统模块=两融交易模块** |
    > | 其余（默认 **95 信创域**，含债券质押式融资回购、融资额度控制、使用率/负债率等两融/信用业务） | **低延时信创域** → `低延时交易系统(大集中-信创域)` | 95 信创域 |
    >
    > ⚠️ **关键纠正（2026-09-02 实测 R2609020049）**：**业务是否属两融/信用（如标题含「融资」「两融」「保证金」「维保」）不是选创新域的依据**——债券质押式融资回购、融资额度控制等两融/信用业务**默认运行在 95 信创域**，须用信创域模版。**只有明确运行在 98 创新域（个微两融节点）的需求才用创新域模版**。
@@ -230,31 +269,34 @@ disable: false
    > - 与「低延时交易系统(大集中-信创域)」**开发负责人同为刘勇明**，**严禁混用**：两者 systemId 指向不同实例，SIT/UAT 也不同。
    > - **首次实建前**需回查存量 GRC Story（涉及「GRC」关键词的需求）补全 systemId/projectId/tId/systemModuleId 及 SIT/UAT 底层工号。
 
-   > 模版负责人数据源（纯 MCP）：调用 `query_requirement_flow` 读取**存量 Story** 的级联字段（systemId/projectId/tId/systemModuleId/devHeaderName/testHeaderName/uatUserName）**回查验证**；首次使用某系统的模版映射需经用户确认后固化到本表（2026-08-21 实测：R2608110058 存量 Story 提供低延时/集中交易真实级联 ID；**客户登记管理系统字段来自 2026-08-21 截图：技术研发部/清算技术组/集中清算平台持续建设项目/中间件/资金清算；开发负责人=孙茂文-117238、SIT负责人=茆莹莹-117966、UAT负责人=刘青-110436**；**集中清算系统字段来自 2026-09-01 截图：技术研发部/清算技术组/集中清算平台持续建设项目/经纪分区（模块 ID 11000162，截图文本 `经纪分区&&11000162`）/资金清算；开发负责人=周哲博-110091、SIT负责人=曾娟-113932、UAT负责人=刘青-110436**；**交易参数管理后台系统字段来自 2026-08-28 用户截图（展示 New 工号）+ R2608210053-3 实建回查（底层工号）：技术研发部/交易技术组/参数中心持续建设/业务模块/场内交易产品管理标签(369)；开发负责人=胡玲杰(底层014013/New108495)、SIT负责人=高健(底层026249/New120642)、UAT负责人=丁伟(底层022028/New115790)；级联 ID 从 R2608070010 存量 Story 回查验证，底层工号经 R2608210053-3 实建确认**）；**低延时交易系统(两融创新域)字段来自 2026-09-01 截图：技术研发部/交易技术组/NGTP持续建设/两融交易模块/场内信用交易；开发负责人=刘勇明-108980、SIT负责人=刘牧青-124581、UAT负责人=聂章艳-120199；适用场景=需求运行在 98 创新域（内容涉及「个微」/「98」/「G1」关键词之一；与「低延时交易系统(大集中-信创域)」95 信创域按「运行域」互斥分流，**两融/信用业务默认信创域**）**；**低延时全局风控系统字段来自 2026-09-07 截图：技术研发部/交易技术组/低延时全局风控域持续建设/风控模块/交易风险阻断控制（系统标签=交易风险阻断控制，**与场内现货/信用不同**，新字典待确认）；开发负责人=刘勇明-108980、SIT负责人=杜军辉-117790、UAT负责人=刘慧雨-124577（均为 New 工号，底层待回查）；适用场景=需求内容涉及「GRC」（全局风控/交易风险阻断）关键词；与低延时交易系统**严禁混用**（systemId/工号组合不同）。**用户未特别指定时，开发/SIT/UAT 负责人一律按本表模版默认值填写；仅业务验收人（businessAcceptor）按需求提出人填写。
+   > 模版负责人数据源（纯 MCP）：调用 `query_requirement_flow` 读取**存量 Story** 的级联字段（systemId/projectId/tId/systemModuleId/devHeaderName/testHeaderName/uatUserName）**回查验证**；首次使用某系统的模版映射需经用户确认后固化到本表（2026-08-21 实测：R2608110058 存量 Story 提供低延时/集中交易真实级联 ID；**客户登记管理系统字段来自 2026-08-21 截图：技术研发部/清算技术组/集中清算平台持续建设项目/中间件/资金清算；开发负责人=孙茂文-117238、SIT负责人=茆莹莹-117966、UAT负责人=刘青-110436**；**集中清算系统字段来自 2026-09-01 截图：技术研发部/清算技术组/集中清算平台持续建设项目/经纪分区（模块 ID 11000162，截图文本 `经纪分区&&11000162`）/资金清算；开发负责人=周哲博-110091、SIT负责人=曾娟-113932、UAT负责人=刘青-110436**；**交易参数管理后台系统字段来自 2026-08-28 用户截图（展示 New 工号）+ R2608210053-3 实建回查（底层工号）：技术研发部/交易技术组/参数中心持续建设/业务模块/场内交易产品管理标签(369)；开发负责人=胡玲杰(底层014013/New108495)、SIT负责人=高健(底层026249/New120642)、UAT负责人=丁伟(底层022028/New115790)；级联 ID 从 R2608070010 存量 Story 回查验证，底层工号经 R2608210053-3 实建确认**）；**低延时交易系统（创新域）字段来自 2026-09-01 截图：技术研发部/交易技术组/NGTP持续建设/两融交易模块/场内信用交易；开发负责人=刘勇明-108980、SIT负责人=刘牧青-124581、UAT负责人=聂章艳-120199；适用场景=需求运行在 98 创新域（内容涉及「个微」/「98」/「G1」关键词之一；与「低延时交易系统(大集中-信创域)」95 信创域按「运行域」互斥分流，**两融/信用业务默认信创域**）**；**低延时全局风控系统字段来自 2026-09-07 截图：技术研发部/交易技术组/低延时全局风控域持续建设/风控模块/交易风险阻断控制（系统标签=交易风险阻断控制，**与场内现货/信用不同**，新字典待确认）；开发负责人=刘勇明-108980、SIT负责人=杜军辉-117790、UAT负责人=刘慧雨-124577（均为 New 工号，底层待回查）；适用场景=需求内容涉及「GRC」（全局风控/交易风险阻断）关键词；与低延时交易系统**严禁混用**（systemId/工号组合不同）。**用户未特别指定时，开发/SIT/UAT 负责人一律按本表模版默认值填写；仅业务验收人（businessAcceptor）按需求提出人填写。
    > ⚠️ **ID/工号传参原则（2026-09-01 修订）**：`systemId`/`projectId`/`tId`/`systemModuleId`/各负责人字段**优先传服务端 ID 值**；传平台显示名称是否可解析**因系统而异**（集中清算系统支持名称解析；低延时系统传名称会触发 NEEDS_INPUT 返回可选列表）。**最稳妥**：先按下方 ID 字典传 ID；字典未收录或解析失败时，用名称触发服务端返回可选级联列表，再取正确 ID 回填。**负责人字段一律传底层工号**（`create_story` 自动映射 New 工号；截图/回查显示的 New 工号不可直接传）。下方为实测 ID 字典：
    >
    > | 系统 | systemId | systemModuleId | projectId | tId | 开发(底层/New) | SIT(底层/New) | UAT(底层/New) | 系统标签 | 验证来源 |
    > |---|---|---|---|---|---|---|---|---|---|
    > | 低延时交易系统(大集中-信创域) | 164325248684900500 | 11000143 | 8b9c3ba71c974aeeb2 | a13fc2ddba0d446b86 | 刘勇明-014611/108980 | 杜军辉-024090/待回查 | 刘慧雨-028581/待回查 | 335 | R2608110058 |
-   > | 低延时交易系统(两融创新域) | 158674333006900117 | 10000427 | 8b9c3ba71c974aeeb2 | a13fc2ddba0d446b86 | 刘勇明-014611/108980 | 刘牧青-028643/124581 | 聂章艳-025996/120199 | 335 | R2608070169 |
+   > | 低延时交易系统（创新域） | 158674333006900117 | 10000427 | 8b9c3ba71c974aeeb2 | a13fc2ddba0d446b86 | 刘勇明-014611/108980 | 刘牧青-028643/124581 | 聂章艳-025996/120199 | 335 | R2608070169 |
    > | 集中交易系统 | 142891263425277DZ1 | 10000192 | 1666659084248A2RIE | a13fc2ddba0d446b86 | 胡玲杰-014013/108495 | 高健-026249/120642 | 李萍萍-017417/111399 | 335 | R2608110058+R2609020047 |
    > | 交易参数管理后台系统 | 1585110383611MMQ3P | 10000385 | 3e11ea634e4a4a7ba1 | a13fc2ddba0d446b86 | 胡玲杰-014013/108495 | 高健-026249/120642 | 丁伟-022028/115790 | 369 | R2608210053 |
    > | 客户登记管理系统 | 待回查 | 待回查 | 待回查 | 待回查 | 孙茂文-待回查/117238 | 茆莹莹-待回查/117966 | 刘青-待回查/110436 | 358 | 截图 |
    > | 集中清算系统 | 1539073197362VTA7L | 11000162 | 16666895075975O7TS | 1316414976140JJU42 | 周哲博-015880/110091 | 曾娟-035764/113932 | 刘青-016379/110436 | 358 | R2608070169 |
    > | 低延时全局风控系统 | 待回查 | 待回查 | 待回查 | 待回查 | 刘勇明-014611/108980 | 杜军辉-024090/117790 | 刘慧雨-028581/124577 | 交易风险阻断控制(待确认ID) | 截图(待实建回查) |
+   > | 全业务实时资产计算中心系统 | 待回查 | 待回查(资产核心) | 待回查 | 1316414976140JJU42(清算技术组) | 杨志华-待回查底层/111473 | 茆莹莹-待回查底层/117966 | —(UAT自测=否，不传uatUserId) | 境内现货估值(待确认ID) | 截图(2026-10-23，待实建回查) |
    >
-   > - `tId` 取值对照：交易技术组=`a13fc2ddba0d446b86`（低延时/集中交易/交易参数管理共用）；清算技术组=`1316414976140JJU42`（集中清算系统用）。
+   > - **全业务实时资产计算中心系统（2026-10-23 用户截图更新，覆盖 2026-10-22 旧版）**：产品版本=`2022年融资融券持中后台综建设`、产品模块=`信用中台`、所属部门=`技术研发部`、所属组=`清算技术组`、所属系统=`全业务实时资产计算中心系统`、实施工程=`实时资产计算中心持续建设`（⚠️ 2026-10-23 由「全业务实时资产计算中心」更新）、所属系统标签=`境内现货估值`（**新字典值，ID 待首次实建回查**）、所属系统模块=`资产核心`（⚠️ 2026-10-23 由「实时查询服务」更新，ID 待回查）、二级需求类型=`功能`(1000021)、需求级别=P3；属性开关（2026-10-22 截图二）：`isHaveDev=1`（开发负责人=杨志华，New 111473）、`isHaveTest=1`（SIT 负责人=茆莹莹，New 117966）、**`isHaveUat=0`（UAT自测=否，不传 `uatUserId`）**、`isDesignWalkthrough=0`（不传 `designerId`）。⚠️ **该系统为「UAT=否」系统级例外，覆盖规则 #5「isHaveUat 一律=1」默认值**（用户截图明确为准）；开发/SIT 负责人显示为 New 工号，**底层工号首次实建前须回查存量 Story 或由 `create_story` 服务端映射**。
+   > - ⚠️ **ID 全直传免 getSystems（2026-11-04 实证）**：上表已收录系统的 `systemId` 均为**从存量 Story 回查的权威长 ID**（集中交易=142891263425277DZ1、集中清算=1539073197362VTA7L、交易参数管理后台=1585110383611MMQ3P 等），prepare 时**直接全套直传**（`tId`+`projectId`+`systemId`+`systemModuleId`）可**完全不触发**服务端 `getSystems` 调用（该接口 2026-11-04 起持续 404）；**表外新增系统**：严禁直接传名称/猜测 ID，按 Step 4「级联探测」——先传 `projectId` 长 ID → NEEDS_INPUT options 提取 systemId 权威值回填；**厂商系统（顶点两融交易系统等，不在本表）**：仅当 flow 上下文已有存量 Story（`stories[]` 命中，如顶点两融 15613696414889GKY6）时可正常解析（getSystems 故障下唯一绿洲），否则按 404 熔断分支处理（报告+可重跑脚本，不盲试）。
+   > - `tId` 取值对照：交易技术组=`a13fc2ddba0d446b86`（低延时/集中交易/交易参数管理共用）；清算技术组=`1316414976140JJU42`（集中清算系统、全业务实时资产计算中心系统共用）。
    > - `businessAcceptor`（业务验收人）：**必须传需求提出人的真实工号（staffId）**，**严禁误用提交人工号（如 110287）或受理人工号**——否则 prepare 报 NEEDS_INPUT。**传参策略（2026-09-02 实测）**：**优先传提出人工号**，**传姓名会触发 NEEDS_INPUT**（返回可选列表且常无需求提出人）；传工号后服务端自动解析为底层工号。已确认提出人工号映射：王恒=`015804`（staffId 109936）、金渤文=`019055`、杜伟毅=`034393`。
 >   > **NEEDS_INPUT 可选列表自动收集（2026-09-02 新增）**：`create_story` 返回 NEEDS_INPUT 时，`questions[].options` 含业务验收人候选（`value`=底层 workNo、`metadata.workNo`/`staffId` 双工号），须**自动提取该列表并入业务验收人工号字典**（供后续需求复用），再按需求提出人回填 `businessAcceptor`。典型：R2609020047 传"王恒"触发列表（无王恒），改传 staffId `109936` 解析为底层 `015804`。
    > - 扩展属性默认值：`systemLabelId=335`(场内信用交易)、`bchildTypeCode=1000021`(功能)、`isEffectGrayUpgrade=0`。
    > - **级联 systemModuleId 自动收集**：prepare 返回 NEEDS_INPUT 且缺 `systemModuleId` 时，从返回的可选级联列表中自动匹配「系统模块」名称并取 ID 回填；若匹配失败，将该列表展示给用户确认。
    > - **新系统模版映射**经用户确认后追加到本表；待回查项首次使用前先回查存量 Story 或经用户确认补全。
-5. **Story 名称=需求名称**：改造类 Story 名称直接取**父需求名称**（不再用「系统名+改造」）；配合类=`【配合测试】`+需求名称，且不设开发工作量（isHaveDev=0）；**配合类 Story 仅对联测白名单系统（集中交易、低延时、集中清算、参数中心、三方存管）创建**，白名单外系统（如集中营运）不拆；
+5. **Story 名称=需求名称**：改造类 Story 名称直接取**父需求名称**（不再用「系统名+改造」）；配合类=`【配合测试】`+需求名称；⚠️ **配合测试类「是否需要开发」同样选择「是」=`isHaveDev=1`**（⛔ 2026-10-12 用户纠正：**不设 0**，拆分配合测试 Story 时该字段同样选「是」），`devManagePersonId` 按业务规则 #4 模版映射填该系统默认开发负责人（如集中清算→周哲博-015880）必填；⚠️ **所有 Story（含配合测试类）「是否需要UAT」一律选「是」=`isHaveUat=1`**（⛔ 2026-10-12 用户手工修改固化：UAT 需要测试，不设 0）；**配合类 Story 仅对联测白名单系统（集中交易、低延时、集中清算、参数中心、三方存管）创建**，白名单外系统（如集中营运）不拆；⚠️ **设计走查一律「否」=`isDesignWalkthrough=0`、`designerId` 不填**（2026-10-14 用户固化，走查=否时无需 Designer）；
 6. **模板套用**：工程/系统/模块/人员按需求模板与系统配置级联推导，不手写死值；
 7. **父描述拷贝**：Story 描述默认拷贝父需求描述，保证上下文完整；
 8. **单次单需求**：一次只处理一个需求，防扩大化；
 9. **回查双保险**：提交后必须回查核对；
-10. **两段式确认 + Step 6 需用户明确指令**：所有写操作（create_story / start_technical_evaluation）必须先 prepare 展示确认摘要，用户对话中明确确认后提取令牌提交，禁止擅自落库；**发起技术评估属对外动作（通知各负责人），创建完 Story 后默认不发起，必须先向用户报告检查结果并询问，用户明确同意后才 prepare+提交**；**requestId/令牌复用规则（2026-10-08 新增，R2609140034 实测沉淀）**：正式提交返回 `NEEDS_CONFIRMATION` 时，**必须提取服务端最新返回的 `submitArguments.requestId` 与 `confirmationToken` 原样复用**——旧 requestId 已过期无效（曾致提交被拒），同一次提交超时重试也必须复用原 requestId（服务端 `retryRule="Reuse the same requestId for retries"`）；R2609140034 提交时曾用旧 requestId `1916ed1f-...` 被拒，换服务端新返 `ef7959d6-...` 后成功；
+10. **两段式确认 + Step 6 需用户明确指令**：所有写操作（create_story / start_technical_evaluation）必须先 prepare 展示确认摘要，用户对话中明确确认后提取令牌提交，禁止擅自落库；**发起技术评估属对外动作（通知各负责人），创建完 Story 后默认不发起，必须先向用户报告检查结果并询问，用户明确同意后才 prepare+提交**；**requestId/令牌复用规则（2026-10-08 新增，R2609140034 实测沉淀）**：正式提交返回 `NEEDS_CONFIRMATION` 时，**必须提取服务端最新返回的 `submitArguments.requestId` 与 `confirmationToken` 原样复用**——旧 requestId 已过期无效（曾致提交被拒），同一次提交超时重试也必须复用原 requestId（服务端 `retryRule="Reuse the same requestId for retries"`）；R2609140034 提交时曾用旧 requestId `1916ed1f-...` 被拒，换服务端新返 `ef7959d6-...` 后成功；**提交参数三件套（2026-10-14 追加，R2609280016 实测）**：提交须携带**同一次 prepare** 返回的 `expectedUpdateTime` 与 `requestId`、`confirmationToken` **三者一体**，缺 `expectedUpdateTime` 被拒（服务端 `NEEDS_INPUT`「缺少：expectedUpdateTime」）；重新 prepare 后必须用**本次新生成的 requestId** 提交——判据=requestId 是否本次新生成（令牌是内容哈希不可作判据）；**二合一确认（2026-10-14 追加）**：用户明确回复「确认并评估」即同时授权拆分提交与随后发起技术评估两个写动作（评估属对外通知仍须用户明确同意，但可在同一确认中一并授权，不违背本规则两段式原则）；
 11. **Story 属性填写（所属系统标签 / 二级需求类型 / 是否影响灰度升级，2026-08-21 实测固化）**：`create_story` 标准 schema 不含这三个字段，作为扩展属性写入 `values`（或 prepare 后由用户在平台确认），平台侧字段名与取值：
 
     | 平台字段 | 含义 | 取值规则 | 已知字典值 |
@@ -263,7 +305,8 @@ disable: false
     | `bchildTypeCode` | 二级需求类型 | 默认填「功能」（开发改造类 Story） | 1000021=功能 |
     | `isEffectGrayUpgrade` | 是否影响灰度升级 | **依据 ba-to-dev 需求文档【评审纪要】中「灰度上线关注」结论**：为「是/有影响」→ `1`；为「否/无」→ `0` | 0/1 |
 
-    > `isEffectGrayUpgrade=1` 时须一并填写 `grayUpgradeRelateSystem`（灰度升级涉及系统）与 `grayUpgradeRemarks`（灰度说明，取评审纪要原文）；`0` 时两者留空。
+    > `isEffectGrayUpgrade=1` 时须一并填写 `grayUpgradeRelateSystem`（灰度升级涉及系统）与 `grayUpgradeRemarks`（灰度说明，取评审纪要原文）；`0` 时**两者不传**（留空省略，2026-11-04 R2610270069 三条全绿实证：灰度=0 且不传关联系统字段 → 一次成功，无 getSystems 404）。
+    > 📌 **灰度取值 = 解析 ba-to-dev MD 评审纪要第 7 项「灰度上线关注」自动填写（2026-11-04 用户固化）**：第 7 项为「是/有影响」→ `isEffectGrayUpgrade="1"`；为「否/无」→ `"0"`；从 MD 提取而非用户口头/其它来源推断（本需求 R2610270069 评审纪要 7=否 → 灰度=0）。
     > 回查口径：`query_requirement_flow` 返回的 `stories[]` 中核对 `systemLabelName`/`bchildTypeCode`/`isEffectGrayUpgrade` 三字段。
 12. **执行后自省与优化点输出（每次执行必做，对齐 ba-to-dev 规则 16 / gtht-accept-review 规则 17）**：每次实际执行 `/gtht-story-split` 完成 Story 拆分/技术评估后，在最终回复中**必须新增「🔧 本技能优化点」小节**，主动输出本次执行暴露的优化点，持续驱动技能迭代。输出采用四段式模板：
     - **① 执行摘要**：本次执行总耗时、拆分的 Story 数、执行的写操作（create_story / start_technical_evaluation）与状态流转（如 待拆分→待同步+技术评估）；

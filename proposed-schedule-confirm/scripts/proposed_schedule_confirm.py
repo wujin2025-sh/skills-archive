@@ -28,8 +28,8 @@ proposed_schedule_confirm.py — 拟排期确认工具（极速高性能版）
 13. 备注 (beizhuText)
 
 排序与合并规则：
-1. 按【重点关注】优先排序，重点关注在最上方。
-2. 排序 key: (is_key_focus DESC, epic_code ASC, demand_id ASC, story_code ASC)。
+1. 按【史诗编号】分组排序，同一史诗的 Story 连续排列，史诗编号单元格自动合并 (rowspan)。
+2. 史诗组内按【重点关注】优先，再按需求编号、Story 编号升序。
 3. 连续相同【史诗编号】和【需求编号】自动在 HTML 中应用 rowspan 单元格合并。
 """
 
@@ -47,12 +47,12 @@ from datetime import datetime
 def _http_request(method, url, timeout=20, **kwargs):
     """requests 封装：系统代理（macOS 系统级）故障时自动降级绕过代理直连重试一次。
 
-    默认行为与 requests 一致（走系统代理）；仅当代理引起 ProxyError/ConnectionError 时，
-    改用 trust_env=False + verify=False 直连重试，避免代理异常（如隧道 502）导致全部请求失败。
+    默认行为与 requests 一致（走系统代理）；仅当代理引起 ProxyError/ConnectionError/ReadTimeout 时，
+    改用 trust_env=False + verify=False 直连重试，避免代理异常（如隧道 502 / 大表读取超时）导致全部请求失败。
     """
     try:
         return requests.request(method, url, timeout=timeout, **kwargs)
-    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
         sess = requests.Session()
         sess.trust_env = False
         with warnings.catch_warnings():
@@ -103,8 +103,95 @@ KNOWN_EMAIL_MAP = {
     "李卓远": "lizhuoyuan@gtht.com", "李彦丽": "liyanli@gtht.com", "罗海洪": "luohaihong@gtht.com",
     "解娅宁": "xieyaning@gtht.com", "崔敦良": "cuidunliang@gtht.com", "范秀萍": "fanxiuping@gtht.com",
     "王岗": "wanggang@gtht.com", "陈紫菡": "chenzihan@gtht.com", "肖慧": "xiaohui@gtht.com",
-    "薛天明": "xuetianming@gtht.com", "马晓鑫": "maxiaoxin@gtht.com", "周尤珠": "zhouyouzhu@gtht.com"
+    "薛天明": "xuetianming@gtht.com", "马晓鑫": "maxiaoxin@gtht.com", "周尤珠": "zhouyouzhu@gtht.com",
+    "姬攀毅": "jipanyi@gtht.com", "罗洁": "luojie@gtht.com", "黄增增": "huangzengzeng@gtht.com"
 }
+
+# ---------------------------------------------------------------------------
+# 人员部门与邮箱权威表（部门+人员 → 邮箱定位）
+# 依据《人员部门对应关系表.csv》建立「姓名 → [(部门, 邮箱或None), ...]」映射；
+# 仅当全部候选 CSV 缺失时才退回旧行为（KNOWN_EMAIL_MAP → 拼音兜底）。
+# ---------------------------------------------------------------------------
+STAFF_CSV_CANDIDATES = [
+    "/Volumes/Macintosh HD_Data/WorkBuddy/会议纪要/人员部门对应关系表.csv",
+    "/Volumes/Macintosh HD_Data/WorkBuddy/workspace/07-⚙️-系统配置/配置文件/人员部门对应关系表.csv",
+]
+
+
+def _load_staff_dept_email_map():
+    """加载《人员部门对应关系表.csv》→ {姓名: [(部门, 邮箱或None), ...]}。
+
+    优先使用第一个存在且可解析的文件；同姓名同部门去重，含邮箱的行优先保留。
+    CSV 规范：第一列人员、第二列部门，第三列可选邮箱（如 ``孙鹰,融资融券部,sunying5@gtht.com``）；
+    同名人员可能跨部门出现（如“陈超”同时存在于系统运行部与技术研发部），
+    此时必须结合部门区分后再定位邮箱。
+    """
+    staff_map = {}
+    import csv as _csv
+
+    for path in STAFF_CSV_CANDIDATES:
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                reader = _csv.reader(f)
+                for row in reader:
+                    if len(row) < 2:
+                        continue
+                    name = str(row[0]).strip().replace("　", "").strip()
+                    dept = str(row[1]).strip().replace("　", "").strip()
+                    email_col = str(row[2]).strip() if len(row) >= 3 else ""
+                    email = email_col if ("@" in email_col) else None
+                    if not name or not dept:
+                        continue
+                    staff_map.setdefault(name, [])
+                    existing_idx = None
+                    for i, (d, e) in enumerate(staff_map[name]):
+                        if d == dept:
+                            existing_idx = i
+                            break
+                    if existing_idx is None:
+                        staff_map[name].append((dept, email))
+                    elif email and not staff_map[name][existing_idx][1]:
+                        staff_map[name][existing_idx] = (dept, email)
+            break  # 首个成功解析的文件即为权威表
+        except Exception as e:
+            print(f"[WARN] 加载人员部门对应关系表失败 {path}: {e}")
+    return staff_map
+
+
+STAFF_DEPT_EMAIL_MAP = _load_staff_dept_email_map()
+
+
+def _pinyin_email_fallback(name):
+    """姓名 → 拼音邮箱（最后一层兜底，仅用于人员表中未收录/无邮箱记录者）"""
+    try:
+        from pypinyin import lazy_pinyin
+        return "".join(lazy_pinyin(name)).lower() + "@gtht.com"
+    except ImportError:
+        return f"{name}@gtht.com"
+
+
+def resolve_recipient_email(name):
+    """按「部门+人员」定位邮箱，返回 (邮箱, 来源, 部门列表)。
+
+    优先级：
+    1. KNOWN_EMAIL_MAP 精确映射（人工维护，最高优先）；
+    2. 人员部门对应关系表（CSV）中**带邮箱的记录**——同名跨部门时，
+       优先采用带邮箱部门的记录，并返回全部部门供人工核对；
+    3. 拼音兜底（仅当人员表中无该姓名、或无邮箱记录时）。
+    """
+    rows = STAFF_DEPT_EMAIL_MAP.get(name, [])
+    dept_list = [d for d, _ in rows]
+    if name in KNOWN_EMAIL_MAP:
+        return KNOWN_EMAIL_MAP[name], "KNOWN_EMAIL_MAP", dept_list
+    if rows:
+        for dept, email in rows:
+            if email:
+                return email, "STAFF_CSV", dept_list
+        return _pinyin_email_fallback(name), "PYINYIN_FALLBACK", dept_list
+    return _pinyin_email_fallback(name), "PYINYIN_FALLBACK", dept_list
+
 
 def clean_date_str(d_str):
     """规范化日期字符串格式 YYYY-MM-DD"""
@@ -327,6 +414,15 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进", sy
                 
             demand_id = str(r.get("demandId") or "--").strip()
             story_code = str(r.get("storyCode") or r.get("storyNo") or "--").strip()
+            # R 格式 Story 唯一编号（如 R2604160112-1），用于 Story 详情页跳转参数 (storyNo)
+            story_no_raw = str(r.get("dataUniqueNo") or r.get("storyNo") or "").strip()
+            if not story_no_raw or story_no_raw in ("--", "None", "null"):
+                story_no_raw = story_code
+            story_url = (
+                f"https://fintech.gtht.com.cn/kjpt/StoryManage/storyDetail?storyNo={story_no_raw}"
+                if story_no_raw and story_no_raw not in ("--", "None", "null")
+                else ""
+            )
             story_title = clean_story_name(story_code, r.get("storyTitle"))
             system_name = str(r.get("storySystemName") or "--").strip()
             status_name = str(r.get("storyStatusName") or r.get("demandStatus") or "--").strip()
@@ -359,6 +455,8 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进", sy
                 "epic_code": epic_code,
                 "demand_id": demand_id,
                 "story_code": story_code,
+                "story_no": story_no_raw,
+                "story_url": story_url,
                 "story_title": story_title,
                 "system_name": system_name,
                 "status_name": status_name,
@@ -376,8 +474,9 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进", sy
             }
             filtered_items.append(item)
 
-    # 重点关注在最上面排序 (keyFocus == '是' 优先)，且 Epic 编号、Demand 编号升序，方便合并单元格
-    filtered_items.sort(key=lambda x: (0 if x["is_key_focus"] else 1, x["epic_code"], x["demand_id"], x["story_code"]))
+    # 按史诗编号分组排序：同一史诗的 Story 连续排列（便于史诗单元格 rowspan 合并），
+    # 史诗组内按【重点关注】优先，再按需求编号、Story 编号升序
+    filtered_items.sort(key=lambda x: (x["epic_code"], 0 if x["is_key_focus"] else 1, x["demand_id"], x["story_code"]))
     
     return filtered_items, internal_owner_names
 
@@ -386,10 +485,10 @@ def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed
     自动提取确认表上所有有效相关人员（开发负责人、SIT负责人、UAT负责人、业务验收人），
     解析并生成 Coremail 格式的标准收件人列表字符串。
     仅包含有工号（姓名-数字格式）的内部人员，自动过滤外包人员。
-    固定包含：肖慧、刘青、乔露露、常丽、张志鹏、李鹤晨、周尤珠。
+    固定包含：肖慧、刘青、乔露露、常丽、张帆、茆莹莹、张志鹏、薛天明、马晓鑫、李鹤晨、周尤珠、陈曦、姬攀毅、罗洁、黄增增。
     若为 -r 模式，会自动读取此前初版确认表的人员名单缓存并自动 Merge，保持收件人完全一致。
     """
-    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张志鹏", "李鹤晨", "周尤珠"}
+    unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张帆", "茆莹莹", "张志鹏", "薛天明", "马晓鑫", "李鹤晨", "周尤珠", "陈曦", "姬攀毅", "罗洁", "黄增增"}
     invalid_tokens = {"--", "无需业务验收", "None", "null", "", "无"}
     
     for item in items:
@@ -432,16 +531,11 @@ def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed
 
     recipients_list = []
     for name in sorted(list(unique_names)):
-        if name in KNOWN_EMAIL_MAP:
-            recipients_list.append(f'"{name}" <{KNOWN_EMAIL_MAP[name]}>')
-        else:
-            try:
-                from pypinyin import lazy_pinyin
-                pinyin_name = "".join(lazy_pinyin(name)).lower()
-                recipients_list.append(f'"{name}" <{pinyin_name}@gtht.com>')
-            except ImportError:
-                recipients_list.append(f'"{name}" <{name}@gtht.com>')
-                
+        email, source, dept_list = resolve_recipient_email(name)
+        dept_hint = "、".join(dept_list) if dept_list else "未收录"
+        recipients_list.append(f'"{name}" <{email}>')
+        if source != "KNOWN_EMAIL_MAP":
+            print(f"    📧 {name}（{dept_hint}）→ {email} [{source}]")
     return recipients_list
 
 def extract_current_status_owners(items):
@@ -581,23 +675,21 @@ def calculate_spans(items):
     epic_spans = [0] * n
     demand_spans = [0] * n
     
-    # 1. 计算 Epic Code 跨行数
+    # 1. 计算 Epic Code 跨行数（同一史诗连续排列即合并，不受重点关注分段影响）
     i = 0
     while i < n:
         j = i
         while (j < n and 
-               items[j]["is_key_focus"] == items[i]["is_key_focus"] and 
                items[j]["epic_code"] == items[i]["epic_code"]):
             j += 1
         epic_spans[i] = j - i
         i = j
 
-    # 2. 计算 Demand ID 跨行数
+    # 2. 计算 Demand ID 跨行数（同一史诗内同一需求连续排列即合并，不受重点关注分段影响）
     i = 0
     while i < n:
         j = i
         while (j < n and 
-               items[j]["is_key_focus"] == items[i]["is_key_focus"] and 
                items[j]["epic_code"] == items[i]["epic_code"] and 
                items[j]["demand_id"] == items[i]["demand_id"]):
             j += 1
@@ -671,6 +763,12 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
             demand_link = f'https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={item["demand_id"]}&templateId=8888&flag=1'
             demand_td = f'<td{rowspan_attr} class="text-center font-bold text-blue cell-merged"><a href="{demand_link}" target="_blank" class="demand-link">{item["demand_id"]}</a></td>'
 
+        # Story 编号单元格（支持链接跳转 Story 详情页）
+        if item.get("story_url"):
+            story_td = f'<td class="text-center font-mono font-semibold"><a href="{item["story_url"]}" target="_blank" class="story-link">{item["story_code"]}</a></td>'
+        else:
+            story_td = f'<td class="text-center font-mono font-semibold">{item["story_code"]}</td>'
+
         remark_disp = item["remark"] if item["remark"] != "--" else '<span class="text-muted">--</span>'
 
         # 生成平铺行（无 rowspan，筛选时使用）
@@ -679,7 +777,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
       <tr class="{tr_class}" data-system="{sys_name}">
         <td class="text-center font-mono cell-merged">{item["epic_code"]}</td>
         <td class="text-center font-bold text-blue cell-merged"><a href="{demand_link_url}" target="_blank" class="demand-link">{item["demand_id"]}</a></td>
-        <td class="text-center font-mono font-semibold">{item["story_code"]}</td>
+        {story_td}
         <td class="story-title-col">{item["story_title"]}</td>
         <td class="text-center"><span class="system-tag">{item["system_name"]}</span></td>
         <td class="text-center">{status_badge}</td>
@@ -699,7 +797,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
       <tr class="{tr_class}" data-system="{sys_name}" data-flat='{flat_row_html}'>
         {epic_td}
         {demand_td}
-        <td class="text-center font-mono font-semibold">{item["story_code"]}</td>
+        {story_td}
         <td class="story-title-col">{item["story_title"]}</td>
         <td class="text-center"><span class="system-tag">{item["system_name"]}</span></td>
         <td class="text-center">{status_badge}</td>
@@ -941,6 +1039,15 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
   .demand-link:hover {{
     text-decoration: underline;
     color: #1e40af;
+  }}
+  .story-link {{
+    color: #0f766e;
+    text-decoration: none;
+    font-weight: 700;
+  }}
+  .story-link:hover {{
+    text-decoration: underline;
+    color: #115e59;
   }}
   .badge-purple {{
     background-color: #f3e8ff;
@@ -1197,7 +1304,7 @@ def generate_markdown(items, output_path, version_str, receiver_str, is_reviewed
     doc_title = f"拟排期需求清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求确认表 ({version_str} - {receiver_str})"
     lines = []
     lines.append(f"# 📋 {doc_title}")
-    lines.append(f"> **生成时间**：{CURRENT_TIME_STR} | **规则**：按【重点关注】优先排序，高亮 🚨 不含生产的 SIT 未完成进度风险状态")
+    lines.append(f"> **生成时间**：{CURRENT_TIME_STR} | **规则**：按【史诗编号】分组排序（同一史诗 Story 连续排列、史诗与需求单元格合并），高亮 🚨 不含生产的 SIT 未完成进度风险状态")
     lines.append("")
     lines.append("| 史诗编号 | 需求编号 | Story编号 | 任务名称 | 涉及系统 | 当前状态 | 开发负责人 | SIT负责人 | UAT负责人 | 业务验收人 | 重点关注 | 影响灰度 | 备注 |")
     lines.append("| :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |")
@@ -1211,9 +1318,10 @@ def generate_markdown(items, output_path, version_str, receiver_str, is_reviewed
         demand_disp = f"**{item['demand_id']}**" if demand_spans[idx] > 0 else '""'
 
         status_disp = f"**🚨 {item['status_name']}**" if item["is_sit_risk"] else item["status_name"]
+        story_disp = f"[{item['story_code']}]({item['story_url']})" if item.get("story_url") else f"`{item['story_code']}`"
 
         lines.append(
-            f"| {epic_disp} | {demand_disp} | `{item['story_code']}` | "
+            f"| {epic_disp} | {demand_disp} | {story_disp} | "
             f"{item['story_title']} | {item['system_name']} | {status_disp} | "
             f"{item['dev_owner']} | {item['sit_owner']} | {item['uat_owner']} | {item['bus_owner']} | {kf_str} | {gray_str} | {item['remark']} |"
         )

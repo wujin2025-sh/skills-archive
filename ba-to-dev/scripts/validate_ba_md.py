@@ -9,8 +9,9 @@
   R1 (P0) 文件名规范      : YYYYMMDD-R26xxxxxxx-纯中文标题.md
   R2 (P0) Front Matter    : 必须含 req_id/submitter/ndw/created/updated/tags/domain/system/status 九项
   R3 (P0) 评审纪要 9 项    : 需求补充说明/改造范围/各系统改造功能/前端界面/接口交互/业务参数/灰度上线关注/联测涉及系统/业务关注点 逐项齐全；并校验第 2 项【改造范围】与第 8 项【联测涉及系统】绝对互斥（改造范围内系统不得在联测项重复出现，涉及改造必然联测）
-  R4 (P0) 纪要末尾红线    : 严禁「涉及系统：」行；「预计上线日期」之后不得再输出其他内容行（附件清单/--- 分隔线除外，附件清单标题支持纯文本或 **加粗**）
+  R4 (P0) 纪要末尾红线    : 严禁「涉及系统：」行；「预计上线日期」之后不得再输出其他内容行（附件清单/--- 分隔线/「评审决策日志（可选）」小节除外，附件清单标题支持纯文本或 **加粗**；评审决策日志豁免见 2026-10-12）
   R5 (P2) 分点缩进统一    : 9 项小节分点 (N) 统一 3 空格缩进；「各系统改造功能」的 ① 功能点统一 8 空格缩进（--fix 自动修复）
+  R6 (P1) 表格前需空行    : 表格起始行（第一个以 | 开头的行）前一行须为空行或 --- 分隔线，否则 Obsidian/GFM 不识别为表格（2026-10-12 新增）
 
 --fix 行为（2026-10-08 修订）:
   * R4 违禁「涉及系统：」行 → 实际删除并写盘（修复成功不视为失败）；
@@ -62,13 +63,13 @@ def parse_frontmatter(text):
 
 def review_region_bounds(text):
     """返回 (start, end) —— 评审纪要章节内容区间 [start, end)，
-    start 指向标题行后的首个字符，end 指向「## 相关链接」行首或文件尾。
+    start 指向标题行后的首个字符，end 指向「相关链接」行首或文件尾。
     """
-    m = re.search(r"^##\s*评审纪要\s*$", text, re.M)
+    m = re.search(r"^#{2,4}\s*(\*\*)?评审纪要(\*\*)?\s*$", text, re.M)
     if not m:
         return None
     start = text.find("\n", m.end()) + 1
-    m2 = re.search(r"^##\s*相关链接\s*$", text[start:], re.M)
+    m2 = re.search(r"^(#{2,4}\s*)?(\*\*)?相关链接(\*\*)?\s*$", text[start:], re.M)
     end = start + m2.start() if m2 else len(text)
     return start, end
 
@@ -178,6 +179,10 @@ def check_file(path, fix=False):
                     continue
                 if skip_attach:
                     continue
+                # 豁免「评审决策日志（可选）」小节（2026-10-12 用户要求：决策日志在预计上线日期之后）
+                # 2026-11-01 补：待确认事项（> - **待确认 N**）同为决策日志合法内容，一并豁免
+                if s.startswith("##### **评审决策日志") or s.startswith("> - **决策") or s.startswith("> - **待确认"):
+                    continue
                 extra.append(s)
             for e in extra:
                 problems.append(("R4", "P0",
@@ -218,6 +223,33 @@ def check_file(path, fix=False):
             text2 = text[:start] + "\n".join(new_lines) + text[end:]
             with open(path, "w", encoding="utf-8") as f:
                 f.write(text2)
+
+    # --- R6: 表格前需空行（Obsidian/GFM 渲染要求，2026-10-12）---
+    # 表格起始行（第一个以 | 开头的行）的前一行须为空行或 --- 分隔线，否则 Obsidian 不识别为表格
+    full_lines = text.splitlines()
+    in_code = False
+    prev = ""
+    for line in full_lines:
+        s = line.strip()
+        if s.startswith("```"):
+            in_code = not in_code
+            prev = line
+            continue
+        if in_code:
+            prev = line
+            continue
+        if not line.lstrip().startswith("|"):
+            prev = line
+            continue
+        if prev.lstrip().startswith("|"):
+            prev = line
+            continue  # 非表格起始行（前一行也是表格行）
+        if prev.strip() == "" or prev.strip() == "---":
+            prev = line
+            continue  # 前一行为空行或分隔线，OK
+        problems.append(("R6", "P1",
+                         f"表格前需空行（表格起始行前一行应为空行或 ---，当前为: {prev.strip()[:30]}）"))
+        prev = line
 
     return problems
 

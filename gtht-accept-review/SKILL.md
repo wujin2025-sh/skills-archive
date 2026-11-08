@@ -28,6 +28,7 @@ disable: false
 > - **`--yes` 预授权模式（省 2 轮用户交互）**：命令显式携带 `--yes`/`--auto`（如 `/gtht-accept-review R26xxxxxxx --yes`）时，跳过对话确认自动提交，落库参数与两段式完全一致；
 > - **ToolSearch 缓存**：工具名稳定（`mcp__kjptai__*`），默认直接调用；仅在返回参数校验失败时才 `ToolSearch` 刷新 schema，省 1 次启动查询；
 > - **受理+评审连跑确认（2026-10-08 用户偏好固化，默认）**：需求处于「待受理」时，受理+评审**默认一次确认连跑**（等价 `--merge`：展示受理摘要时说明「确认后将自动继续完成评审」，一次授权完成 待受理→讨论中→待拆分 两跳，省 1 轮确认）；禁止擅自零确认落库；
+> - **全流程连跑（2026-10-14 新增，一次确认贯通 受理→评审→拆 Story→技术评估）**：在受理+评审连跑基础上继续向后延伸——**评审 prepare 展示摘要时同步说明「确认后将自动继续完成 Story 拆分及技术评估」**，用户确认后：受理提交 → 自动评审提交 → **自动进入跨技能连跑**（调用 `gtht-story-split` 流程：**复用本次 `query_requirement_flow` 结果** statusName/stories[]/receiver 作为闸门+幂等依据免查 flow，需求要素从 MD 提取 → create_story prepare→提交 → start_technical_evaluation prepare→提交，全程不再二次询问，**技术评估授权在本次确认中一并获取**，符合两段式原则——用户一次确认覆盖三个写操作授权，非零确认）；若评审 prepare 返回 NEEDS_INPUT/缺字段则**回退两段式**、不擅自继续；用户明确「仅受理/仅评审/仅到评审为止」时仅推进到对应环节（全流程连跑自动关闭）；
 > - **令牌提取（HTTP 直连法，2026-08-21 实测 + 2026-08-28 校正）**：`confirmationToken` 在 MCP 响应 `structuredContent.data` 中，工具渲染层不显示；`accept`/`review` 必须 HTTP 直连 `kjptai_prepare.py` 提取（脚本不落盘令牌、仅写本机会话参数文件供提交复用）；
 > - 若 kjptai MCP 工具不可用，提示检查 **kjptai 连接器**信任状态，无脚本回退。
 
@@ -58,17 +59,19 @@ disable: false
 1. **Prepare（脚本 HTTP 直连，一步）**：运行 `scripts/kjptai_prepare.py --tool <toolName> --args '<argsJson>'`，脚本完成：
    - HTTP 直连 kjptai MCP（initialize → notifications/initialized → tools/call 同一工具同一参数）；
    - 打印确认摘要（`content[0].text`，供向用户展示）；
-   - 提取 `confirmationToken` / `expectedUpdateTime`（= updateTime）/ `sessionId`（**优先 structuredContent 的 `_meta.sessionId`，fallback HTTP header 的 Mcp-Session-Id**）/ 新生成 `requestId`（UUID）；
+   - 提取 `confirmationToken` / `expectedUpdateTime`（= updateTime）/ `sessionId`（**优先 structuredContent 的 `_meta.sessionId`，fallback HTTP header 的 Mcp-Session-Id**）/ `requestId`（**自动提取服务端 `mcpContinuation.submitArguments.requestId`，缺失回退本地 UUID**）；
    - 将上述 + **prepare 原参数 args** 写入 `/tmp/kjptai_confirm_params.json`。
 2. **向用户展示摘要**（默认两段式需等待用户在对话中明确回复「确认」；`--yes` 模式跳过本步）。
 3. **携带令牌提交（对话内 MCP 工具调用）**：读取 `/tmp/kjptai_confirm_params.json`，再次调用同一工具，附加 `confirmationToken` + `expectedUpdateTime` + `requestId` + `confirmed=true` + `_meta.sessionId`（文件中的 sessionId），并**原样携带 `args` 中全部业务字段**落库完成。
+
+4. **`--submit` 一步模式（2026-10-21 新增；2026-11-01 修复 values 规范化，性能优化）**：prepare 时追加 `--submit` 参数（`--yes` 语义，仅显式指定启用），脚本在同一会话内**自动携带 confirmed=true 完成提交**，提交结果写回 `/tmp` 文件 `submitResult`（SUCCESS/FAILED）/ `submitSummary` 字段，省去「parse 落盘文件 → 再构造提交参数」往返。**2026-11-01 修复**：提交参数以服务端 prepare 回显 `serverSubmitArgs.values`（规范化值）为权威——枚举值（如 `reviewType=评审通过`）被服务端改写为 UUID 码（`f54fbe2e…`）时，直接回传原始中文值会报「Confirmed values changed; prepare again」导致失败重试；现以 `values` 覆盖、prepare 原 args 中未含在 values 的业务字段（title/mettingSummary/summaryType 等）兜底保留，绝不丢字段。默认 prepare-only，两段式确认流程不受影响。
 
 > ⚠️ **为何 prepare 必须走 `kjptai_prepare.py` 而非工具通道**：本会话实测（`accept_requirement` 经 `DeferExecuteTool` 工具通道 prepare 在错误态仅返文本错误、不返令牌）+ `gtht-story-split` 对 `start_technical_evaluation` 的实测结论（「同 accept-review 的 review/accept 现象」）均表明——`accept_requirement` / `review_requirement` 的 prepare 经 MCP 工具通道**不直出 `confirmationToken`**（工具渲染层只显示 `content[0].text` 摘要，令牌藏在 `structuredContent.data` 不可见）。因此这两个工具的令牌**只能**靠 `kjptai_prepare.py` HTTP 直连提取；若改为工具通道 prepare 会丢令牌、提交失败。第 1 点「改走工具通道、弃用脚本」对这两个工具**不可行**（平台机制限制，非技能短板），脚本必须保留。
 > ⚠️ **禁止重复 prepare**：上一代流程在「工具通道 prepare 展示摘要」后又「HTTP 直连脚本 prepare 取令牌」，等于同一 prepare 调了 2 次（净多 1 次往返）。本版**只用脚本 prepare 一次**，摘要与令牌同源，杜绝冗余。
 > ⚠️ **提交必须携带全部业务字段（实测强约束）**：`confirmed=true` 的提交调用必须**原样连同 `/tmp` 文件 `args` 中全部业务字段**（如 `subdivisionType`/`isService`/`title`/`reviewType`/`summaryType`/`mettingSummary`/`reviewDeliveryTime`/`technologySystemRelated`/`technologyReceiver` 等）一并传入。仅传 `demandId` + 令牌字段会被服务端当作「新一次 prepare」重新返回「还需要补充信息」，导致提交失败（该次未写库，复用原 `requestId` 补全字段重试即可）。脚本已自动保存 `args`，提交时直接展开即可避免漏字段。
 > ⚠️ 令牌时效（服务端机制）：任何一次成功写库都会使需求 `updateTime` 前移，旧令牌随之失效（报「需求状态或内容已变化」）。受理与评审分属两个独立 prepare + 提交，各自提取各自令牌，互不影响。
 > ⚠️ 幂等提示：重复 prepare 会生成多个新令牌，旧令牌不因新 prepare 失效；提交必须使用**最近一次** prepare 的令牌 + 该次响应的 sessionId。
-> ⚠️ **requestId 以落盘文件为准（2026-09-16 实测）**：脚本 stdout 打印的 `mcpContinuation` 内嵌 `requestId`（服务端生成）与 `/tmp/kjptai_confirm_params.json` 落盘 `requestId`（脚本自生成 UUID）**可能不一致**。提交时**一律以落盘文件 `requestId` 为准**，忽略 stdout mcpContinuation 内嵌值（R2609160070 受理实测：mcpContinuation=311e668a…，落盘=7168f7f3…，以落盘值提交一次成功）。同一次提交超时重试仍复用落盘文件该值。
+> ⚠️ **requestId 以服务端回显为准（2026-10-21 规则统一，覆盖旧版「以落盘为准」）**：prepare 响应 `mcpContinuation.submitArguments.requestId` 为**服务端权威值**，`kjptai_prepare.py` 已自动提取并覆盖落盘 `requestId` 字段（stdout 明确打印「requestId (服务端) …（提交以此为准）」）；本地 UUID 存入 `localRequestId` 仅作服务端未回显时的回退。**提交一律使用落盘 `requestId`（= 服务端回显值）**，并同时落盘 `serverSubmitArgs`（submitArguments 原文，含服务端规范化 values 可复用于提交）。实测：R2609170003 评审用服务端回显 `c67c36ff-…` 提交一次成功；早期 R2609160070 受理「以落盘 UUID 提交成功」属服务端未回显场景，规则现已统一。同一次提交超时重试仍复用该值。
 
 **`--yes` 预授权模式（2026-08-28 新增）**：
 - 触发：用户命令显式携带 `--yes` 或 `--auto`（如 `/gtht-accept-review R26xxxxxxx --yes` / `受理 R26xxxxxxx --auto`）。
@@ -124,6 +127,8 @@ disable: false
 - 受理人信息（`receiver` / `coReceiver` 等字段，以实际返回为准）；
 - **平台最新 `updateTime`**（`requirement.updateTime` 或顶层 `structuredContent.data.updateTime`，2026-09-15 实测确认存在）——供 Step 3.5a 同步检测复用，**避免再调 `query_requirement`**（P0-2 合并查询优化）。
 
+> ⚡ **flow 一键查询+解析（2026-11-01 极速版）**：`query_requirement_flow` 返回约 53KB 嵌套 JSON（demand/flow/availableActions/stories/requirement/operatorStaffId 六部分），**不得手写临时脚本或人工翻阅**。查询用 `scripts/query_flow.py --demandId R26xxxxxxx --parse` **一条命令完成**（内置禁代理 + **无状态直连**——服务端 JWE 鉴权无需 initialize 握手，2026-11-01 实测一次成功，省 2 次往返）：`--parse` 直接输出决策所需最小摘要（等价「原始响应 | parse_flow.py」，省 1 次管道往返）；需留痕时加 `--out <文件>` 持久化原始响应，再交 `scripts/parse_flow.py` 解析（<0.3s，支持 stdin / `--json` 直传）。摘要含需求编号/标题/当前状态/updateTime/受理人与共同受理人/部门/期望上线/**可执行操作中文清单**（按 buttonName 判断受理/评审/纪要动作是否可用）/存量 Story（数量+列表）/需求摘要。
+
 **共同受理人判定（优先级最高，先于状态分派）**：
 - 若当前用户（**吴进-125360**）为需求的「**共同受理人**」（`coReceiver` 字段含吴进），则**无论需求状态如何**（待受理/讨论中/待拆分/开发中等），**跳过受理、跳过评审**，直接进入 **Step 6 仅新增会议纪要**（`add_requirement_review_minutes`，不推进状态）；
 - 纪要来源：**读取用户本地修改后的 md 文件**（优先用户显式指定文件，否则取需求分析目录下同编号 MD 中用户最近编辑的一份，识别规则见模式 A）；
@@ -147,11 +152,11 @@ disable: false
 
 #### 3a. Prepare（脚本一步取摘要+令牌）
 
-运行（Bash，内网 HTTP 直连按需设 `BypassSandbox: true`）：
+运行（Bash，内网 HTTP 直连按需设 `BypassSandbox: true`；`kjptai_prepare.py` 已内置禁用系统代理，无需再设 `NO_PROXY`）：
 
 ```bash
 /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
-  /Users/wujin/.workbuddy/skills/gtht-accept-review/scripts/kjptai_prepare.py \
+  /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
   --tool accept_requirement --args '{"demandId":"R26xxxxxxx"}'
 ```
 
@@ -217,6 +222,8 @@ disable: false
 **前置条件（幂等跳过）**：仅当状态为「讨论中」且当前用户可执行完成评审操作时才执行本步。若已处于「待拆分」（已评审），**直接跳过本步**，不调用 `review_requirement`，改走 Step 6 仅新增会议纪要。
 
 > 🔗 **`--merge` 合并流程入口**：若由 Step 3c `--merge` 自动进入，本步跳过「等待用户指令」，直接执行 4a→4b→4c 连跑；若 4b prepare 返回 NEEDS_INPUT/缺字段，回退两段式等待用户单独确认。
+>
+> 🟢 **availableActions 未显示「完成评审」不阻塞 prepare（2026-10-12 R2610120035 实测沉淀）**：`query_requirement_flow` 返回的 `availableActions` **未显示「完成评审」按钮时不停止**——只要状态为「讨论中」且 Step 3.5 双检通过，直接执行 4b prepare 试提交，**prepare 成功即服务端准入校验通过**（R2610120035 实测：flow 未显示按钮，prepare 一次成功、提交 SUCCESS）；仅当 prepare 返回 NEEDS_INPUT/异常明确提示无权限时才停止并核查。
 
 #### 4a. 构造评审参数
 
@@ -245,39 +252,18 @@ disable: false
 
 **mettingSummary HTML 转换规则**：
 - 截取 `#### 评审纪要` 到 `---` 分隔线或下一章节标题之间的全量正文；
-- **每条「标题：」与「内容」必须分行显示**：标题行独立一个 `<p>`，内容另起一个 `<p>`（如 `<p>1. <strong>需求补充说明</strong>：</p><p>无</p>`）；严禁把 `标题：内容` 塞进同一个 `<p>`，否则平台渲染会把标题和内容挤在同一行；
-- 子条目（`①`/`②`/`(1)`）各占一个 `<p>`，保留缩进（`&nbsp;`）；
-- `**加粗**` → `<strong>`；末行 `预计上线日期：YYYY年MM月上线` 是纪要正文的一部分，**严禁遗漏**。
+- **整段 1 个 `<p>` + 行内 `<br>` 换行（2026-10-12 用户偏好两连纠偏固化）**：平台对 `<p>` 有段落间距，**逐行一个 `<p>` / 标题与本行内容各一段均观感「换行过多」**（合并同行方案亦被否）——正确做法=**全部内容合并进 1 个 `<p>`，行与行之间用 `<br>` 换行**（如 `<p>2026年09月28日经吴进与…评审通过<br><br>1. <strong>需求补充说明</strong>：<br>&nbsp;&nbsp;&nbsp;无<br>…</p>`）；严禁每行一个 `<p>`；严禁把 `标题：内容` 塞进同一行（平台会把标题与内容挤在同一行）；**首行（沟通时间与人员）后空一行（`<br><br>`）与下方内容分隔（2026-10-28 用户偏好固化）**，观感更清晰；
+- **缩进用 `&nbsp;`（半角空格）精确对齐 MD 首字（P0，对齐基准=本地 MD 评审纪要小节）**：⚠️ `&emsp;` 全角（占 2 半角宽）比 MD 缩进宽 1 字符位、导致错位，**禁用**。对齐规则——**内容行** 3 个 `&nbsp;&nbsp;&nbsp;`（对齐标题首字，如「无」对齐「需」）；**`(1)` 子条目行** 3 个 `&nbsp;&nbsp;&nbsp;`（对齐 `3.` 标题首字）；**`①`/`②` 行** 7 个 `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`（对齐 `(1)` 后文字首字，如「①」对齐「集」）；**首行按 MD 原样**（通常无缩进）；
+- `**加粗**` → `<strong>`；末行 `预计上线日期：YYYY年MM月上线` 是纪要正文的一部分，**严禁遗漏**；
+- **一键转换脚本（P1-5，2026-10-14 新增）**：优先用 `scripts/md_to_review_html.py <需求MD路径>` 自动截取 `#### 评审纪要` 小节生成 HTML（内部实现与本规则完全一致：整段 `<p>`+`<br>`、首行后空一行 `<br><br>`、`**加粗**`→`<strong>`、内容行 3 个 `&nbsp;` / `(N)` 行 3 个 / `①` 行 7 个、禁 `&emsp;`、末尾含 `预计上线日期` 行，脚本自带小节缺失/缺预计上线日期 exit 1 自检），将 stdout HTML 填入 mettingSummary；仅当脚本不可用时才按本规则手拼。
 
 **mettingSummary 完整 HTML 模板**（严格按此结构拼装，末尾必须含 `预计上线日期` 行）：
 
 ```html
-<p>YYYY年MM月DD日经与<strong>部门A</strong>人员A和<strong>部门B</strong>人员B沟通评审通过</p>
-<p>1. <strong>需求补充说明</strong>：</p>
-<p>无</p>
-<p>2. <strong>改造范围</strong>：</p>
-<p>系统A，系统B</p>
-<p>3. <strong>各系统改造功能</strong>：</p>
-<p>&nbsp;&nbsp;(1) 系统A：</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;① 功能点一。</p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;② 功能点二。</p>
-<p>4. <strong>前端界面</strong>：</p>
-<p>无</p>
-<p>5. <strong>接口交互</strong>：</p>
-<p>无</p>
-<p>6. <strong>业务参数</strong>：</p>
-<p>无</p>
-<p>7. <strong>灰度上线关注</strong>：</p>
-<p>否</p>
-<p>具体以后续实际开发评估为准。</p>
-<p>8. <strong>联测涉及系统</strong>：</p>
-<p>系统C</p>
-<p>9. <strong>业务关注点</strong>：</p>
-<p>&nbsp;&nbsp;(1) 关注点一。</p>
-<p>预计上线日期：计划 YYYY年MM月</p>
+<p>YYYY年MM月DD日经吴进与<strong>部门A</strong>人员A和<strong>部门B</strong>人员B沟通评审通过<br><br>1. <strong>需求补充说明</strong>：<br>&nbsp;&nbsp;&nbsp;无<br>2. <strong>改造范围</strong>：<br>&nbsp;&nbsp;&nbsp;系统A，系统B<br>3. <strong>各系统改造功能</strong>：<br>&nbsp;&nbsp;&nbsp;(1) 系统A：<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;① 功能点一。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;② 功能点二。<br>4. <strong>前端界面</strong>：<br>&nbsp;&nbsp;&nbsp;无<br>5. <strong>接口交互</strong>：<br>&nbsp;&nbsp;&nbsp;无<br>6. <strong>业务参数</strong>：<br>&nbsp;&nbsp;&nbsp;无<br>7. <strong>灰度上线关注</strong>：<br>&nbsp;&nbsp;&nbsp;否<br>&nbsp;&nbsp;&nbsp;具体以后续实际开发评估为准。<br>8. <strong>联测涉及系统</strong>：<br>&nbsp;&nbsp;&nbsp;系统C<br>9. <strong>业务关注点</strong>：<br>&nbsp;&nbsp;&nbsp;(1) 关注点一。<br>预计上线日期：计划 YYYY年MM月</p>
 ```
 
-> ✅ **自检清单**：构造完 mettingSummary 后检查——① 首行含沟通时间与人员；② 含 1~9 全部条目；③ **末尾含 `预计上线日期：...` 行**（与 MD 纪要末行一致）；④ 标题/内容分行。任一项缺失即补全后再进入 4b prepare。
+> ✅ **自检清单**：构造完 mettingSummary 后检查——① 首行含沟通时间与人员；② 含 1~9 全部条目；③ **末尾含 `预计上线日期：...` 行**（与 MD 纪要末行一致）；④ 整段 `<p>` + `<br>` 换行（无逐行 `<p>`）；⑤ 缩进 `&nbsp;` 精确对齐 MD（内容行 3 个 / `①` 行 7 个，禁 `&emsp;`）。任一项缺失即补全后再进入 4b prepare。
 
 #### 4b. Prepare（脚本一步取摘要+令牌）
 
@@ -285,9 +271,11 @@ disable: false
 
 ```bash
 /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
-  /Users/wujin/.workbuddy/skills/gtht-accept-review/scripts/kjptai_prepare.py \
+  /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
   --tool review_requirement --args '{"demandId":"R26xxxxxxx","subdivisionType":"普通业务功能","isService":"1","title":"需求名称_20260821","reviewDeliveryTime":"2026-09-04","mettingSummary":"<p>...</p>","summaryType":"2","reviewType":"评审通过"}'
 ```
+
+> 💡 **枚举值规范化（2026-11-01 实测）**：上例 `reviewType=评审通过` / `subdivisionType` 等枚举字段，服务端 prepare 时会规范化为 UUID 码（`reviewType` → `f54fbe2e…`）。提交时**必须以 `serverSubmitArgs.values` 规范化值回传**，`--submit` 模式已自动处理；手动构造第 3 步提交时同样先展开 `/tmp` 文件 `serverSubmitArgs.values` 再补业务字段。
 
 脚本打印评审摘要（含评审结果、一级需求类型、是否营运需求、预计交付时间、纪要正文预览）并写入令牌文件。向用户展示：
 - **默认两段式**：等待对话明确确认后进入 4c；
@@ -370,7 +358,8 @@ disable: false
     - **② 优化点清单**：以表格 `# | 类别 | 优化点 | 影响 | 优先级 | 状态` 输出，类别覆盖——**性能**（prepare/令牌提取/MCP 往返/状态查询耗时，如单 prepare 省往返、`--yes` 省确认与验证、ToolSearch 缓存）、**准确性**（纪要要素完整性、令牌时效、字段编码转换、requestId 复用、Step 3.5 双检）、**流程**（幂等分派、本地同步收敛、单次单需求）；**仅输出「待落地」优化点**（已落地的不再重复提示）；
     - **③ 优先级定义**：`P0`=本次即可落地、收益显著；`P1`=需工程化改造；`P2`=体验/流程优化；
     - **④ 状态标注**：`已落地`=本次已采用；`待落地`=已提出待实施。**「已落地」的优化点不进入清单展示**（已生效，无需再提示），仅保留「待落地」项；
-    - 优化点须**基于本次实际执行情况**输出，避免空泛套话；若本次执行已足够高效，如实标注「本次执行高效，无显著优化点」。
+    - 优化点须**基于本次实际执行情况**输出，避免空泛套话；若本次执行已足够高效，如实标注「本次执行高效，无显著优化点」；
+> 💡 **环节完成汇报固定四段式（P2-5，2026-10-14 新增）**：与最终「🔧 本技能优化点」输出并行，**每个环节完成时**（受理成功/评审提交成功/补纪要成功）的即时汇报固定四段式——① **已完成**：写操作与状态流转一句话（如「受理成功：待受理→讨论中」）；② **下一步**：自动执行的后续动作（如「即将自动完成评审」）；③ **需确认项**：等待用户确认的内容（如「确认后自动继续完成拆分及技术评估」）；④ **风险/提醒**（可选）：令牌时效/排期/跨技能移交等提醒。各环节汇报 ≤4 行，杜绝长篇复述。
 18. **默认取最新 MD 填写会议纪要（2026-09-15 实测沉淀）**：用户要求「完成评审/填写会议纪要/补纪要」且**未显式指定文件**时，**默认**读取需求分析目录（`/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/`）下对应需求编号**最新**的 ba-to-dev MD 文档（多份同编号文档按 Front Matter `updated` 或文件名日期取最新），以该文档 `#### 评审纪要` 小节**全量正文**作为 `mettingSummary` 来源，**无需再向用户确认文件路径或内容来源**；仅当最新 MD 缺失、用户明确指定其他版本、或 Step 3.5a 检测到平台内容严重漂移且用户选择刷新时才变更来源。R2609110107 实测：需求已处于「开发中」无法 `review_requirement`，改用 `add_requirement_review_minutes` 仅补纪要，纪要内容默认取最新 MD（含集中交易系统公募银保节点 XA 配置改造项），一次落库成功。
 19. **共同受理人仅补纪要（2026-09-15 沉淀）**：执行前从 `query_requirement_flow`（或 `query_requirement`）返回中读取受理人信息（`receiver`/`coReceiver` 等字段，以实际返回为准）；若**当前用户（吴进-125360）为需求「共同受理人」**（`coReceiver` 含吴进），则**无论需求状态如何**（待受理/讨论中/待拆分/开发中等），**跳过受理（`accept_requirement`）与评审（`review_requirement`）**，直接调用 `add_requirement_review_minutes` **仅新增会议纪要**（不推进状态）；纪要来源**读取用户本地修改后的 md 文件**（优先用户显式指定文件，否则取需求分析目录下同编号 MD 中用户最近编辑的一份，识别规则见模式 A），**不按平台内容构造**。R2609110107 实测：需求 receiver=盛浅雨-126468、用户为共同受理人且需求已「开发中」，仅补纪要成功（纪要 ID 2019054）。MD Front Matter 的 `co_receiver` 字段（ba-to-dev 规则 13 有则必填，2026-09-15 起强制落盘）可辅助预判与定位「用户本地修改版」，但**判定一律以平台实时 `coReceiver` 为准**（本地可能过期）。
 20. **提交失败恢复路径（对齐 gtht-story-split 规则 10，2026-10-08 落地）**：正式提交被拒（如「Confirmed values changed; prepare again」/ NEEDS_CONFIRMATION）时，恢复策略优先**提取服务端最新返回的 `submitArguments.requestId` 与 `confirmationToken` 原样复用**（服务端已刷新校验数据，旧令牌/旧 requestId 复用会被拒——R2609170062 评审首提曾用旧令牌被拒，重 prepare 成功）；若服务端错误响应**不含**可用 `submitArguments`（无新令牌可提取），再回退「查最新 flow → 重新 prepare → 携带新令牌提交」；同一次提交超时重试仍复用原 requestId（服务端 retryRule=Reuse the same requestId）。

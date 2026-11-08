@@ -210,6 +210,20 @@ SELECTORS_TO = [
     'input[class*="addr"]', 'textarea[class*="addr"]',
 ]
 
+# 抄送展开按钮/链接（Coremail 默认只显示收件行，需点击「抄送」后出现 cc 输入框）
+SELECTORS_CC_EXPAND = [
+    'a:has-text("抄送")', 'button:has-text("抄送")', 'span:has-text("抄送")',
+    'a[title*="抄送"]', 'a[id*="cc"]', 'a[id*="Cc"]', 'a[id*="CC"]',
+]
+
+# 抄送输入框
+SELECTORS_CC = [
+    'input#ccInput', 'input[id*="ccInput"]', 'input[id*="ccAddrInput"]', '#ccAddrInput',
+    'input[placeholder*="抄送"]', 'input[title*="抄送"]',
+    'input[name="cc"]', 'textarea[name="cc"]', 'textarea[id*="cc"]',
+    'input[class*="addr"]', 'textarea[class*="addr"]',
+]
+
 SELECTORS_SUBJ = [
     'input[name="subject"]', 'input[id*="subject"]', 'input[id*="Subject"]',
     'input[placeholder*="主题"]', 'input[title*="主题"]',
@@ -277,6 +291,58 @@ def fill_recipients_fast(page, names):
         return len(names)
     except Exception as e:
         print(f"  [!] Failed to type recipients: {e}")
+        return 0
+
+def fill_cc_fast(page, names):
+    """
+    逐个输入抄送人，先点击"抄送"展开按钮，再定位 cc 输入框，
+    其余交互与收件人一致（逐字输入 + 回车选下拉框）。
+    """
+    if not names:
+        return 0
+
+    print(f"  [-] 抄送 ({len(names)} 人):")
+
+    # 1) 若 cc 输入框不可见，先点击「抄送」展开
+    cc_el, cc_fr = wait_for_visible_element(page, SELECTORS_CC, timeout=1500)
+    if not cc_el:
+        try:
+            exp_el, exp_fr = wait_for_visible_element(page, SELECTORS_CC_EXPAND, timeout=3000)
+            if exp_el:
+                exp_el.evaluate("el => el.click()")
+                print("  [+] Clicked CC expand")
+            else:
+                print("  [!] CC expand button not found")
+                return 0
+            page.wait_for_timeout(500)
+            cc_el, cc_fr = wait_for_visible_element(page, SELECTORS_CC, timeout=3000)
+        except Exception as e:
+            print(f"  [!] Failed to expand CC: {e}")
+            return 0
+
+    if not cc_el:
+        print("  [!] Failed to find visible CC input field")
+        return 0
+
+    try:
+        cc_el.focus()
+        cc_el.evaluate("el => el.click()")
+    except Exception:
+        pass
+    page.wait_for_timeout(200)
+
+    try:
+        for name in names:
+            page.keyboard.type(name, delay=20)
+            page.wait_for_timeout(600)
+            page.keyboard.press("ArrowDown")
+            page.wait_for_timeout(100)
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(200)
+            print(f"  [+] Entered CC: {name}")
+        return len(names)
+    except Exception as e:
+        print(f"  [!] Failed to type CC recipients: {e}")
         return 0
 
 def wait_for_compose_btn(page, timeout=15_000):
@@ -414,7 +480,7 @@ def inject_body(page, body_html):
     return False
 
 # ── 主流程 ──
-def save_draft_fast(config, subject, body_file_path, recipient_names=None, headless=True):
+def save_draft_fast(config, subject, body_file_path, recipient_names=None, cc_names=None, headless=True):
     """极速保存草稿：headless + session复用 + 收件人自动填写。"""
     from playwright.sync_api import sync_playwright
 
@@ -506,6 +572,7 @@ def save_draft_fast(config, subject, body_file_path, recipient_names=None, headl
 
             # ── Step 3: 填写收件人 ──
             filled_count = 0
+            cc_filled_count = 0
             if recipient_names:
                 print("[3/5] 填写收件人...")
                 filled_count = fill_recipients_fast(page, recipient_names)
@@ -514,6 +581,11 @@ def save_draft_fast(config, subject, body_file_path, recipient_names=None, headl
                 page.wait_for_timeout(50)
             else:
                 print("[3/5] 无收件人，跳过")
+
+            # ── Step 3.5: 填写抄送人 ──
+            if cc_names:
+                print("[3.5/5] 填写抄送人...")
+                cc_filled_count = fill_cc_fast(page, cc_names)
 
             # ── Step 4: 填写主题+正文 ──
             print("[4/5] 填写主题+正文...")
@@ -570,6 +642,11 @@ def save_draft_fast(config, subject, body_file_path, recipient_names=None, headl
                 if filled_count < len(recipient_names):
                     missed = [n for i, n in enumerate(recipient_names) if i >= filled_count]
                     print(f"   未填写：{'、'.join(missed)}，请在 Coremail 中手动补齐")
+            if cc_names and cc_filled_count > 0:
+                print(f"   抄送人已自动填写 {cc_filled_count}/{len(cc_names)} 人")
+                if cc_filled_count < len(cc_names):
+                    missed = [n for i, n in enumerate(cc_names) if i >= cc_filled_count]
+                    print(f"   未填写抄送：{'、'.join(missed)}，请在 Coremail 中手动补齐")
             return True
 
         except Exception as exc:
@@ -585,6 +662,7 @@ def main():
     ap.add_argument("--subject", required=True, help="邮件主题")
     ap.add_argument("--body-file", required=True, help="邮件正文文件（Markdown）")
     ap.add_argument("--recipients", default="", help="收件人姓名（逗号分隔，自动逐字输入+下拉框选择）")
+    ap.add_argument("--cc", default="", help="抄送人姓名（逗号分隔，自动逐字输入+下拉框选择）")
     ap.add_argument("--no-headless", action="store_true", help="显示浏览器窗口")
     args = ap.parse_args()
 
@@ -592,6 +670,7 @@ def main():
     cfg = load_config(cfg_path)
 
     recipient_names = [n.strip() for n in args.recipients.split(",") if n.strip()] if args.recipients else None
+    cc_names = [n.strip() for n in args.cc.split(",") if n.strip()] if args.cc else None
 
     # Filter out sender name
     mail_cfg = cfg.get("mail", {})
@@ -605,7 +684,13 @@ def main():
             print(f"  [*] 过滤发件人 {sender_name}，过滤前 {len(recipient_names)} 人，过滤后 {len(recipient_names_filtered)} 人")
         recipient_names = recipient_names_filtered
 
-    save_draft_fast(cfg, args.subject, args.body_file, recipient_names, headless=not args.no_headless)
+    if cc_names and sender_name:
+        cc_names_filtered = [r for r in cc_names if r != sender_name]
+        if len(cc_names_filtered) < len(cc_names):
+            print(f"  [*] 过滤发件人 {sender_name}（抄送），过滤前 {len(cc_names)} 人，过滤后 {len(cc_names_filtered)} 人")
+        cc_names = cc_names_filtered
+
+    save_draft_fast(cfg, args.subject, args.body_file, recipient_names, cc_names=cc_names, headless=not args.no_headless)
 
 
 if __name__ == "__main__":

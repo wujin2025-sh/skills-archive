@@ -526,12 +526,12 @@ def print_result_markdown(title_prefix, req_id, target_date, results):
             status_str = "✅ 成功" if r.get("verify_ok", True) else "❌ 失败"
             print(f"| {idx} | {req_link} | {r['storyCode']} | {r['before']} | {r['target_date']} | {r.get('persisted', r['target_date'])} | {status_str} |")
     else:
-        print("| 序号 | 需求/史诗编号 | Story 编号 | 当前计划生产排期 |")
-        print("| :--- | :--- | :--- | :--- |")
+        print("| 需求编号 | 序号 | 需求/史诗编号 | Story 编号 | 当前计划生产排期 |")
+        print("| :--- | :--- | :--- | :--- | :--- |")
         for idx, r in enumerate(results, 1):
             detail_url = f"https://fintech.gtht.com.cn/kjpt/DemandManage/details?demandId={r['req_id']}&templateId=8888&flag=1"
             req_link = f"[{r['req_id']}]({detail_url})"
-            print(f"| {idx} | {req_link} | {r['storyCode']} | {r['planDate']} |")
+            print(f"| {req_link} | {idx} | {req_link} | {r['storyCode']} | {r['planDate']} |")
     print("RESULT_MARKDOWN_END\n")
 
 

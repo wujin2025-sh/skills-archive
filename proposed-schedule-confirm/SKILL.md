@@ -1,8 +1,9 @@
 ---
 name: proposed-schedule-confirm
 description: 拟排期确认与发邮件工具。传入排期版本号（如 20260821 或 2026-08-21），提取需求受理人为“吴进”（或指定受理人）的需求及
-  Story 明细，按【重点关注】优先排序（重点关注在最上方），对不含“生产”的 SIT 未完成状态（如「SIT测试待排期」、「待SIT测试」、「待SIT大远期自测」、「SIT大远期自测中」等）突出高亮标识
-  (🚨)，含“生产”的状态（如「SIT生产测试待排期」）判定为无风险，生成包含 13 大核心字段的高颜值 HTML 确认表（含「影响灰度」与「开发负责人」列）。当用户提到“发邮件”或带
+  Story 明细，按【史诗编号】分组排序（同一史诗 Story 连续排列，史诗与需求编号单元格自动 rowspan 合并；组内重点关注优先），对不含“生产”的 SIT 未完成状态（如「SIT测试待排期」、「待SIT测试」、「待SIT大远期自测」、「SIT大远期自测中」等）突出高亮标识
+  (🚨)，含“生产”的状态（如「SIT生产测试待排期」）判定为无风险，生成包含 13 大核心字段的高颜值 HTML 确认表（含「影响灰度」与「开发负责人」列，需求编号与 Story
+  编号均支持点击跳转平台详情页）。当用户提到“发邮件”或带
   --send-mail / --send 参数时，默认自动包含固定人员（肖慧、刘青、乔露露、常丽）及抽取的相关负责人，后台无头模式自动起草邮件并存入 Coremail
   草稿箱供人工确认后发送。
 disable: false
@@ -28,7 +29,7 @@ disable: false
 | :---: | :--- | :--- |
 | **Col 1** | **史诗编号** | 对应大宽表 `epicCode` 或 `epicConcat`（同分组自动合并 rowspan） |
 | **Col 2** | **需求编号** | 对应大宽表 `demandId`（同分组自动合并 rowspan） |
-| **Col 3** | **Story编号** | 对应大宽表 `storyCode` |
+| **Col 3** | **Story编号** | 对应大宽表 `storyCode`，**支持点击跳转 Story 详情页**（链接 `storyNo` 参数取 `dataUniqueNo`/`storyNo`，如 R2604160112-1，非 S 编号） |
 | **Col 4** | **任务名称** | 对应 Story 标题 `storyTitle` |
 | **Col 5** | **涉及系统** | 对应系统名 `storySystemName` |
 | **Col 6** | **当前状态** | 对应 Story 当前状态（不含“生产”的 SIT 未完成状态突出显示 `🚨` 红色警示徽章） |
@@ -46,9 +47,17 @@ disable: false
 
 1. **自动提取与固定人员补全**：
    - 自动扫描确认表中所有过滤出的 Story，提取 `开发负责人`、`SIT负责人`、`UAT负责人`、`业务验收人` 等角色。
-   - 固定补充 11 位核心人员：**肖慧 (`xiaohui@gtht.com`)、刘青 (`liuqing5@gtht.com`)、乔露露 (`qiaolulu@gtht.com`)、常丽 (`changli@gtht.com`)、张帆 (`zhangfan4@gtht.com`)、茆莹莹 (`maoyingying@gtht.com`)、张志鹏 (`zhangzhipeng@gtht.com`)、薛天明 (`xuetianming@gtht.com`)、马晓鑫 (`maxiaoxin@gtht.com`)、李鹤晨 (`lihechen@gtht.com`)、周尤珠 (`zhouyouzhu@gtht.com`)**。
+   - 固定补充 15 位核心人员（2026-10-20 用户指示新增 陈曦、姬攀毅、罗洁、黄增增）：**肖慧 (`xiaohui@gtht.com`)、刘青 (`liuqing5@gtht.com`)、乔露露 (`qiaolulu@gtht.com`)、常丽 (`changli@gtht.com`)、张帆 (`zhangfan4@gtht.com`)、茆莹莹 (`maoyingying@gtht.com`)、张志鹏 (`zhangzhipeng@gtht.com`)、薛天明 (`xuetianming@gtht.com`)、马晓鑫 (`maxiaoxin@gtht.com`)、李鹤晨 (`lihechen@gtht.com`)、周尤珠 (`zhouyouzhu@gtht.com`)、陈曦 (`chenxi10@gtht.com`)、姬攀毅 (`jipanyi@gtht.com`)、罗洁 (`luojie@gtht.com`)、黄增增 (`huangzengzeng@gtht.com`)**。
    - 正确矫正常用人员邮箱（如 **王岗** -> `wanggang@gtht.com`，**龚子慧** -> `gongzihui@gtht.com`）。
    - 过滤无意义字符（如 `--`、`无需业务验收`、`None` 等），并通过 `Escape` 键消隐 Coremail 联想弹窗，确保 100% 收件人 Tag 准确建立。
+
+2. **收件人邮箱定位规则（部门+人员 定位邮箱，2026-10-20 优化）**：
+   - 邮箱定位**严格按「部门 + 人员」判断**，数据源优先级：
+     1. `KNOWN_EMAIL_MAP` 精确映射（人工维护，最高优先）；
+     2. 《人员部门对应关系表.csv》（`/Volumes/Macintosh HD_Data/WorkBuddy/会议纪要/人员部门对应关系表.csv`）中**带邮箱的记录**（如 孙鹰=`sunying5@gtht.com`、陈超[技术研发部]=`chenchao8@gtht.com`）；
+     3. 拼音兜底（`姓名拼音@gtht.com`，仅用于表中无该姓名或无邮箱记录时，并在控制台输出 `[PYINYIN_FALLBACK]` 提示人工核对）。
+   - **同一部门姓名重复时才需从 CSV 区分邮箱**：脚本启动时自动加载人员部门表构建 `姓名 → [(部门, 邮箱), ...]` 映射；同名跨部门人员（如「陈超」同时存在于系统运行部与技术研发部），自动采用带邮箱部门的记录，并在收件人明细中打印全部部门归属供人工核对；人员表**已收录但无邮箱**者同样输出部门归属提示，便于按部门补全正确邮箱。
+   - 运行时控制台逐条打印：`📧 姓名（部门）→ 邮箱 [来源]`，方便核对收件人是否精准。
 
 2. **后台无头模式 (Headless Mode) 存草稿箱与附件自动添加**：
    - 触发 `发邮件` 或 `--send-mail` 时，Playwright 在后台无头模式（`headless=True`）静默执行。

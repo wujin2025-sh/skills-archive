@@ -1,13 +1,13 @@
 ---
-name: 调整需求计划交付时间
+name: adjust-plandelidate
 description: '调整国泰海通金融科技平台需求管理中的「需求预计上线时间」与「需求预计交付验收时间」两个字段。支持按需求编号（R26xxxxxxx）或史诗编号（E/PG 开头）批量修改。基于 adjust-plandate 的「修改排期」弹窗逻辑，自动打开需求详情页 → 点击「修改排期」→ 在「需求排期确认」弹窗中修改两个日期字段并提交保存，支持 Session 免登录态复用、单会话批量执行、幂等跳过。参考 adjust-plandate skill 实现。
 
-  触发词：调整需求计划交付时间、修改需求交付时间、调整需求交付验收时间、修改需求预计上线时间、修改需求预计交付验收时间、需求排期修改、需求交付时间、gtht-req-plandate、Rxxxx 修改交付时间、史诗 修改交付时间。'
+  触发词：/adjust-plandelidate、adjust-plandelidate、调整需求计划交付时间、修改需求交付时间、调整需求交付验收时间、修改需求预计上线时间、修改需求预计交付验收时间、需求排期修改、需求交付时间、gtht-req-plandate、Rxxxx 修改交付时间、史诗 修改交付时间。'
 disable: false
 ---
 
 
-# 调整需求计划交付时间
+# adjust-plandelidate（调整需求计划交付时间）
 
 ## 概述
 
@@ -49,20 +49,28 @@ disable: false
 
 ### 示例
 
+> **运行前提**：本技能未内置 `.venv`，统一使用 `/Users/wujin/.workbuddy/binaries/python/envs/default/bin/python3`（已装 playwright）；史诗枚举走大宽表/需求列表接口，**必须加 `NO_PROXY=fintech.gtht.com.cn no_proxy=fintech.gtht.com.cn`**，否则走系统代理必报 `ProxyError 503` / `ReadTimeout(60s)`（与 proposed-schedule-confirm 同源问题）。
+
 - 修改单个需求 `R2607150083` 的交付验收与上线时间均为 `20261031`：
 ```bash
-.venv/bin/python /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py R2607150083 20261031
+NO_PROXY=fintech.gtht.com.cn no_proxy=fintech.gtht.com.cn /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python3 /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py R2607150083 20261031
 ```
 
 - 分别指定交付验收时间与上线时间：
 ```bash
-.venv/bin/python /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py R2607150083 2026-10-31 2026-11-05
+NO_PROXY=fintech.gtht.com.cn no_proxy=fintech.gtht.com.cn /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python3 /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py R2607150083 2026-10-31 2026-11-05
 ```
 
 - 批量修改史诗 `PG202204-0259` 下所有需求的交付验收与上线时间：
 ```bash
-.venv/bin/python /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py PG202204-0259 20261031
+NO_PROXY=fintech.gtht.com.cn no_proxy=fintech.gtht.com.cn /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python3 /Users/wujin/.workbuddy/skills/gtht-req-plandate/scripts/edit_req_plandate.py PG202204-0259 20261031
 ```
+
+## 运行须知
+
+- **解释器**：`.venv` 不存在，统一用 `/Users/wujin/.workbuddy/binaries/python/envs/default/bin/python3`。
+- **NO_PROXY 直连（必须）**：史诗枚举 API 走系统代理必失败，运行命令须带 `NO_PROXY=fintech.gtht.com.cn no_proxy=fintech.gtht.com.cn`。
+- **幂等跳过语义（2026-11-01 修复）**：仅当「打开修改排期弹窗时」平台当前值已等于目标值才跳过提交（即此前某次已成功提交过）；填值后回读值等于目标值**不代表已提交**，仍会点击「确 认」提交——切勿将跳过判断改回基于填值后回读值，否则会造成「刚填好未提交即取消」的修改丢失（R2609090038/45/70 曾受影响）。
 
 ## 技术细节
 

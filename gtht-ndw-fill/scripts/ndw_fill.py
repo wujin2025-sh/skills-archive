@@ -7,9 +7,9 @@ ndw_fill.py — 国泰海通科技平台 需求分析非开发工作量 (NDW / �
   1. 【完全独立】：所有依赖（session / config / API）集中管理在 gtht-ndw-fill skill 目录下，开箱即用；
   2. 【默认已完成】：状态字段默认为「已完成」(status=2)；
   3. 【前置校验】：若需求尚未拆分 Story（Story 数量为 0），强制拦截不予登记，防止交付倒挂；
-  4. 【半月周期】：按填写日的半月工作日自动推断：
-     - 上半月填写 (1日~15日)：开始时间=当月首个工作日 (如 2026-08-03)，完成时间=填写日+5天 (如 2026-08-19)；
-     - 下半月填写 (16日~月末)：开始时间=下半月首个工作日 (如 2026-08-17)，完成时间=当月末工作日 (如 2026-08-31)；
+  4. 【半月周期】(2026-10-14 用户固化：周期=登记日所在月半区的完整区间)：
+     - 上半月登记 (1日~15日)：开始=当月首个工作日，结束=当月15日（若为周末取之前最近工作日）；
+     - 下半月登记 (16日~月末)：开始=下半月首个工作日，结束=当月末工作日；
   5. 【经办主管】：经办人采用 userNo (050599)，自动通过 /getEvaluatorInfo API 关联获取经办人主管/评估人 (周尤珠 033055 / 106881)；
   6. 【智能归属】：优先取需求所属 Story 的实际系统或 storySystem，确保系统 ID 精准对齐；
   7. 【幂等安全】：严格幂等防重与自动纠偏。
@@ -41,7 +41,7 @@ import config
 SYSTEM_ID_MAP = {
     "低延时交易系统": "164325248684900500",
     "低延时交易系统(大集中-信创域)": "164325248684900500",
-    "低延时交易系统(两融创新域)": "158674333006900117",
+    "低延时交易系统（创新域）": "158674333006900117",
     "集中交易系统": "142891263425277DZ1",
     "集中清算系统": "1539073197362VTA7L",
     "交易参数管理后台系统": "1585110383611MMQ3P",
@@ -66,7 +66,9 @@ def get_stories(demand_id: str) -> list:
             "pageSize": 50
         })
         return (res or {}).get("voList", []) or []
-    except Exception:
+    except Exception as e:
+        # 2026-11-04 加固：不静默吞错（曾因代理 ReadTimeout 误判「未拆分 Story」拦截登记）
+        print(f"[get_stories] 查询 Story 失败({type(e).__name__}: {e})，按空列表处理", file=sys.stderr, flush=True)
         return []
 
 
@@ -94,11 +96,11 @@ def _parse_date(date_str) -> datetime.date:
 
 
 def compute_ndw_period(fill_date=None) -> tuple:
-    """计算非开发工作量的开始时间与完成时间（默认模式：按填写日半月推断）
-    
-    规则：
-      - 上半月填写 (1~15日)：开始时间=当月第一个工作日，完成时间=填写日+5天（如 2026-08-14填写 -> 2026-08-03 ~ 2026-08-19）
-      - 下半月填写 (16~月末)：开始时间=下半月第一个工作日 (16日及之后首个工作日)，完成时间=当月末工作日（如 2026-08-18填写 -> 2026-08-17 ~ 2026-08-31）
+    """计算非开发工作量的开始时间与完成时间（默认模式：周期=登记日所在月的半区完整区间）
+
+    规则（2026-10-14 用户固化：周期按登记日落在上半月/下半月取对应半区完整区间）：
+      - 上半月登记 (1~15日)：开始时间=当月第一个工作日，结束时间=当月15日（若为周六/周日取之前最近工作日）（如 2026-10-14登记 -> 2026-10-01 ~ 2026-10-15）
+      - 下半月登记 (16~月末)：开始时间=下半月第一个工作日 (16日及之后首个工作日)，结束时间=当月末工作日（如 2026-10-16登记 -> 2026-10-16 ~ 2026-10-30）
     """
     if fill_date is None:
         fill_date = datetime.now().date()
@@ -109,7 +111,9 @@ def compute_ndw_period(fill_date=None) -> tuple:
 
     if day <= 15:
         start_date = _first_workday_from(datetime(year, month, 1).date())
-        end_date = fill_date + timedelta(days=5)
+        end_date = datetime(year, month, 15).date()
+        while end_date.weekday() >= 5:
+            end_date -= timedelta(days=1)
     else:
         start_date = _first_workday_from(datetime(year, month, 16).date())
         end_date = _last_workday_of_month(year, month)
@@ -565,9 +569,9 @@ def determine_system_id(info: dict, stories: list = None, specified_system: str 
         return SYSTEM_ID_MAP["集中清算系统"], "集中清算系统"
     if "低延时" in summary or "两融" in summary:
         # 低延时系统域归属判定（2026-09-10 新增，对齐 ba-to-dev 规则8 / story-split 规则4）：
-        # 涉及「个微」「98/98创新域」「创新域」→ 两融创新域；其余两融/信用业务默认 95 信创域
+        # 涉及「个微」「98/98创新域」「创新域」→ 低延时交易系统（创新域）；其余两融/信用业务默认 95 信创域
         if any(kw in summary for kw in ["个微", "98", "创新域"]):
-            return SYSTEM_ID_MAP["低延时交易系统(两融创新域)"], "低延时交易系统(两融创新域)"
+            return SYSTEM_ID_MAP["低延时交易系统（创新域）"], "低延时交易系统（创新域）"
         return SYSTEM_ID_MAP["低延时交易系统(大集中-信创域)"], "低延时交易系统(大集中-信创域)"
     if "集中交易" in summary:
         return SYSTEM_ID_MAP["集中交易系统"], "集中交易系统"
@@ -613,19 +617,20 @@ def find_local_demand_md(demand_id: str) -> dict:
 
 
 def infer_ndw_value(demand_id: str, info: dict, stories: list = None, passed_value: float = None) -> float:
-    """智能推断价值量：
-    - 若用户显式传入了指定值，以显式传入为准；
-    - 若从本地 MD 解析到 ndw，以 MD 设定为准；
+    """智能推断价值量（优先级，2026-10-28 用户固化）：
+    - 若本地 MD 笔记属性填写了 ndw，优先取 MD 中的价值量值（最高优先级）；
+    - 其次若用户显式传入了指定值，以显式传入为准；
     - 否则根据改造系统数量智能推断：
       * 涉及多个系统改造 (>= 2 个系统，如 dys + jzjy / 多 Story 跨系统)：默认 0.5 人月
       * 单系统改造：默认 0.3 人月
     """
-    if passed_value is not None:
-        return float(passed_value)
-
+    # 2026-10-28 用户固化：MD 笔记属性 ndw 为最高优先级，优先于 --value 显式值
     local_info = find_local_demand_md(demand_id)
     if local_info.get("ndw") is not None:
         return float(local_info["ndw"])
+
+    if passed_value is not None:
+        return float(passed_value)
 
     # 1. 检查本地 MD 系统数 >= 2
     if len(local_info.get("systems", [])) > 1:
@@ -676,6 +681,41 @@ def fill_ndw(demand_id: str, value: float = None, system_name: str = None,
             "demandId": demand_id,
             "reason": "【前置拦截】该需求尚未拆分 Story，按规范暂不填写非开发工作量。请先完成 Story 拆分后再登记。"
         }
+
+    # 1.5 幂等快速通道（2026-11-04 性能优化）：重复登记时秒级跳过，
+    #    已有符合规范记录（taskType=1 且含评估人 + 正确半月周期 + 同状态）直接返回，
+    #    免去 get_evaluator_from_platform / get_demand_detail 2 次 API。
+    #    仅默认半月周期场景启用（--schedule/--by-schedule 排期登记走原全流程判断）；
+    #    --force 强制重建时跳过本通道（需删旧记录重查）。
+    existing = get_existing_ndw(demand_id)
+    if not force_recreate and not schedule_date and not by_schedule:
+        calc_start_f, calc_end_f = compute_ndw_period()
+        fast = next((r for r in existing
+                     if r.get("taskType") == 1
+                     and r.get("evaluatorName")
+                     and r.get("startTime") == (start_date or calc_start_f)
+                     and r.get("endTime") == (end_date or calc_end_f)
+                     and r.get("status") == status), None)
+        if fast:
+            return {
+                "ok": True,
+                "skipped": True,
+                "demandId": demand_id,
+                "reason": "已存在符合规范（含主管评估人、正确半月周期及已完成状态）的价值量记录",
+                "record": {
+                    "id": fast.get("id"),
+                    "taskNo": fast.get("taskNo"),
+                    "taskTitle": fast.get("taskTitle"),
+                    "value": fast.get("reapplicationTaskValue"),
+                    "status": fast.get("status"),
+                    "statusName": "已完成" if fast.get("status") == 2 else "未完成",
+                    "startTime": fast.get("startTime"),
+                    "endTime": fast.get("endTime"),
+                    "evaluator": f"{fast.get('evaluatorName')}-{fast.get('evaluatorStaffId')}",
+                    "assign": f"{fast.get('assignUserName')}-{fast.get('assignUserStaffId')}",
+                    "systemName": fast.get("systemName")
+                }
+            }
 
     # 2. 复用 dry-run 计划缓存（两段式落库时跳过重复 API；--yes 不读缓存，单进程完整查）
     plan = _read_plan(demand_id) if not yes_mode else {}
@@ -738,8 +778,7 @@ def fill_ndw(demand_id: str, value: float = None, system_name: str = None,
     start = start_date or calc_start
     end = end_date or calc_end
 
-    # 幂等检查与缺陷纠偏
-    existing = get_existing_ndw(demand_id)
+    # 幂等检查与缺陷纠偏（复用步骤 1.5 快速通道已读取的 existing，避免二次查询）
     for r in existing:
         if r.get("taskType") == 1:  # 需求分析
             has_eval_name = bool(r.get("evaluatorName"))
@@ -832,7 +871,7 @@ def fill_ndw(demand_id: str, value: float = None, system_name: str = None,
 def main():
     parser = argparse.ArgumentParser(description="国泰海通需求分析非开发工作量登记")
     parser.add_argument("demand_id", nargs="?", help="需求编号，如 R2608030112")
-    parser.add_argument("--value", "-v", "--ndw", type=float, default=None, help="申请价值量 (人月)，未指定时自动智能推断：多系统改造默认 0.5，单系统默认 0.3")
+    parser.add_argument("--value", "-v", "--ndw", type=float, default=None, help="申请价值量 (人月)；MD 笔记属性已填 ndw 时优先取 MD 值，无需传此参数；MD 未填且未指定时自动智能推断：多系统改造默认 0.5，单系统默认 0.3")
     parser.add_argument("--status", type=int, default=DEFAULT_STATUS_DONE, help="状态 (默认 2:已完成，1:未完成)")
     parser.add_argument("--system", "-s", help="所属系统名称")
     parser.add_argument("--my-story", help="吴进创建的 Story 编号（如 R2609110103-2），价值量评估与所属系统均按该 Story 统计（跨系统需求只统计吴进创建的那条 Story）")

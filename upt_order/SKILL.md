@@ -3,6 +3,10 @@ name: upt_order
 description: '国泰海通全连接平台 EOA117 IT运维申请单通用自动填写工具。支持集中交易系统 (jzjy)、参数中心 (cszx)、95信创域 (95xinchuang)、98创新域
   (98chuangxin) 等系统的子版本上线发布表单填报。通过 Playwright 登录，自动填写表单各字段与弹窗，最终保存并截图确认。
   已融合 spb-extract（自动从版本文件夹提取变更内容生成 upt_content.txt，无需手动执行 spb-extract）。
+  已融合 Artifactory：输入 `/upt_order jzjy 20261106`（关键词含 8 位日期）时，自动从 Artifactory 制品库
+  (http://10.120.188.223:8082/artifactory/jyxt-JZJYPT-generic-prod-local/{日期}/) 下载**编号最大的压缩包**
+  （如 SPB-V0.26.11.6-05.zip），解压到本地 jzjy/ 目录并提取变更内容，且「版本地址」字段直接填入该压缩包完整地址
+  （不再读取云盘链接），后续升级单填写逻辑不变。
 
   触发词：升级单、EOA117、IT运维申请单、子版本上线、变更系统升级、提交升级单。
 
@@ -81,7 +85,7 @@ cd ~/.workbuddy/skills/upt_order/scripts && (python3.14 eoa_subversion_release.p
 | 23 | 回退计划 | 策略=全部回退 / 条件=系统异常整体回退 / 步骤=回退至上一版本 | 弹窗 |
 | 24 | 应急计划 | 异常场景=升级验证失败 | 弹窗 |
 | 25 | 变更成功标准 | 升级验证成功 | 文本 |
-| 26 | 版本地址 | 若存在 `版本地址.txt`，自动读取并进行模式模糊匹配；否则使用默认的云盘链接 | 文本 |
+| 26 | 版本地址 | **jzjy 模式优先使用 Artifactory 压缩包完整地址**（如 `http://10.120.188.223:8082/artifactory/jyxt-JZJYPT-generic-prod-local/20261106/SPB-V0.26.11.6-05.zip`，不使用云盘链接）；若未下载成功（无日期参数/下载失败），再回退 `版本地址.txt` 匹配或默认地址 | 文本 |
 | 27 | 保存 | 底部保存按钮，并在保存前复查恢复可能被误改的变更分类 | 自动点击 |
 
 ## 🔐 密码加密配置
@@ -101,7 +105,7 @@ cd ~/.workbuddy/skills/upt_order/scripts && (python3.14 eoa_subversion_release.p
 | `scripts/eoa117_report.json` | JSON 执行报告 |
 | `scripts/eoa117_keyword_signal.json` | 交互信号文件（临时） |
 | `upt_content.txt` | [输入文件] 升级包变更文件提取内容（用于循环填写变更系统信息）。**已融合 spb-extract：脚本会在 [18.55] 步骤自动从版本文件夹提取并覆盖生成，无需手动执行 spb-extract** |
-| `版本地址.txt` | [输入文件] 各系统云盘链接信息（用于自动匹配版本地址） |
+| `版本地址.txt` | [输入文件] 各系统历史云盘链接信息（**仅作兜底**：jzjy 已用 Artifactory 地址、cszx 等仍按此匹配） |
 
 ## 🔄 spb-extract 融合（自动提取升级包变更内容）
 
@@ -115,6 +119,31 @@ cd ~/.workbuddy/skills/upt_order/scripts && (python3.14 eoa_subversion_release.p
 4. **失败兜底**：若自动提取失败（未找到版本文件夹等），回退到已有 `upt_content.txt` 或静态默认配置。
 
 > 实现：`eoa_subversion_release.py` 新增 `locate_project_root()` 与 `auto_extract_upt_content(mode, project_root)` 两个函数，在 `[18.55]` 变更系统信息步骤前调用。依赖 `~/.workbuddy/skills/spb-extract/scripts/upt_extract.py`。
+
+## 🗜 Artifactory 融合（自动下载编号最大的 JZJY 版本压缩包）
+
+当用户输入 `/upt_order jzjy <8位日期>`（如 `/upt_order jzjy 20261106`）时，脚本自动从 Artifactory 制品库下载版压缩包：
+
+1. **触发条件**：`jzjy` 模式且搜索关键词含 8 位日期（正则 `20\d{6}`）。
+2. **下载时机提前**：下载动作在 **[9.5] 版本地址填写之前**执行，使「版本地址」字段可复用压缩包地址（用户要求：版本地址 = 压缩包地址，不再从 `版本地址.txt` / 配置文件读取云盘链接）。
+3. **远程列目录**：调用 storage API `GET {base_url}/api/storage/{repo}/{日期}/` 列出该日期目录下的压缩包。
+4. **选包规则**：按文件名末尾 `-(\d+)\.zip` 的编号取**最大**（如 `SPB-V0.26.11.6-05.zip` > `-03.zip`）；无编号后缀的 zip 排最末。
+5. **下载解压**：下载到 `jzjy/` 目录，解压为同名文件夹（如 `jzjy/SPB-V0.26.11.6-05/`）；若唯一顶层子目录包含 lbm/table/init/proc/dll 等关键目录则自动提升该子目录为版本目录。
+6. **清理旧包**：下载成功后自动清理 `jzjy/` 下**同基础版本号但编号更小**的旧压缩包及解压目录，只保留本次（如删除 `SPB-V0.26.11.6-05.zip` 与 `SPB-V0.26.11.6-05/`，仅保留 `-06`）。通过去掉末尾 `-NN` 序号后缀匹配基础版本号，`.xlsx` 等非压缩包/目录文件不受影响。
+7. **版本地址**：下载成功后，`版本地址` 字段直接填入压缩包完整 URL（`{base_url}/{repo}/{日期}/{zip名}`），跳过 `版本地址.txt` 匹配。
+8. **提取内容**：解压目录显式传给 `auto_extract_upt_content(version_dir=...)`，生成 `upt_content.txt`，后续升级单填写逻辑不受影响。
+9. **失败兜底**：认证失败/目录无 zip/网络不可达时打印警告并回退到本地已有版本文件夹，版本地址回退 `版本地址.txt` 匹配或默认地址。
+
+**凭据配置**（config.json 的 `artifactory` 节点，环境变量优先）：
+
+| 配置项 | 环境变量 | 说明 |
+|--------|----------|------|
+| `base_url` | - | 默认 `http://10.120.188.223:8082/artifactory` |
+| `repo` | - | 默认 `jyxt-JZJYPT-generic-prod-local` |
+| `username` / `password` | `ARTIFACTORY_USERNAME` / `ARTIFACTORY_PASSWORD` | Basic Auth |
+| `api_token` | `ARTIFACTORY_API_TOKEN` | 优先于 Basic Auth（X-JFrog-Art-Api） |
+
+> 实现：`eoa_subversion_release.py` 新增 `download_latest_jzjy_package(version_date, project_root)`（返回 `(success, version_dir_or_msg, dl_url)` 三元组）及辅助函数 `_load_artifactory_config()` / `_artifactory_list_dir()` / `_pick_latest_zip()`。下载逻辑在 [9.5] 前提前执行，`artifactory_zip_url` 直接作为「版本地址」字段值。Artifactory 为内网地址，**请求强制禁用系统代理**（`ProxyHandler({})`），否则会代理超时。示例：`http://10.120.188.223:8082/artifactory/jyxt-JZJYPT-generic-prod-local/20261106/SPB-V0.26.11.6-05.zip`。旧包清理由 `_jzjy_pkg_base()`（去掉末尾 `-NN` 序号得到基础版本号）与 `_cleanup_old_jzjy_packages(jzjy_dir, best)`（删除同基础版本号下编号更小的旧压缩包与解压目录）实现。
 
 ## 环境要求
 

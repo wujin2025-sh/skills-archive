@@ -223,7 +223,7 @@ def generate(version_dir, is_cszx=False):
     table_files = get_files(os.path.join(current_dir, 'table'))
     if table_files:
         files_text = ' '.join(table_files) if is_cszx else 'table目录下文件'
-        default_note = None if is_cszx else '按目录序号执行（1.bak_table、 2.build_table、3.trans_table、4.check_table）'
+        default_note = None if is_cszx else '按目录序号执行'
         lines += section('table', files_text, 'table 目录内脚本', 'SQL脚本',
                          note=get_note('table', ' '.join(table_files), default_note), is_cszx=is_cszx)
         lines.append('')

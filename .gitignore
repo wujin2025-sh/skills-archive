@@ -16,6 +16,12 @@ config.json
 */*/.fintech_session.json
 
 # Caches and runtime state
+*.pkl
+*/*.pkl
+*/*/*.pkl
+*.db
+*.sqlite
+*.sqlite3
 *.cache.json
 *_cache.json
 */*_cache.json

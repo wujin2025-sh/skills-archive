@@ -88,12 +88,12 @@ cd <项目目录> && python3 <SKILL_DIR>/scripts/release_mail.py CSZX 20260529 u
 
 当用户指示“发邮件”、“发送邮件”或“存入草稿箱”时：
 1. 确定当前中心：根据前面生成的版本邮件所属中心（`JZJY` 或 `CSZX`）。
-2. 根据目标中心确定收件人（To）和抄送人（Cc）：
+2. 根据目标中心确定收件人（To）和抄送人（Cc）（固定收件人名单已固化于 `scripts/recipients.py`，以下列表与其保持一致）：
    - **JZJY (集中交易)**：
      - 收件人：`"李萍萍" <lipingping@gtht.com> ; "陈浩宇" <chenhaoyu@gtht.com> ; "陈曦" <chenxi10@gtht.com> ; "1791894837" <1791894837@qq.com> ; "高健" <gaojian2@gtht.com> ; "shenss" <shenss@guoliansh.com> ; "贺元成" <heyuancheng@gtht.com> ; "张子安" <zhangzian@gtht.com> ; "陈紫菡" <chenzihan@gtht.com> ; "常丽" <changli@gtht.com> ; "张博闻" <zhangbowen@gtht.com> ;`
      - 抄送：`"苏清玲" <suqingling@gtht.com> ; "李鹤晨" <lihechen@gtht.com> ; "张康" <zhangkang2@gtht.com> ;`
    - **CSZX (参数中心)**：
-     - 收件人：`"万鑫明" <wanxinming@gtht.com> ; "白淋" <bailin2@gtht.com> ; "李龙龙" <lilonglong@gtht.com> ; "张颖" <zhangying12@gtht.com> ; "丁伟" <dingwei2@gtht.com> ; "夏添" <xiatian2@gtht.com> ; "15021289638" <15021289638@163.com> ; "高健" <gaojian2@gtht.com> ; "陈紫菡" <chenzihan@gtht.com> ;`
+     - 收件人：`"万鑫明" <wanxinming@gtht.com> ; "白淋" <bailin2@gtht.com> ; "李龙龙" <lilonglong@gtht.com> ; "张颖" <zhangying12@gtht.com> ; "丁伟" <dingwei2@gtht.com> ; "夏添" <xiatian2@gtht.com> ; "15021289638" <15021289638@163.com> ; "高健" <gaojian2@gtht.com> ; "陈紫菡" <chenzihan@gtht.com> ; "姚松明" ;`
      - 抄送：`"鄂文博" <ewenbo@gtht.com> ; "程菲" <chengfei@gtht.com> ; "苏清玲" <suqingling@gtht.com> ; "张康" <zhangkang2@gtht.com> ;`
 3. 运行通用保存邮件草稿/发送脚本：
     - 邮件主题（Subject）构建规则（`release_mail.py` 已自动在 `release_report.txt` 首行生成 `主题：<主题内容>`，`save_to_draft.py` 会自动解析并剥离该行）：

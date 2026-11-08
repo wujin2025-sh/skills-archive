@@ -22,13 +22,15 @@ disable: false
 
 | Token | 用途 | 色值 |
 |-------|------|------|
-| 主蓝深 | 页眉色块、标题 | `#1F497D` |
-| 主蓝亮 | 按钮、卡片边框 | `#0C72BB` |
-| 品牌蓝 | 分割线、图标 | `#4F81BD` |
-| 深蓝2 | 标题文字 | `#004E97` |
-| 正文灰 | 副标题、页脚 | `#999999` |
+| 主蓝深 | 页眉色块、深色英雄卡、标题 | `#1F497D` |
+| 主蓝亮 | 按钮、卡片左边框、柱状图主色 | `#0C72BB` |
+| 品牌蓝 | 分割线、图标、次级装饰 | `#4F81BD` |
+| 深蓝2 | 标题文字、序号徽章 | `#004E97` |
+| **战果红（新增）** | **浅底核心大数字、环比增长胶囊、正文关键成果词高亮** | **`#D9232E`（备选 `#E53935`）** |
+| **五阶递进蓝（新增）** | **规划页左侧模块色块（由深至浅五阶明度递进）** | **`#133962` ➔ `#1E4E87` ➔ `#2E6BB0` ➔ `#8FA3C0` ➔ `#B8C5D6`** |
+| 正文灰 | 副标题、PM元数据栏、页脚 | `#999999`（正文次级 `#666666`） |
 | 背景色 | 内页底色 | `#FFFFFF` |
-| 卡片底 | 内容卡片背景 | `#f5f8fc` |
+| 卡片底 | 内容卡片背景 | `#f5f8fc`（浅冰蓝渐变 `#eef5fc`） |
 
 ## 核心工作流
 
@@ -137,19 +139,110 @@ def emu_to_px(x,y,cx,cy):
 .tag-a{background:#e3f2fd;color:#1565c0;} /* 战役破局-蓝 */
 .tag-r{background:#e8f5e9;color:#2e7d32;} /* 终局价值-绿 */
 
-/* 新增：板块条块规划组件 (layout_domain_planner - 垂直撑满无下部空洞) */
+/* 新增：板块条块规划组件 (layout_domain_planner - 垂直撑满无下部空洞 + 五阶同色系明度递进) */
 .planner-list{flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:12px;margin-bottom:4px;}
 .planner-row{flex:1;display:flex;align-items:stretch;gap:16px;}
 .planner-tag{width:210px;flex-shrink:0;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;text-align:center;color:#ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.06);}
-.planner-tag.tag-dark{background:#232a36;}
-.planner-tag.tag-navy{background:#1F497D;}
-.planner-tag.tag-blue{background:#0C72BB;}
-.planner-tag.tag-cyan{background:#4F81BD;}
+.planner-tag.tag-dark,.planner-tag.tag-step-1{background:#133962;}
+.planner-tag.tag-navy,.planner-tag.tag-step-2{background:#1E4E87;}
+.planner-tag.tag-blue,.planner-tag.tag-step-3{background:#2E6BB0;}
+.planner-tag.tag-cyan,.planner-tag.tag-step-4{background:#8FA3C0;color:#ffffff;}
+.planner-tag.tag-step-5{background:#B8C5D6;color:#133962;} /* 第5阶浅雾蓝配深藏青字，确保高对比度 */
 .planner-tag .tag-badge{font-size:10px;background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:2px;margin-bottom:4px;letter-spacing:0.5px;}
+.planner-tag.tag-step-5 .tag-badge{background:rgba(19,57,98,0.12);color:#133962;}
 .planner-tag .tag-title{font-size:13.5px;font-weight:700;letter-spacing:0.5px;line-height:1.35;}
 .planner-content.dashed-box{flex:1;border:1.5px dashed #4F81BD;border-radius:4px;background:#fbfdff;padding:10px 18px;display:flex;flex-direction:column;justify-content:center;gap:5px;}
 .p-item{font-size:12.2px;color:#333333;line-height:1.55;display:flex;align-items:flex-start;}
 .p-num{font-weight:700;color:#004E97;margin-right:6px;flex-shrink:0;}
+
+/* 新增：高管极简编号页眉 + 左下角加粗深蓝装饰锚点 (Executive Minimal Header) */
+.hdr-exec{width:100%;height:64px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 48px;border-bottom:1.5px solid #4F81BD;position:relative;}
+.hdr-exec::after{content:"";position:absolute;left:48px;bottom:-2.5px;width:72px;height:4px;background:#1F497D;}
+.hdr-exec .he-title{font-size:24px;font-weight:700;color:#1F497D;letter-spacing:0.5px;display:flex;align-items:baseline;gap:14px;}
+.hdr-exec .he-num{font-family:Arial,sans-serif;font-weight:800;color:#1F497D;}
+.hdr-exec .he-brand{font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#7a8a9e;letter-spacing:1.5px;}
+
+/* 新增：双层标题之「一句话战果副标题 + PM元数据栏」 (Sub-headline & Meta Strip) */
+.sub-headline-wrap{margin-bottom:14px;flex-shrink:0;}
+.sub-headline-title{font-size:19px;font-weight:700;color:#1a2533;letter-spacing:0.3px;line-height:1.35;}
+.sub-headline-meta{font-size:11.5px;color:#666666;margin-top:4px;display:flex;align-items:center;gap:14px;}
+.sub-headline-meta .meta-sep{color:#cccccc;}
+.hl-red{color:#D9232E;font-weight:700;} /* 正文与指标战果红高亮 */
+
+/* 新增：版式A - 常规工作/基本盘稳健运行页 (layout_steady_ops) */
+.ops-top-strip{background:#f2f7fd;border:1px solid #d0e1f9;border-radius:8px;padding:10px 24px;display:grid;grid-template-columns:repeat(4,1fr);align-items:center;margin-bottom:14px;flex-shrink:0;}
+.ops-kpi-item{display:flex;align-items:center;justify-content:center;gap:12px;border-right:1px solid #bfd4f2;}
+.ops-kpi-item:last-child{border-right:none;}
+.ops-pie-icon{width:34px;height:34px;border-radius:50%;background:conic-gradient(#1F497D 0% 72%, #8eb4e3 72% 100%);border:2px solid #fff;box-shadow:0 2px 5px rgba(31,73,125,0.15);flex-shrink:0;}
+.ops-kpi-label{font-size:13px;font-weight:700;color:#333;margin-bottom:2px;}
+.ops-kpi-val{font-size:22px;font-weight:800;color:#D9232E;font-family:Arial,sans-serif;line-height:1.1;}
+.ops-kpi-unit{font-size:13px;font-weight:700;color:#333;margin-left:2px;}
+.ops-3col-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch;margin-bottom:12px;}
+.ops-col-card{background:#f4f8fd;border:1px solid #d6e4f5;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;}
+.ops-col-hdr{background:linear-gradient(90deg,#1F497D,#2E6BB0);color:#ffffff;font-size:14.5px;font-weight:700;text-align:center;padding:8px 12px;letter-spacing:1px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);margin:6px 10px 4px 10px;border-radius:2px;}
+.ops-col-body{padding:8px 14px 12px 14px;font-size:11.5px;color:#333;line-height:1.55;flex:1;display:flex;flex-direction:column;gap:6px;}
+.ops-bottom-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;flex-shrink:0;}
+.ops-pill-card{background:#f8fbff;border:1px solid #dce8f5;border-radius:6px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;}
+.ops-pill-tag{background:#1F497D;color:#fff;font-size:11.5px;font-weight:700;padding:3px 12px;border-radius:3px;}
+.ops-pill-stat{font-size:12px;color:#333;font-weight:600;}
+
+/* 新增：版式B - 3浅1深非对称KPI顶栏 + 2x2能力建设矩阵 (layout_3light_1dark_matrix) */
+.kpi-3l1d-grid{display:grid;grid-template-columns:1fr 1fr 1fr 0.95fr;gap:14px;margin-bottom:16px;flex-shrink:0;}
+.kpi-light-card{background:linear-gradient(135deg,#eef5fc,#f7fbff);border:1px solid #d5e4f5;border-left:4px solid #0C72BB;border-radius:6px;padding:10px 16px;display:flex;flex-direction:column;justify-content:space-between;}
+.kpi-light-card .kl-title{font-size:13px;font-weight:700;color:#1a2533;}
+.kpi-light-card .kl-num-row{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0;}
+.kpi-light-card .kl-val{font-size:30px;font-weight:800;color:#D9232E;font-family:Arial,sans-serif;line-height:1;}
+.kpi-light-card .kl-unit{font-size:12.5px;font-weight:700;color:#333;}
+.kpi-light-card .kl-sub{font-size:11px;color:#666666;}
+.kpi-dark-card{background:linear-gradient(135deg,#133962,#1F497D);border-radius:6px;padding:10px 16px;color:#ffffff;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 12px rgba(19,57,98,0.18);}
+.kpi-dark-card .kd-title{font-size:13px;font-weight:700;color:#e0edff;}
+.kpi-dark-card .kd-val{font-size:32px;font-weight:800;color:#ffffff;font-family:Arial,sans-serif;line-height:1.05;margin:4px 0;}
+.kpi-dark-card .kd-sub{font-size:11px;color:rgba(255,255,255,0.75);}
+.matrix-2x2-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;align-items:stretch;}
+.matrix-cap-card{border:1.5px dashed #7fa6d6;border-radius:6px;background:#fbfdff;display:flex;flex-direction:column;overflow:hidden;}
+.matrix-cap-hdr{background:linear-gradient(90deg,#dceaf9 0%,#eef5fc 65%,#ffffff 100%);border-bottom:1px solid #d0e1f5;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;border-left:4px solid #0C72BB;}
+.matrix-cap-hdr .mc-title{font-size:14px;font-weight:700;color:#004E97;display:flex;align-items:center;gap:6px;}
+.matrix-cap-hdr .mc-slogan{font-size:11.5px;font-style:italic;font-weight:600;color:#1F497D;}
+.matrix-cap-body{padding:10px 14px;font-size:11.8px;color:#333;line-height:1.58;display:flex;flex-direction:column;gap:6px;flex:1;justify-content:center;}
+
+/* 新增：版式C - 一深一浅双英雄数据卡 + 环比红胶囊 + 星标里程碑 (layout_dual_hero) */
+.dual-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:14px;flex-shrink:0;}
+.hero-card-dark{background:linear-gradient(135deg,#133962,#1E4E87);border-radius:8px;padding:14px 20px;color:#ffffff;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(19,57,98,0.16);}
+.hero-card-dark .hd-top{display:flex;align-items:baseline; gap:12px;}
+.hero-card-dark .hd-name{font-size:15px;font-weight:700;color:#ffffff;}
+.hero-card-dark .hd-tag{font-size:11.5px;color:#cbe0ff;}
+.hero-card-dark .hd-main-val{font-size:40px;font-weight:800;color:#ffffff;font-family:Arial,sans-serif;line-height:1.1;margin:6px 0;}
+.hero-card-dark .hd-main-unit{font-size:15px;font-weight:700;margin-left:6px;}
+.hero-card-dark .hd-footer{border-top:1px solid rgba(255,255,255,0.2);padding-top:8px;display:grid;grid-template-columns:1fr 1fr;font-size:12px;color:#e0edff;}
+.hero-card-dark .hd-footer b{font-size:16px;color:#ffffff;margin-left:6px;}
+.hero-card-light{background:#f3f7fc;border:1px solid #d0e1f5;border-radius:8px;padding:14px 20px;display:flex;flex-direction:column;justify-content:space-between;}
+.hero-card-light .hl-main-row{display:flex;align-items:center;justify-content:space-between;margin:4px 0;}
+.hero-card-light .hl-val{font-size:38px;font-weight:800;color:#D9232E;font-family:Arial,sans-serif;line-height:1;}
+.hero-card-light .hl-unit{font-size:14px;font-weight:700;color:#D9232E;margin-left:4px;}
+.growth-pill{background:#D9232E;color:#ffffff;font-size:11.5px;font-weight:700;padding:4px 12px;border-radius:16px;line-height:1.2;text-align:center;box-shadow:0 2px 6px rgba(217,35,46,0.25);}
+.hero-card-light .hl-sub-list{border-top:1px solid #dce8f5;padding-top:6px;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#444;}
+.hero-card-light .hl-sub-row{display:flex;justify-content:space-between;}
+.star-milestone-box{flex:1;border:1px dashed #8eb4e3;border-radius:6px;background:#fbfdff;padding:12px 16px;display:flex;flex-direction:column;justify-content:space-around;gap:8px;}
+.star-sec-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#004E97;margin-bottom:3px;}
+.star-icon{width:18px;height:18px;border-radius:50%;background:#1F497D;color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* 新增：版式D - AI智能体双栏卡 + 底部原生CSS柱状图看板 (layout_ai_bar_chart) */
+.ai-top-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;flex-shrink:0;}
+.ai-agent-card{border:1.5px dashed #7fa6d6;border-radius:6px;background:#fbfdff;overflow:hidden;display:flex;flex-direction:column;}
+.ai-agent-hdr{background:linear-gradient(90deg,#0C72BB,#2E6BB0);color:#ffffff;font-size:14.5px;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:8px;}
+.ai-agent-body{padding:10px 16px;font-size:11.8px;color:#333;line-height:1.55;display:flex;flex-direction:column;gap:6px;flex:1;}
+.ai-sub-label{font-size:12.5px;font-weight:700;color:#1F497D;margin-top:2px;}
+.ai-chart-panel{flex:1;background:#f5f9fe;border:1px solid #dce8f5;border-radius:6px;padding:10px 20px;display:flex;flex-direction:column;justify-content:space-between;}
+.ai-chart-badge{background:#1F497D;color:#ffffff;font-size:12.5px;font-weight:700;padding:4px 14px;border-radius:3px;align-self:flex-start;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%);}
+.ai-chart-groups{flex:1;display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:end;padding:8px 12px 4px 12px;}
+.bar-group{display:flex;flex-direction:column;height:100%;justify-content:space-between;}
+.bar-group-title{font-size:12px;font-weight:700;color:#1F497D;text-align:center;margin-bottom:6px;}
+.bar-items-row{display:flex;align-items:flex-end;justify-content:space-around;height:110px;border-bottom:1.5px solid #8FA3C0;padding:0 10px;}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar-val{font-size:12px;font-weight:800;color:#1a2533;font-family:Arial,sans-serif;}
+.bar-pillar{width:38px;background:linear-gradient(180deg,#0C72BB,#1F497D);border-radius:3px 3px 0 0;}
+.bar-lbl{font-size:11px;color:#555;margin-top:4px;text-align:center;}
+.bar-group-foot{font-size:11px;color:#555;text-align:center;margin-top:6px;font-weight:600;}
 
 /* 新增：难点与建议对照组件 (layout_challenge_solution - 垂直撑满居中) */
 .stitle-banner{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-shrink:0;}
@@ -206,9 +299,14 @@ python3 /Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/convert_html.py
 
 述职不是“工作日记罗列”，而是证明“业务价值沉淀与组织影响力”。必须严格遵循以下五大战役叙事法则：
 
-### 法则一：结论先行与动词定调（Headline Rule）
-- ❌ **禁止使用空泛模块标题**：如“核心业务专项一”、“系统优化”、“效能度量”。
-- ✅ **所有页面与卡片标题统一精简模式**（不带冒号副标题）：`集中交易去历史查询`、`产品经理个人驾驶舱`、`需求分析 SKILL 自动化流水线`、S2 卡片 `01 核心业务专项攻坚`；战果/判断句（卸负荷、一屏控风险等）下沉到正文 stat-box、SCQA 卡片与 list-item 呈现（2026Q3 定稿）。
+### 法则一：结论先行与双模标题体系（Headline & Sub-headline Rule）
+- ❌ **禁止使用空泛模块标题或冗长带冒号的单行标题**：如“核心业务专项一”、“系统优化”，或把长串副标题硬塞进同一个 `<h2>` 导致折行拥挤。
+- ✅ **支持两种标准标题模式（按单页信息密度择一使用）**：
+  1. **精简标题模式（2026Q3 个人述职定稿）**：`stitle h2` 与卡片标题保持极简短语（如 `集中交易去历史查询`、`产品经理个人驾驶舱`），不带冒号副标题，战果/判断句下沉到正文 `stat-box`、SCQA 卡片与 `list-item`。
+  2. **高管双层标题模式（部门/专项述职推荐）**：
+     - **一级页眉（`.hdr-exec`）**：左上角 `02  深图一体化投资管理平台`（序号 + 精简模块名），右上角 `GUOTAIHAITONG`，底部分割线左端带 72px 加粗深蓝装饰锚点；
+     - **二级战果副标题（`.sub-headline-title`）**：页眉正下方首行用 19px 黑体直接抛出一句话核心战果（如 `项目三季度完成116项需求，同步推进四大能力建设` 或 `商品期货期权累计成交130亿元，债券做市日均5亿元、环比+100%`）；
+     - **三级 PM 元数据栏（`.sub-headline-meta`）**：紧跟一行浅灰小字锚定统计边界与总目标（如 `截至时间：2026/9/30  |  年度目标实现：80%`）。
 
 ### 法则二：高管战果总览条（Executive Summary Strip）
 - 在 S2 目录页顶部，必须设置一条深蓝渐变色高管战果横幅（`.exec-summary-bar`）。
@@ -237,14 +335,14 @@ python3 /Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/convert_html.py
 | 页 | 类型 | 推荐版式 | 叙事重点 |
 |----|------|---------|---------|
 | S1 | 封面 | 原版封面 | `tpl_image4.png` + 极简大标题 + 汇报人/部门/日期（**不加定调副标题**） |
-| S2 | 目录与战果 | **目录 + 战果总览条** | 顶部 Executive Summary 4大金黄核心锚点 + 四大模块索引 |
-| S3 | 核心专项① | **SCQA 战役解构卡** | 顶部 4 大看板 + 红绿痛点价值对比 + 底部架构流转图 |
-| S4 | 核心专项②&③ | **左右双专项协同卡** | 两融流转优化（压降资金占用偏差）+ Y核心内切（平稳并轨底座） |
-| S5 | 数字化实践 | **管理范式跃迁三栏卡** | 冷加载 -63% + 过去vs现在对比 + 3 级穿透 |
-| S6 | AI 生产力 | **流水线与质量红线双栏** | AI 自动化流水线 + 源码提速约 28 倍 + 制度化红线 |
-| S7 | 效能度量 | **数据看板与机制归因** | 73 项需求平稳流动 + 34.02% 流动效率 + 根本归因 |
-| **S8 (高光)** | **难点与对策** | **`layout_challenge_solution`** | **实战还原：左难点(竖标+问题)+右建议(竖标+机制解法)** |
-| **S9 (战略)** | **战略路线图** | **`layout_domain_planner`** | **实战还原：四大业务板块色卡 + 虚线编号战役路线图** |
+| S2 | 目录与战果 | **极简目录 + 战果总览条 (`agenda-clean-grid`)** | 顶部 4 大核心战果指标 + 中部四大模块极简章节导航（不提前剧透长段正文，避免二次阅读疲劳） |
+| S3 | 核心专项①（全景交付） | **`layout_3light_1dark_matrix` / SCQA 卡** | **3浅1深非对称KPI顶栏（红字高亮+深蓝目标卡）+ 四大能力建设 2×2 虚线矩阵卡** |
+| S4 | 核心专项②（业务战果） | **`layout_dual_hero` / 左右双专项卡** | **一深一浅双英雄数据卡 + 环比增长红胶囊 + 底部星标关键里程碑** |
+| S5 | 数字化实践 | **管理范式跃迁三栏卡** | 冷加载 -62% + 过去vs现在对比 + 3 级穿透 |
+| S6 | AI 生产力 | **`layout_ai_bar_chart` / 流水线双栏** | **上半部「技术架构+业务场景」双智能体卡 + 下半部原生CSS柱状图（规模+同比增幅）** |
+| S7 | 效能度量 | **数据看板与机制归因** | 75 项需求平稳流动 + 流动效率 + 根本归因 |
+| **S8 (战略)** | **后续工作规划** | **`layout_domain_planner` (五阶递进蓝)** | **实战还原：五阶同色系渐变模块色卡 + 虚线编号战役路线图** |
+| **S9 (压轴讨论)** | **难点创新点讨论** | **`layout_discuss_qa`（置于后续工作规划之后）** | **实战还原：左「难点1/2」（蓝字标题+1/2分点）+ 右「建议」（向团队/领导提建设性方案，自然衔接Q&A）** |
 | S10 | 结语 | 原版结语 | `tpl_image4.png` + 感谢聆听居中 |
 
 ### 高级版式 HTML 骨架速查
@@ -286,17 +384,18 @@ python3 /Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/convert_html.py
 </div>
 ```
 
-#### 3. 板块条块规划矩阵 (`layout_domain_planner`)
+#### 3. 板块条块规划矩阵 (`layout_domain_planner` —— 五阶递进蓝)
 ```html
 <div class="planner-list">
+  <!-- 从 tag-step-1 到 tag-step-5 实现同色系由深至浅五阶明度递进 -->
   <div class="planner-row">
-    <div class="planner-tag tag-dark">
+    <div class="planner-tag tag-step-1">
       <span class="tag-badge">核心业务域</span>
-      <span class="tag-title">集中交易系统<br>持续演进</span>
+      <span class="tag-title">深图<br>一体化投资管理平台</span>
     </div>
     <div class="planner-content dashed-box">
       <div class="p-item"><span class="p-num">1)</span> 推进商品期货期权全量业务迁移，年内实现商品业务估值单轨运行。</div>
-      <div class="p-item"><span class="p-num">2)</span> 推进ETF做市业务UAT用户验收，达到业务上线标准。</div>
+      <div class="p-item"><span class="p-num">2)</span> 推进沪深北非竞价业务技术研发，达到O32替代上线标准。</div>
     </div>
   </div>
 </div>
@@ -326,6 +425,142 @@ python3 /Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/convert_html.py
       </div>
     </div>
   </div>
+</div>
+```
+
+#### 5. 3浅1深非对称KPI顶栏 + 2×2能力建设矩阵 (`layout_3light_1dark_matrix`)
+```html
+<div class="sub-headline-wrap">
+  <div class="sub-headline-title">项目三季度完成116项需求，同步推进四大能力建设</div>
+  <div class="sub-headline-meta">
+    <span>截至时间：2026/9/30</span><span class="meta-sep">|</span><span>年度目标实现：80%</span>
+  </div>
+</div>
+<div class="kpi-3l1d-grid">
+  <div class="kpi-light-card">
+    <div class="kl-title">业务需求</div>
+    <div class="kl-num-row"><span class="kl-val">116</span><span class="kl-unit">项</span></div>
+    <div class="kl-sub">覆盖交易、销售、运营、对客与协同项目</div>
+  </div>
+  <!-- 其余 2 个 kpi-light-card 略 -->
+  <div class="kpi-dark-card">
+    <div class="kd-title">年度目标实现</div>
+    <div class="kd-val">80%</div>
+    <div class="kd-sub">目标完成时间：2026/12</div>
+  </div>
+</div>
+<div class="matrix-2x2-grid">
+  <div class="matrix-cap-card">
+    <div class="matrix-cap-hdr">
+      <span class="mc-title"><span class="badge">01</span> 销售交易重塑</span>
+      <span class="mc-slogan">全面提升跨部门协同效能与平台化服务能力</span>
+    </div>
+    <div class="matrix-cap-body">
+      <div>▪ <b>投标分销自研信创二期上线：</b>8月6日，债券投标分销模块移动端功能上线，<span class="hl-red">启动灰度试运行</span>。</div>
+    </div>
+  </div>
+</div>
+```
+
+#### 6. 一深一浅双英雄数据卡 + 环比红胶囊 (`layout_dual_hero`)
+```html
+<div class="dual-hero-grid">
+  <!-- 左：深蓝实心英雄卡 -->
+  <div class="hero-card-dark">
+    <div class="hd-top"><span class="hd-name">商品期货期权</span><span class="hd-tag">完成2家期货公司业务迁移并展业</span></div>
+    <div><span style="font-size:12px;color:#cbe0ff;">累计成交金额</span><div class="hd-main-val">130<span class="hd-main-unit">亿元</span></div></div>
+    <div class="hd-footer">
+      <span>累计委托笔数 <b>4.2 万笔</b></span>
+      <span>累计成交笔数 <b>10 万笔</b></span>
+    </div>
+  </div>
+  <!-- 右：浅底红字高增长英雄卡 -->
+  <div class="hero-card-light">
+    <div><b style="font-size:14px;color:#1F497D;">债券广义做市</b> <span style="font-size:11.5px;color:#666;margin-left:8px;">报价成交金额</span></div>
+    <div class="hl-main-row">
+      <div><span class="hl-val">5</span><span class="hl-unit">亿元/天</span></div>
+      <div class="growth-pill">环比<br>+100%</div>
+    </div>
+    <div class="hl-sub-list">
+      <div class="hl-sub-row"><span>广义做市日均活跃交易员</span><span class="hl-red">48人</span></div>
+      <div class="hl-sub-row"><span>意向询价笔数</span><span class="hl-red">1434笔/天 环比+82%</span></div>
+    </div>
+  </div>
+</div>
+```
+
+#### 7. AI 智能体「架构+场景」双栏 + 底部原生 CSS 柱状图看板 (`layout_ai_bar_chart`)
+```html
+<div class="ai-top-2col">
+  <div class="ai-agent-card">
+    <div class="ai-agent-hdr">01 &nbsp;询报价智能体</div>
+    <div class="ai-agent-body">
+      <div class="ai-sub-label">技术架构建设</div>
+      <div>将传统微服务架构升级为 <b>Skill + 自主编排智能体新架构</b>：完成接入、编排、Skill能力、渠道适配、基础服务 <b>5 层架构搭建</b>。</div>
+      <div class="ai-sub-label">业务场景落地</div>
+      <div>新增询价、风控、撤单、交易确认 <b>4 项交易 Skill 能力</b>，贯通 <b>6 个核心环节</b>。</div>
+    </div>
+  </div>
+  <!-- 02 智能体卡片略 -->
+</div>
+<div class="ai-chart-panel">
+  <div class="ai-chart-badge">阶段性成果</div>
+  <div class="ai-chart-groups">
+    <div class="bar-group">
+      <div class="bar-group-title">用户规模构成</div>
+      <div class="bar-items-row">
+        <div class="bar-col"><span class="bar-val">120</span><div class="bar-pillar" style="height:42px;"></div><span class="bar-lbl">内部用户</span></div>
+        <div class="bar-col"><span class="bar-val">154</span><div class="bar-pillar" style="height:56px;"></div><span class="bar-lbl">机构客户</span></div>
+        <div class="bar-col"><span class="bar-val">267</span><div class="bar-pillar" style="height:88px;"></div><span class="bar-lbl">客户侧交易员</span></div>
+      </div>
+      <div class="bar-group-foot">活跃客户 139 家 · 活跃交易员 214 人</div>
+    </div>
+    <div class="bar-group">
+      <div class="bar-group-title">同比增长幅度 (%)</div>
+      <div class="bar-items-row">
+        <div class="bar-col"><span class="bar-val">1400%</span><div class="bar-pillar" style="height:85px;"></div><span class="bar-lbl">新增客户</span></div>
+        <div class="bar-col"><span class="bar-val">900%</span><div class="bar-pillar" style="height:55px;"></div><span class="bar-lbl">新增交易员</span></div>
+      </div>
+      <div class="bar-group-foot">新增客户 +14 倍 · 新增交易员 +9 倍</div>
+    </div>
+  </div>
+</div>
+```
+
+#### 8. 常规工作/基本盘稳健运行页 (`layout_steady_ops`)
+```html
+<div class="ops-top-strip">
+  <div class="ops-kpi-item">
+    <div class="ops-pie-icon"></div>
+    <div><div class="ops-kpi-label">系统数量</div><div><span class="ops-kpi-val">28</span><span class="ops-kpi-unit">个</span></div></div>
+  </div>
+  <div class="ops-kpi-item">
+    <div class="ops-pie-icon"></div>
+    <div><div class="ops-kpi-label">需求上线</div><div><span class="ops-kpi-val">317</span><span class="ops-kpi-unit">个</span></div></div>
+  </div>
+  <div class="ops-kpi-item">
+    <div class="ops-pie-icon"></div>
+    <div><div class="ops-kpi-label">上线版本</div><div><span class="ops-kpi-val">89</span><span class="ops-kpi-unit">个</span></div></div>
+  </div>
+  <div class="ops-kpi-item">
+    <div class="ops-pie-icon"></div>
+    <div><div class="ops-kpi-label">周末测试</div><div><span class="ops-kpi-val">9</span><span class="ops-kpi-unit">次</span></div></div>
+  </div>
+</div>
+<div class="ops-3col-grid">
+  <div class="ops-col-card">
+    <div class="ops-col-hdr">交 &nbsp; 易</div>
+    <div class="ops-col-body">
+      <div>▪ <b>境内：</b>完成沪深京交易规则调整与G4上线多轮测试...</div>
+      <div>▪ <b>境外：</b>提升QFII产品覆盖，新增支持可转债交易与公司行为处理...</div>
+    </div>
+  </div>
+  <!-- 风控与定价 / 资产管理两列略 -->
+</div>
+<div class="ops-bottom-pills">
+  <div class="ops-pill-card"><span class="ops-pill-tag">权益类</span><span class="ops-pill-stat">日均委托量 <span class="hl-red">130万笔</span></span></div>
+  <div class="ops-pill-card"><span class="ops-pill-tag">固收类</span><span class="ops-pill-stat">日均委托量 <span class="hl-red">60万笔</span></span></div>
+  <div class="ops-pill-card"><span class="ops-pill-tag">商品类</span><span class="ops-pill-stat">日均委托量 <span class="hl-red">3.2万笔</span></span></div>
 </div>
 ```
 
@@ -376,12 +611,16 @@ python3 /Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/convert_html.py
 | 高亮结论条 | `linear-gradient(#eaf2fb,#d6eaf8)` | 深色文字（`#1F497D`），**禁止白色** |
 | 里程碑深蓝条 | `linear-gradient(#1F497D,#0C72BB)` | 全部用白/半透白，月份标签用 `rgba(255,255,255,0.75)` |
 
-### 规则四：`#4F81BD` 的正确用法
+### 规则四：`#4F81BD` 与 `战果红 (#D9232E)` 的正确用法
 
-`#4F81BD`（品牌蓝）**仅适合白/浅色背景**，禁止用在深蓝背景上：
-
-- ✅ 正确：页眉分割线（白底上）、进度条、小 tag 文字（浅底）
-- ❌ 禁止：深蓝背景上的数字、图标、标签（会隐形）
+1. **`#4F81BD`（品牌蓝）仅适合白/浅色背景**，禁止用在深蓝背景上：
+   - ✅ 正确：页眉分割线（白底上）、进度条、小 tag 文字（浅底）
+   - ❌ 禁止：深蓝背景上的数字、图标、标签（会隐形）
+2. **`#D9232E`（战果红）仅用于浅色背景上的核心数字与高亮词，或作为实心胶囊背景配白字**：
+   - ✅ 正确：浅蓝/白底卡片（`#f5f8fc` / `#eef5fc` / `#fff`）上的核心大数字、正文加粗红字（`.hl-red`）、红底白字的增长胶囊（`.growth-pill`）
+   - ❌ 禁止：直接在深蓝背景（`#1F497D` / `#133962`）上写红字（红蓝撞色刺眼且对比度低；深蓝底上一律用纯白 `#fff` 或浅金 `#ffe082`）
+3. **`五阶递进蓝` 第 5 阶浅雾蓝 (`#B8C5D6`) 必须配深藏青文字 (`#133962`)**：
+   - 前 4 阶（`#133962`、`#1E4E87`、`#2E6BB0`、`#8FA3C0`）用白色文字 `#ffffff`；第 5 阶因明度高，必须切换为深色文字 `#133962`。
 
 ### 快速自查清单（生成后检查）
 

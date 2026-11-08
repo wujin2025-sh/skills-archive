@@ -162,20 +162,29 @@ def get_session(force=False) -> dict:
 
 
 def _http_request(method: str, url: str, timeout: int = 20, **kwargs) -> requests.Response:
-    """发起 HTTP 请求；系统代理（macOS 系统级）故障时自动降级为绕过代理直连重试一次。
+    """发起 HTTP 请求；内网 API 默认绕过系统代理直连（trust_env=False + verify=False）。
 
-    默认行为与 requests 一致（trust_env=True，走系统代理）；仅当代理引起
-    ProxyError/ConnectionError 时，改用 trust_env=False + verify=False 直连重试，
-    避免代理异常（如隧道 502）导致全部 API 失败。内网域名可控，安全风险低。
+    2026-11-04 第三版优化：**直连优先**。—— 系统代理对 fintech.gtht.com.cn
+    基本不可用（必 ReadTimeout 20s），旧逻辑「先走代理、超时后再降级直连」
+    令每个 API 白白等待 20s+（get_stories/详情/评估人/幂等 5 连发 ≈ 100s+）。
+    现改为默认 trust_env=False 直连（<1s 返回），仅直连异常（罕见，如网络
+    割裂必须走代理）时回退系统代理重试一次。
+    与 kjptai MCP post() 内置禁代理、proposed-schedule-confirm/report 类
+    NO_PROXY 运行建议同源决策；亦兼容 401 自动重登逻辑。
     """
-    try:
-        return requests.request(method, url, timeout=timeout, **kwargs)
-    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+    def _direct() -> requests.Response:
         sess = requests.Session()
         sess.trust_env = False
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
             return sess.request(method, url, timeout=timeout, verify=False, **kwargs)
+
+    try:
+        return _direct()
+    except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError,
+            requests.exceptions.ReadTimeout):
+        # 直连异常（罕见），回退系统代理重试一次
+        return requests.request(method, url, timeout=timeout, **kwargs)
 
 
 def api_post(path: str, json_body: dict = None, timeout: int = 20) -> dict:

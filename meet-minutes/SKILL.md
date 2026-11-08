@@ -137,6 +137,11 @@ Step 4.5: 录制列表为空时的处理策略：
         - 最多重试 3 次，每次间隔 30 秒
 
 Step 5: 对每个 record_file_id 获取内容（按优先级，性能优化）：
+        a0. 【无录制文件时的首选·2026-10-12 新增】如在 Step 2 的 `list-ended` 返回中已带 `minutes[].minute_id`（即使 `records` 为空），直接用 tmeet CLI 拉取腾讯会议（元宝）智能纪要，一步拿全 会议主题/概览/摘要要点/待办/责任人：
+           Bash: tmeet minutes get --minute-id "<minute_id>" --compact
+           → 返回字段：overview（含会议主题与发言人清单）、summary_points（章节化要点）、todos（含 owners 责任人）
+           → 数据量小（约 4KB），远快于逐段抓取转写，**发现 list-ended 带 minute_id 时优先走此路**
+           → 2026-10-12 下午场「两融类需求灰度升级事项沟通」实测：records 为空但 minutes[0] 存在，此命令成功取回全量结论
         a. 【自动化触发优先】先调用 Playwright 自动化脚本（`activate_recording.py`）搜索会议号并自动点击“录制/查看/AI纪要”激活转写，确保腾讯云服务端启动转码与文本渲染。
         b. 【优先·最快】Bash 调用 tmeet CLI（1 次调用获取全部）：
            Bash: tmeet record transcript-get --record-file-id "<id>" --pid "0" --compact

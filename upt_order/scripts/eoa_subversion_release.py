@@ -3,8 +3,10 @@
 # 优化：执行摘要跟踪、日期参数支持、会话状态提示、配置验证
 # 支持系统：集中交易系统 (jzjy)、交易参数管理后台 (cszx)、95信创域 (95xinchuang)、98创新域 (98chuangxin) 等
 
-import json, time as real_time, traceback, sys, os, re, io, argparse
+import json, time as real_time, traceback, sys, os, re, io, argparse, zipfile, shutil, base64
 from datetime import date, datetime, timedelta
+from urllib.request import Request, build_opener, ProxyHandler
+from urllib.error import HTTPError, URLError
 from playwright.sync_api import sync_playwright
 
 # Override time.sleep dynamically to scale down static delays safely
@@ -1160,6 +1162,7 @@ def fill_input_by_label(page, label_keyword, value, desc=""):
 # ============================================================
 def click_submit_btn_in_toolbar(page, btn_text="保存"):
     """点击页面底部工具栏的「保存」按钮"""
+    print(f"\n  ⏱[阶段] 18.56/18.6变更方案·回退应急 累计 {time.perf_counter()-_T0[0]:.1f}s")
     print(f"\n{'='*55}")
     print(f"[保存] 点击底部「{btn_text}」按钮...")
     print("="*55)
@@ -1371,7 +1374,7 @@ def fill_section_add_popup(page, section_keyword, fill_actions, desc=""):
         print(f"    ⚠ 未找到「新增」按钮，跳过")
         return False
 
-    time.sleep(1.5)
+    time.sleep(1.0)
 
     modal_diag = page.evaluate("""() => {
         function isVis(el) {
@@ -1689,7 +1692,7 @@ def fill_section_add_popup(page, section_keyword, fill_actions, desc=""):
             }""", {'kw': field_label})
             print(f"      触发: {sel_clicked}")
             if sel_clicked and 'no_select' not in str(sel_clicked) and 'no_modal' not in str(sel_clicked):
-                time.sleep(0.8)
+                time.sleep(0.5)
                 if search_val:
                     focus_r = page.evaluate("""() => {
                         const inputs = document.querySelectorAll(
@@ -1713,7 +1716,7 @@ def fill_section_add_popup(page, section_keyword, fill_actions, desc=""):
                     time.sleep(0.3)
                     page.keyboard.type(search_val, delay=50)
                     print(f"      键盘输入搜索值: {search_val}")
-                    time.sleep(1.5)
+                    time.sleep(1.2)
                 opt_result = page.evaluate("""(val) => {
                     const opts = document.querySelectorAll('[role="option"], .ant-select-dropdown-menu-item, .ant-select-dropdown li, li[role="menuitem"], .ant-select-item-option');
                     for(const o of opts){
@@ -2250,6 +2253,197 @@ active_browser = None
 
 
 # ============================================================
+# Artifactory 融合：自动下载 JZJY 编号最大的版本压缩包
+# 输入 `/upt_order jzjy 20261106` 时，自动从
+#   {base_url}/{repo}/{日期}/ 目录取编号最大的 zip（如 SPB-V0.26.11.6-05.zip）
+# 下载解压到本地 jzjy/ 目录，供 spb-extract 提取变更内容
+# ============================================================
+ARTIFACTORY_CONFIG_CACHE = None
+
+
+def _load_artifactory_config():
+    """加载 Artifactory 配置（config.json + 环境变量覆盖，环境变量优先）"""
+    global ARTIFACTORY_CONFIG_CACHE
+    if ARTIFACTORY_CONFIG_CACHE is not None:
+        return ARTIFACTORY_CONFIG_CACHE
+    cfg = {}
+    cfg_path = os.path.join(SCRIPT_DIR, "config.json")
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        cfg = dict(data.get("artifactory", {}) or {})
+    except Exception as e:
+        print(f"  [Artifactory] 读取 config.json 失败: {e}，使用默认配置")
+    cfg.setdefault("base_url", "http://10.120.188.223:8082/artifactory")
+    cfg.setdefault("repo", "jyxt-JZJYPT-generic-prod-local")
+    cfg["username"] = os.environ.get("ARTIFACTORY_USERNAME") or cfg.get("username", "")
+    cfg["password"] = os.environ.get("ARTIFACTORY_PASSWORD") or cfg.get("password", "")
+    cfg["api_token"] = os.environ.get("ARTIFACTORY_API_TOKEN") or cfg.get("api_token", "")
+    # 支持 ENC: 加密格式（与全连接平台凭据一致，经 common SDK 解密）
+    if cfg["password"]:
+        cfg["password"] = decrypt_secret(cfg["password"])
+    ARTIFACTORY_CONFIG_CACHE = cfg
+    return cfg
+
+
+def _artifactory_headers(cfg):
+    """构造 Artifactory 认证 header：优先 API Token，其次 Basic Auth"""
+    headers = {}
+    if cfg.get("api_token"):
+        headers["X-JFrog-Art-Api"] = cfg["api_token"]
+    elif cfg.get("username") and cfg.get("password"):
+        token = base64.b64encode(f"{cfg['username']}:{cfg['password']}".encode("utf-8")).decode("ascii")
+        headers["Authorization"] = f"Basic {token}"
+    return headers
+
+
+def _artifactory_list_dir(url_path):
+    """调用 Artifactory storage API 列目录，返回 (文件列表, 子目录列表)"""
+    cfg = _load_artifactory_config()
+    base = cfg["base_url"].rstrip("/")
+    repo = cfg["repo"]
+    url_path = (url_path or "").strip("/")
+    api_url = f"{base}/api/storage/{repo}" + (f"/{url_path}" if url_path else "")
+    try:
+        req = Request(api_url, headers=_artifactory_headers(cfg))
+        # 内网 Artifactory 直连，禁用系统代理（否则走代理会超时）
+        opener = build_opener(ProxyHandler({}))
+        with opener.open(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as e:
+        if e.code in (401, 403):
+            raise RuntimeError(
+                "Artifactory 认证失败 (401/403)。请在 upt_order/scripts/config.json 的 "
+                "\"artifactory\" 节点配置 username/password 或 api_token（亦可用环境变量 "
+                "ARTIFACTORY_USERNAME / ARTIFACTORY_PASSWORD / ARTIFACTORY_API_TOKEN）"
+            )
+        raise RuntimeError(f"Artifactory 列目录失败 HTTP {e.code}: {e.reason}")
+    except (URLError, OSError) as e:
+        raise RuntimeError(f"Artifactory 不可达: {e}")
+    children = data.get("children", [])
+    files = [c["uri"].lstrip("/") for c in children if not c.get("folder")]
+    folders = [c["uri"].lstrip("/") for c in children if c.get("folder")]
+    return files, folders
+
+
+def _pick_latest_zip(zips):
+    """从 zip 文件名列表中挑选编号最大的（形如 SPB-V0.26.11.6-05.zip → 05）"""
+    def seq(name):
+        m = re.search(r"-(\d+)\.zip$", name, re.IGNORECASE)
+        return int(m.group(1)) if m else -1
+    return sorted(zips, key=seq)[-1]
+
+
+def _jzjy_pkg_base(name):
+    """提取压缩包/解压目录的基础版本名（去掉末尾 -NN 序号后缀）。
+    例如 'SPB-V0.26.11.6-06.zip' / 'SPB-V0.26.11.6-06' → 'SPB-V0.26.11.6'
+    """
+    base = name[:-4] if name.lower().endswith(".zip") else name
+    return re.sub(r'-\d+$', '', base)
+
+
+def _cleanup_old_jzjy_packages(jzjy_dir, best):
+    """清理 jzjy/ 下同基础版本号但编号更小的旧压缩包及解压目录，只保留本次 best。
+    :param jzjy_dir: jzjy 子目录
+    :param best: 本次保留的压缩包文件名（如 'SPB-V0.26.11.6-06.zip'）
+    :return: 已清理的文件/目录名列表
+    """
+    best_base = _jzjy_pkg_base(best)
+    best_dir = best[:-4]  # 本次解压目录名
+    removed = []
+    for item in os.listdir(jzjy_dir):
+        if item == best or item == best_dir:
+            continue
+        full = os.path.join(jzjy_dir, item)
+        is_zip = item.lower().endswith(".zip")
+        is_dir = os.path.isdir(full)
+        if not (is_zip or is_dir):
+            continue
+        if _jzjy_pkg_base(item) == best_base:
+            try:
+                if is_dir:
+                    shutil.rmtree(full)
+                else:
+                    os.remove(full)
+                removed.append(item)
+                print(f"  [Artifactory] 清理旧包: {item}")
+            except Exception as e:
+                print(f"  [Artifactory] 清理失败 {item}: {e}")
+    if removed:
+        print(f"  [Artifactory] 已清理旧包（只保留本次 {best}）: {', '.join(removed)}")
+    return removed
+
+
+def download_latest_jzjy_package(version_date, project_root):
+    """
+    从 Artifactory 指定日期目录下载编号最大的 JZJY 压缩包并解压到本地。
+    下载成功后自动清理 jzjy/ 下同基础版本号但编号更小的旧压缩包及解压目录，只保留本次。
+    :param version_date: 8 位日期，如 '20261106'
+    :param project_root: 版本发布项目根目录（jzjy/ 所在位置）
+    :return: (success, version_dir_or_msg, dl_url_or_None)
+    """
+    jzjy_dir = os.path.join(project_root, "jzjy")
+    if not os.path.isdir(jzjy_dir):
+        return False, f"jzjy 子目录不存在: {jzjy_dir}", None
+
+    # 1. 列远程目录
+    try:
+        files, _folders = _artifactory_list_dir(version_date)
+    except RuntimeError as e:
+        return False, str(e), None
+
+    zips = [f for f in files if f.lower().endswith(".zip")]
+    if not zips:
+        return False, f"Artifactory 目录 {version_date} 下未找到 zip 压缩包（现有文件: {files}）", None
+    best = _pick_latest_zip(zips)
+    print(f"  [Artifactory] 目录 {version_date} 下压缩包: {', '.join(zips)}")
+    print(f"  [Artifactory] 选择编号最大的压缩包: {best}")
+
+    # 2. 下载
+    cfg = _load_artifactory_config()
+    base = cfg["base_url"].rstrip("/")
+    dl_url = f"{base}/{cfg['repo']}/{version_date}/{best}"
+    dest_zip = os.path.join(jzjy_dir, best)
+    try:
+        req = Request(dl_url, headers=_artifactory_headers(cfg))
+        # 内网 Artifactory 直连，禁用系统代理
+        opener = build_opener(ProxyHandler({}))
+        size = 0
+        with opener.open(req, timeout=300) as resp, open(dest_zip, "wb") as f:
+            shutil.copyfileobj(resp, f)
+            size = os.path.getsize(dest_zip)
+        print(f"  [Artifactory] 已下载 → {dest_zip} ({size / 1024 / 1024:.1f} MB)")
+    except Exception as e:
+        return False, f"下载压缩包失败: {e}", None
+
+    # 2.5 下载成功后清理同基础版本号的旧包（只保留本次）
+    _cleanup_old_jzjy_packages(jzjy_dir, best)
+
+    # 3. 解压（先清理旧目录）
+    dest_dir = os.path.join(jzjy_dir, best[:-4])
+    try:
+        if os.path.isdir(dest_dir):
+            shutil.rmtree(dest_dir)
+        os.makedirs(dest_dir, exist_ok=True)
+        with zipfile.ZipFile(dest_zip, "r") as zf:
+            zf.extractall(dest_dir)
+    except Exception as e:
+        return False, f"解压失败: {e}", None
+    print(f"  [Artifactory] 已解压 → {dest_dir}")
+
+    # 4. 处理嵌套结构：若唯一顶层子目录包含版本关键目录，则指向该子目录
+    version_dir = dest_dir
+    critical = {"lbm", "table", "init", "proc", "dll"}
+    top_items = [os.path.join(dest_dir, d) for d in os.listdir(dest_dir)]
+    if not (critical & {os.path.basename(p) for p in top_items if os.path.isdir(p)}):
+        inner_dirs = [p for p in top_items if os.path.isdir(p)]
+        if len(inner_dirs) == 1 and (critical & set(os.listdir(inner_dirs[0]))):
+            version_dir = inner_dirs[0]
+    print(f"  [Artifactory] 版本目录: {version_dir}")
+    return True, version_dir, dl_url
+
+
+# ============================================================
 # spb-extract 融合：自动提取升级包变更内容
 # ============================================================
 def get_project_root():
@@ -2297,9 +2491,11 @@ def locate_project_root():
     return get_project_root()
 
 
-def auto_extract_upt_content(mode, project_root):
+def auto_extract_upt_content(mode, project_root, version_dir=None):
     """
     融合 spb-extract：根据 MODE 自动定位版本文件夹并生成 upt_content.txt。
+    优先使用外部传入的 version_dir（如 Artifactory 下载解压的目录），
+    否则按版本前缀在本地 jzjy/jygl 目录查找最新文件夹。
     返回 (success, message)
     """
     if not project_root or not os.path.isdir(project_root):
@@ -2327,16 +2523,20 @@ def auto_extract_upt_content(mode, project_root):
     if not os.path.isdir(sub):
         return False, f"版本子目录不存在: {sub}"
 
-    # 查找版本文件夹（取最新匹配）
-    candidates = []
-    for prefix in prefixes:
-        for d in os.listdir(sub):
-            full = os.path.join(sub, d)
-            if os.path.isdir(full) and d.startswith(prefix):
-                candidates.append(full)
-    if not candidates:
-        return False, f"未在 {sub} 找到 {mode} 版本文件夹"
-    version_dir = sorted(candidates)[-1]
+    # 定位版本文件夹：优先使用外部传入（如 Artifactory 下载解压的目录），否则按前缀查找最新
+    if version_dir and os.path.isdir(version_dir):
+        version_dir = os.path.abspath(version_dir)
+        print(f"  [spb-extract 融合] 使用外部指定版本文件夹: {version_dir}")
+    else:
+        candidates = []
+        for prefix in prefixes:
+            for d in os.listdir(sub):
+                full = os.path.join(sub, d)
+                if os.path.isdir(full) and d.startswith(prefix):
+                    candidates.append(full)
+        if not candidates:
+            return False, f"未在 {sub} 找到 {mode} 版本文件夹"
+        version_dir = sorted(candidates)[-1]
 
     try:
         content = upt_extract.generate(version_dir, is_cszx=(mode == "cszx"))
@@ -2357,6 +2557,8 @@ def auto_extract_upt_content(mode, project_root):
 # ============================================================
 # 主流程
 # ============================================================
+_T0 = [0.0]  # 阶段耗时统计起点（模块级引用，供各函数读取）
+
 def main():
     print("\n" + "=" * 55)
     print("IT运维申请单 - 子版本上线发布通用自动填报 (EOA117) v17.1")
@@ -2602,10 +2804,19 @@ def main():
     pg.on("response", log_any_response)
 
     # 注册控制台监听器，便于在无头模式或后台运行时捕获错误
-    pg.on("console", lambda msg: print(f"[CONSOLE] {msg.type}: {msg.text}"))
+    # 优化：仅打印 error/warning 与简短日志，过滤 [Object, Object, ...] 刷屏（日志体积小、可读性强）
+    def _on_console(msg):
+        mtype = msg.type
+        text = (msg.text or "").strip()
+        if mtype in ("error", "warning", "assert"):
+            print(f"[CONSOLE] {mtype}: {text[:300]}")
+        elif len(text) <= 200 and "[Object" not in text and "Password field" not in text:
+            print(f"[CONSOLE] {mtype}: {text}")
+    pg.on("console", _on_console)
     pg.on("pageerror", lambda err: print(f"[PAGE ERROR] {err}"))
 
     # ==================== [1] 打开申请单 (自动检测登录) ====================
+    _T0[0] = time.perf_counter()
     print("\n" + "=" * 55)
     print("[1] 打开申请单 (自动检测登录)...")
     _ensure_login_v2(pg)
@@ -3584,8 +3795,36 @@ def main():
         ep.keyboard.press("Escape")
         time.sleep(0.5)
     print("  [OK] 变更内容已完成")
+    print(f"  ⏱[阶段] 登录+基础资料(至变更内容) 累计 {time.perf_counter()-_T0[0]:.1f}s")
+
+    # ==================== Artifactory 提前下载（供 [9.5] 版本地址 与 [18.55] 变更系统信息 复用） ====================
+    # jzjy 模式且关键词含 8 位日期（如 `/upt_order jzjy 20261106`）时，
+    # 自动从 Artifactory 指定日期目录下载编号最大的压缩包并解压到本地，
+    # 同时生成压缩包完整地址作为「版本地址」字段值（不再从 版本地址.txt / 配置文件读取云盘链接）
+    artifactory_zip_url = None
+    downloaded_version_dir = None
+    project_root = locate_project_root()
+    if MODE == "jzjy" and project_root:
+        m_date = re.search(r'(20\d{6})', SEARCH_KEYWORD or "")
+        if m_date:
+            version_date = m_date.group(1)
+            print(f"\n  [Artifactory] 检测到版本日期参数 {version_date}，尝试自动下载 JZJY 版本压缩包...")
+            dl_result = download_latest_jzjy_package(version_date, project_root)
+            dl_ok = dl_result[0] if dl_result else False
+            dl_msg = dl_result[1] if len(dl_result) > 1 else str(dl_result)
+            if dl_ok:
+                downloaded_version_dir = dl_msg
+                artifactory_zip_url = dl_result[2] if len(dl_result) > 2 else None
+                print(f"  ✅ [Artifactory] 压缩包下载解压完成 → {artifactory_zip_url}")
+            else:
+                print(f"  ⚠ [Artifactory] {dl_msg}，回退到本地已有版本文件夹")
 
     # ==================== [9.5] 版本地址 ====================
+    # jzjy 模式优先使用 Artifactory 压缩包完整地址（版本地址 = 压缩包地址）
+    version_url = None
+    if MODE == "jzjy" and artifactory_zip_url:
+        version_url = artifactory_zip_url
+        print(f"\n  [版本地址] jzjy 使用 Artifactory 压缩包地址: {version_url}")
     default_url = active_cfg["version_url"]
     
     # 查找 版本地址.txt
@@ -3612,8 +3851,10 @@ def main():
             if os.path.exists(alt_path):
                 addr_file = alt_path
 
-    version_url = default_url
-    if addr_file:
+    if version_url is None:
+        version_url = default_url
+    # 若版本地址已由 Artifactory 确定（jzjy），不再用 版本地址.txt / 默认云盘链接覆盖
+    if addr_file and version_url == default_url:
         print(f"\n  [版本地址] 找到地址文件: {addr_file}")
         try:
             with open(addr_file, "r", encoding="utf-8") as f:
@@ -3645,9 +3886,10 @@ def main():
                         break
         except Exception as e:
             print(f"  [版本地址] 解析失败: {e}")
-    else:
+    elif not addr_file:
         print(f"\n  [版本地址] 未找到 版本地址.txt，使用默认地址")
 
+    print(f"  ⏱[阶段] Artifactory下载+版本地址 累计 {time.perf_counter()-_T0[0]:.1f}s")
     print("\n" + "=" * 55)
     print(f"[9.5] 版本地址 → {version_url}...")
     fill_input_by_label(ep, "版本地址", version_url, "版本地址")
@@ -4201,7 +4443,8 @@ def main():
     print("\n" + "=" * 55)
     print("[18.55] 变更系统信息 → 尝试自动提取升级包变更内容 (spb-extract 融合)...")
     project_root = locate_project_root()
-    extract_ok, extract_msg = auto_extract_upt_content(MODE, project_root)
+    # Artifactory 下载已在 [9.5] 版本地址前提前执行（downloaded_version_dir 复用）
+    extract_ok, extract_msg = auto_extract_upt_content(MODE, project_root, version_dir=downloaded_version_dir)
     if extract_ok:
         print(f"  ✅ {extract_msg}")
     else:
@@ -4278,6 +4521,7 @@ def main():
 
     # 构建和填写动作
     if parsed_blocks:
+        print(f"  ⏱[阶段] 基础字段(含spb-extract提取) 累计 {time.perf_counter()-_T0[0]:.1f}s")
         print("\n" + "=" * 55)
         print(f"[18.55] 变更系统信息 → 从 upt_content.txt 循环新增 {len(parsed_blocks)} 条系统信息...")
         for idx, block in enumerate(parsed_blocks, start=1):
@@ -4314,8 +4558,8 @@ def main():
             
             print(f"\n  👉 开始填写第 {idx} 条系统信息 (CMDB={cmdb_val}, 变更方式={way_values}, 备注={remark_val or '无'})...")
             fill_section_add_popup(ep, "变更系统信息", block_actions, f"变更系统信息 (第{idx}条)")
-            # 增加间隔以保障稳定
-            time.sleep(2.0)
+            # 间隔保障稳定（headless 下可适度缩短）
+            time.sleep(1.2)
     else:
         # Fallback to static config if no blocks parsed
         sys_info_actions = active_cfg.get("system_info_actions")
@@ -4325,6 +4569,7 @@ def main():
             fill_section_add_popup(ep, "变更系统信息", sys_info_actions, "变更系统信息")
 
     # ==================== [18.56] 变更方案 ====================
+    print(f"  ⏱[阶段] 18.55变更系统信息 累计 {time.perf_counter()-_T0[0]:.1f}s")
     print("\n" + "=" * 55)
     print("[18.56] 变更方案 → 新增 → 填写任务/操作步骤/序列/角色...")
 
