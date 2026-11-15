@@ -4,6 +4,8 @@
 
 **核心理念**：代码知识图谱回答「代码怎么写的」，数据库回答「数据/参数实际是什么」。两者结合，可在需求分析时交叉验证表结构、参数值、字典含义，大幅提升分析准确度，避免「代码引用某表/参数，但实际数据库结构或值已变化」的口径偏差。
 
+> **🔑 DB-First 权威源优先（P0 铁律，2026-11-12）**：凡**表名/字段名/字段类型/参数编码/默认值**等客观事实，**数据库直查结果高于代码/源码推断**——数据库返回的是最权威表结构，与源码/文档冲突时**以数据库为准**（并在回复注明「数据库直查结果」）。严禁凭**表名语义/关键词/函数名**臆断表用途与字段归属。**典型名不副实**：`comm.comm_secuid_total`（集中清算 comm 库）表名带 "secuid" 实为**计数表**（仅 partid/nodeid/market/secuid/htcnt/gjcnt 等，无证券名称字段），标准证券名称源是 `comm.comm_stock.stkname`（22 字段，`market`+`stkcode`+`stkname`）；`node.node_secuid` 含账户维度 `fundacct`，为账户证券关联表而非纯证券主参数表。写表名前先问「有 dbq 实证吗」，拿不出就 `dbq` 操作实证（见 SKILL P0#22）。
+
 ---
 
 ## 1. 系统代码图谱 ↔ 数据库连接映射全景
@@ -11,7 +13,7 @@
 | 系统简称 | 系统标准名称 (`system_list.csv`) | CBM 代码图谱 | 数据库查询 profile (dbq) | 数据库类型 | 主机:端口/库 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`jzjy`** | 集中交易系统 | 🟢 已接入 (~38万节点) | `jzjy_sit` | sqlserver | 10.187.160.91:1433 |
-| **`dys`** | 低延时交易系统 / 低延时交易系统（创新域） | 🟢 已接入 (~6.5万节点) | `dys95` | mysql 8 | 10.187.101.51:8885 / `basedb` |
+| **`dys`** | 低延时交易系统 / 低延时交易系统（创新域） | 🟢 已接入 (~6.5万节点) | `dys95` | mysql 8 | 10.187.101.51:8885 / 多库（`tradingdb`/`tradingconfigdb`/`basedb` 等） |
 | **`jzqs`** | 集中清算系统 | 🟢 已接入 (~42万节点) | `jzqs_sit`（`--database node/comm`） | mysql 兼容(OB) | 10.187.109.56:2883 / `node` / `comm` |
 | **`cszx`** | 交易参数管理后台系统 | 🟢 已接入 (~27.6万节点) | `cszx_sit` | sqlserver | 10.187.64.75:1433 / 仅 `run` 可读 |
 | **`grc`** | 低延时全局风控系统 | 🟢 已接入 (~1.85万节点) | -（无 DB 连接） | - | - |
@@ -36,15 +38,16 @@
 | `jzjy_sit` | 集中交易 | `query_sqlserver.py`（workbuddy python3.13.12 + pymssql, TDS 7.0） | sqlserver | 仅 `run`（其余 916） |
 | `cszx_sit` | 参数中心 | `query_sqlserver.py`（同上） | sqlserver | 仅 `run`（其余 18456） |
 
-**常用命令**（密码不落盘，运行时代环境变量索取）：
+**常用命令**（dbq 已加入 PATH `/usr/local/bin/dbq`，密码自动从 `.db_credentials` 加载，无需手动传 DB_PASSWORD）：
 ```bash
 dbq --list                                        # 查看全部 profile 可用性
-dbq --profile jzjy_sit --list-databases           # 列库（仅 run 可读）
-dbq --profile cszx_sit --list-tables              # 列表（默认过滤备份表，run=1043 表）
-dbq --profile dys95 --table tradingdb.t_order     # 精确查表字段
-dbq --profile jzqs_sit --search-table '%order%'   # 按关键字搜表
-dbq --profile jzjy_sit --table run.dbo.orderrec   # 委托表字段（91 字段）
-dbq --profile cszx_sit --table run.dbo.paramcfg   # 参数主表字段（12 字段）
+dbq jzjy_sit --list-databases                     # 列库（仅 run 可读）
+dbq cszx_sit --list-tables                        # 列表（默认过滤备份表，run=1043 表）
+dbq dys95 --table tradingdb.t_order               # 精确查表字段
+dbq jzqs_sit --search-table '%order%'             # 按关键字搜表
+dbq jzjy_sit --table run.dbo.orderrec             # 委托表字段（91 字段）
+dbq cszx_sit --table run.dbo.paramcfg             # 参数主表字段（12 字段）
+dbq dys95 --sql "SELECT * FROM tradingconfigdb.t_dict WHERE category_code='BusinessType'"  # ⚠️ 用 tradingconfigdb（完整版48条），不是 tradingdb（仅17条）
 ```
 > ⚠️ `--search-field` 仅配合 `--table 库.表` 精确限定使用；jzqs 实例全库扫字段会 60s 超时 2013。搜索默认 `--exclude-backup` 过滤 `bcp_`/`SYNC_`/`_bak`/`_wq`/纯数字后缀备份表，`--max-rows 100` 自动摘要。
 
@@ -87,6 +90,19 @@ WHERE dictitem='<字典项>' AND LTRIM(RTRIM(subitem))=LTRIM(RTRIM('<参数编�
 SELECT <编码字段>, COUNT(*) FROM <库>.<表名> GROUP BY <编码字段> ORDER BY <编码字段>;
 ```
 **用途**：评估批量参数改动的波及范围，识别代码分支里所有相关编码。
+
+### 模式⑤：多字典表探查（防查错库导致结论错误，2026-11-09 R2609160118 教训）
+
+> ⚠️ **同一系统可能有多个同名字典表分布在不同库**（如 dys 有 `tradingdb.t_dict` 仅 17 条 BusinessType 和 `tradingconfigdb.t_dict` 48 条完整版）。查字典时**必须先搜全部同名表，对比记录数后选用完整版**，严禁只查一个库就下结论。
+
+```sql
+-- 先搜全部同名表
+SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_ROWS FROM information_schema.TABLES 
+WHERE TABLE_NAME = 't_dict' ORDER BY TABLE_ROWS DESC;
+-- 对比各库记录数，选用完整版（如 tradingconfigdb.t_dict 48 条 > tradingdb.t_dict 17 条）
+```
+
+**用途**：避免因查到不完整字典表而错误结论"字典表未维护某枚举"。实测教训：R2609160118 初查 `tradingdb.t_dict` 仅 17 条 BusinessType（缺 200+ 还款类），误判"字典表未维护还款类"，实际 `tradingconfigdb.t_dict` 48 条完整含 202=直接还款、208=指定合约直接还款。
 
 ---
 
@@ -143,6 +159,45 @@ SELECT <编码字段>, COUNT(*) FROM <库>.<表名> GROUP BY <编码字段> ORDE
 ### 还款链路核心表（跨系统）
 | 系统 | 负债表 | 委托表 | 备注 |
 | :--- | :--- | :--- | :--- |
-| **jzjy** | `creditdebts`（融资融券负债，含 `applydate/applysno/sno/groupsno/debtskind`） | `orderrec` | ⚠️ 无 `contract_date/contract_sno`，指定合约还款委托需新增或复用字段 |
-| **dys** | `t_credit_debts`（按 `DebtsUniqKey(ContractDate, ContractSno)` 定位） | `t_order` | 委托结构对象已含合约标识，需确认落库映射 |
-| **jzqs** | `node_creditdebts`（对应 `m_map_node_creditdebts`）、费用 `node_creditfee` | `node_orderrec` | ⚠️ 无 `contract_date/contract_sno` |
+| **jzjy** | `creditdebts`（融资融券负债，含 `applydate/applysno/sno/groupsno/debtskind`） | `orderrec` | 委托表无独立 `contract_date/contract_sno`，**复用 `bankfrzsno`(varchar32) 字段存储合约编号**（合约发生日期+合约流水号） |
+| **dys** | `t_credit_debts`（按 `DebtsUniqKey(ContractDate, ContractSno)` 定位） | `t_order` | 委托结构对象已含合约标识；`t_order` 复用 `bankfrzsno` 字段存储合约编号；`business_type=208`=指定合约直接还款、`bsflag='ZZ'` |
+| **jzqs** | `cjs_creditdebts`（对应 `m_map_node_creditdebts`，含 `applydate/applysno/sno/groupsno/specdate/specsno/debtskind`），费用 `cjs_creditfee` | `cjs_orderrec` | 委托表无独立 `contract_date/contract_sno`，**复用 `bankfrzsno`(varchar32) 字段存储合约编号** |
+
+---
+
+## 7. dys 字典表正确来源（2026-11-09 R2609160118 教训固化）
+
+> ⚠️ dys 有两个同名 `t_dict` 表分布在不同库，**必须查 `tradingconfigdb.t_dict`（完整版）**，严禁查 `tradingdb.t_dict`（不完整版）。
+
+| 库.表 | 分类数 | BusinessType 条数 | 是否含还款类(200+) | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| `tradingconfigdb.t_dict` | 172 | 48 | ✅ 完整 | **正确来源**，含 202=直接还款、208=指定合约直接还款等 |
+| `tradingdb.t_dict` | ~20 | 17 | ❌ 缺失 | 仅含基础业务类型(1-98)，200+ 枚举未同步落库 |
+
+**字典表字段名**：`category_code`（非 `category`）、`code`、`value`、`name`。
+
+**BusinessType 关键枚举速查**（`tradingconfigdb.t_dict`，48 条）：
+
+| value | code | name | 说明 |
+| :--- | :--- | :--- | :--- |
+| 200 | CreditAuction | 信用账户普通买入/普通卖出（卖券还款）交易业务 | |
+| 201 | MarginTrading | 融资买入/融券卖出交易业务 | |
+| 202 | DirectRepay | 直接还款 | `bsflag='ZZ'` |
+| 203 | CollateralInOrOut | 担保品转入/转出 | |
+| 204 | BuySecuRepay | 买券还券 | |
+| 205 | CurSecuRepay | 现券还券 | |
+| 208 | DirectRepayAppoint | **指定合约直接还款** | `bsflag='ZZ'` |
+
+### 买卖类别（bsflag）与业务类型（business_type）关系
+
+> 实测来源：`tradingdb.t_order`（dys），2026-11-09 R2609160118 采集。
+
+| business_type | bsflag | side | code | 含义 | 记录数 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 208 | ZZ | 1 | DirectRepayAppoint | 指定合约直接还款 | 27 |
+| 202 | ZZ | 1 | DirectRepay | 直接还款 | 8 |
+
+- `bsflag='ZZ'`：还款类委托专用买卖方向标识，**字典表未定义**（非 Side 字典枚举，为还款类委托特有）；
+- 202 与 208 的 `bsflag` 均为 `ZZ`，**区分靠 `business_type`**（208 vs 202）；
+- `side='1'`（买方向），还款类委托统一为买方向；
+- `bsflag` 全量分布：`0B`(542) > `0S`(121) > `ZZ`(35) > `0y`(23) > `0w`(19) 等，`ZZ` 为第三大类。

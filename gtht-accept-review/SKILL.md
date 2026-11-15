@@ -29,6 +29,7 @@ disable: false
 > - **ToolSearch 缓存**：工具名稳定（`mcp__kjptai__*`），默认直接调用；仅在返回参数校验失败时才 `ToolSearch` 刷新 schema，省 1 次启动查询；
 > - **受理+评审连跑确认（2026-10-08 用户偏好固化，默认）**：需求处于「待受理」时，受理+评审**默认一次确认连跑**（等价 `--merge`：展示受理摘要时说明「确认后将自动继续完成评审」，一次授权完成 待受理→讨论中→待拆分 两跳，省 1 轮确认）；禁止擅自零确认落库；
 > - **全流程连跑（2026-10-14 新增，一次确认贯通 受理→评审→拆 Story→技术评估）**：在受理+评审连跑基础上继续向后延伸——**评审 prepare 展示摘要时同步说明「确认后将自动继续完成 Story 拆分及技术评估」**，用户确认后：受理提交 → 自动评审提交 → **自动进入跨技能连跑**（调用 `gtht-story-split` 流程：**复用本次 `query_requirement_flow` 结果** statusName/stories[]/receiver 作为闸门+幂等依据免查 flow，需求要素从 MD 提取 → create_story prepare→提交 → start_technical_evaluation prepare→提交，全程不再二次询问，**技术评估授权在本次确认中一并获取**，符合两段式原则——用户一次确认覆盖三个写操作授权，非零确认）；若评审 prepare 返回 NEEDS_INPUT/缺字段则**回退两段式**、不擅自继续；用户明确「仅受理/仅评审/仅到评审为止」时仅推进到对应环节（全流程连跑自动关闭）；
+> - **`--submit` 连跑评审优先（2026-11-09 R2611050089 沉淀）**：受理+评审连跑时，评审步骤**优先用 `kjptai_prepare.py --submit` 一步完成 prepare+submit**（自动合并 `serverSubmitArgs.values` 全字段，杜绝 MCP 工具手动提交漏字段导致 "Confirmed values changed" 失败重试）；长 HTML `mettingSummary` 先写 `/tmp/review_args.json` 再传参，避免 shell 转义错误；
 > - **令牌提取（HTTP 直连法，2026-08-21 实测 + 2026-08-28 校正）**：`confirmationToken` 在 MCP 响应 `structuredContent.data` 中，工具渲染层不显示；`accept`/`review` 必须 HTTP 直连 `kjptai_prepare.py` 提取（脚本不落盘令牌、仅写本机会话参数文件供提交复用）；
 > - 若 kjptai MCP 工具不可用，提示检查 **kjptai 连接器**信任状态，无脚本回退。
 
@@ -155,9 +156,15 @@ disable: false
 运行（Bash，内网 HTTP 直连按需设 `BypassSandbox: true`；`kjptai_prepare.py` 已内置禁用系统代理，无需再设 `NO_PROXY`）：
 
 ```bash
+# 两段式（默认）：prepare only，展示摘要等待确认
 /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
   /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
   --tool accept_requirement --args '{"demandId":"R26xxxxxxx"}'
+
+# --yes 模式：prepare + auto-submit 一步完成
+/Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
+  /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
+  --tool accept_requirement --args '{"demandId":"R26xxxxxxx"}' --submit
 ```
 
 脚本打印确认摘要（含需求编号、状态流转 待受理→讨论中、受理人）并写入 `/tmp/kjptai_confirm_params.json`。向用户展示摘要：
@@ -167,16 +174,20 @@ disable: false
 
 #### 3b. 携带令牌提交（落库）
 
+> ⚡ **连跑模式推荐**：若受理阶段已用 `--submit`（`--yes`/连跑模式），则受理已落库，跳过本步直接进入 3c。
+
 读取 `/tmp/kjptai_confirm_params.json`，调用 `mcp__kjptai__accept_requirement`，附加 `confirmationToken` + `expectedUpdateTime` + `requestId` + `confirmed=true` + `_meta.sessionId`（文件 sessionId），`args` 原样展开。受理成功（待受理→讨论中）。
+
+> 💡 **受理提交经 MCP 工具通道较稳定**（仅需 `demandId` + 令牌字段，无复杂 `values`），R2611050089 实测一次成功。评审提交（4c）则因 `values` 字段多、易漏字段，推荐用 `--submit` 一步模式。
 
 > ⛔ 若用户拒绝确认（两段式/`--merge` 均适用），则本次受理不落库，可重新 prepare。
 
 #### 3c. 受理成功 → 自动进入 Step 4（隐式验证 + 合并/连跑）
 
 **不单独查询** `query_requirement_flow`。直接进入 Step 4 review prepare：
-- **`--merge` 模式**：受理提交成功后**自动执行 Step 4b prepare**（用受理成功后的新状态 prepare 评审），prepare 返回后**自动执行 Step 4c 提交**（复用用户之前的一次授权），全程无需用户再次确认。**若评审 prepare 返回 NEEDS_INPUT/缺字段，自动回退两段式**，向用户展示评审摘要等待单独确认（不擅自提交残缺参数）。
-- **`--yes` 模式**：受理提交成功后自动进入 Step 4b prepare → 自动 Step 4c 提交（零确认连跑）。
-- **默认连跑（2026-10-08 用户偏好固化，等价 `--merge`）**：受理提交成功后自动执行 Step 4b prepare → 自动 Step 4c 提交（复用本次授权，不再二次确认）；仅当用户明确「仅受理」时才展示受理成功结果、等待后续指令；
+- **`--merge` 模式**：受理提交成功后**自动执行 Step 4b**（用 `--submit` 一步完成评审 prepare+submit，复用用户之前的一次授权），全程无需用户再次确认。**若评审 prepare 返回 NEEDS_INPUT/缺字段，自动回退两段式**，向用户展示评审摘要等待单独确认（不擅自提交残缺参数）。
+- **`--yes` 模式**：受理提交成功后自动进入 Step 4b `--submit`（零确认连跑）。
+- **默认连跑（2026-10-08 用户偏好固化，等价 `--merge`）**：受理提交成功后自动执行 Step 4b `--submit`（复用本次授权，不再二次确认）；仅当用户明确「仅受理」时才展示受理成功结果、等待后续指令；
 - 若 review prepare 返回状态异常（仍待受理），回退查询核查。最终状态以 Step 5 条件验证为准。
 
 ### Step 3.5：评审前信息一致性双检（P1+P2 优化，2026-09-09）
@@ -265,28 +276,45 @@ disable: false
 
 > ✅ **自检清单**：构造完 mettingSummary 后检查——① 首行含沟通时间与人员；② 含 1~9 全部条目；③ **末尾含 `预计上线日期：...` 行**（与 MD 纪要末行一致）；④ 整段 `<p>` + `<br>` 换行（无逐行 `<p>`）；⑤ 缩进 `&nbsp;` 精确对齐 MD（内容行 3 个 / `①` 行 7 个，禁 `&emsp;`）。任一项缺失即补全后再进入 4b prepare。
 
-#### 4b. Prepare（脚本一步取摘要+令牌）
+#### 4b. Prepare + Submit（脚本一步取摘要+令牌+落库）
 
-将 Step 4a 全参数构造为 JSON，运行：
+将 Step 4a 全参数构造为 JSON。**当 `mettingSummary` 含长 HTML 时，先写入临时文件避免 shell 转义问题**（R2611050089 实测：内联 JSON 中 `<br>`/`<p>`/`&nbsp;` 与 shell 引号冲突，需两次尝试才成功）：
 
 ```bash
+# ① 写 args 到临时文件（避免 shell 转义长 HTML，mettingSummary 可达 3KB+）
+cat > /tmp/review_args.json << 'ENDJSON'
+{"demandId":"R26xxxxxxx","subdivisionType":"普通业务功能","isService":"1","title":"需求名称_20260821","reviewDeliveryTime":"2026-09-04","mettingSummary":"<p>...</p>","summaryType":"2","reviewType":"评审通过"}
+ENDJSON
+
+# ②a 连跑/--yes/--merge 模式（推荐）：prepare + auto-submit 一步完成，跳过 4c
 /Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
   /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
-  --tool review_requirement --args '{"demandId":"R26xxxxxxx","subdivisionType":"普通业务功能","isService":"1","title":"需求名称_20260821","reviewDeliveryTime":"2026-09-04","mettingSummary":"<p>...</p>","summaryType":"2","reviewType":"评审通过"}'
+  --tool review_requirement --args "$(cat /tmp/review_args.json)" --submit
+
+# ②b 两段式：仅 prepare，展示摘要等待用户确认后进入 4c
+/Users/wujin/.workbuddy/binaries/python/envs/default/bin/python \
+  /Users/wujin/.chat/skills/gtht-accept-review/scripts/kjptai_prepare.py \
+  --tool review_requirement --args "$(cat /tmp/review_args.json)"
 ```
 
-> 💡 **枚举值规范化（2026-11-01 实测）**：上例 `reviewType=评审通过` / `subdivisionType` 等枚举字段，服务端 prepare 时会规范化为 UUID 码（`reviewType` → `f54fbe2e…`）。提交时**必须以 `serverSubmitArgs.values` 规范化值回传**，`--submit` 模式已自动处理；手动构造第 3 步提交时同样先展开 `/tmp` 文件 `serverSubmitArgs.values` 再补业务字段。
+> ⚡ **连跑模式优先用 `--submit`（2026-11-09 R2611050089 实测沉淀）**：受理+评审连跑时，评审步骤复用受理阶段用户确认（无需二次确认），**直接用 `--submit` 一步完成 prepare+submit**。`--submit` 模式自动以 `serverSubmitArgs.values`（服务端规范化值）为权威提交，杜绝手动构造 `values` 漏字段（如 `importantDemand`/`wordCount`）导致 "Confirmed values changed; prepare again" 失败重试。R2611050089 实测：MCP 工具通道手动提交评审因漏 `importantDemand`/`wordCount` 首提失败，改用 `--submit` 一次成功。
+
+> 💡 **枚举值规范化（2026-11-01 实测）**：`reviewType=评审通过` / `subdivisionType` 等枚举字段，服务端 prepare 时会规范化为 UUID 码（`reviewType` → `f54fbe2e…`）。`--submit` 模式已自动处理；若两段式手动提交（4c），**必须从 `/tmp` 文件 `serverSubmitArgs.values` 完整展开所有字段**（含 `importantDemand`/`wordCount` 等服务端补字段），禁止手动挑选子集。
 
 脚本打印评审摘要（含评审结果、一级需求类型、是否营运需求、预计交付时间、纪要正文预览）并写入令牌文件。向用户展示：
 - **默认两段式**：等待对话明确确认后进入 4c；
-- **`--yes` 模式**：跳过等待，直接进 4c；
-- **`--merge` 模式（由 Step 3c 自动进入）**：**不等待用户确认**，直接进 4c（复用受理时的一次授权）；若 prepare 返回 NEEDS_INPUT/缺字段，回退两段式等待用户单独确认。
+- **`--yes`/`--merge`/连跑模式**：**用 `--submit` 一步完成**（prepare + auto-submit），脚本输出 `SUCCESS` 即评审落库成功（讨论中→待拆分），**跳过 4c**；
+- 若 prepare 返回 NEEDS_INPUT/缺字段，回退两段式等待用户单独确认。
 
 > ⚠️ **参数完整性校验**：服务端会一次性返回所有缺失字段和条件必填项。若 prepare 返回缺失字段提示，补充后重新 prepare（脚本重写 `/tmp` 文件）。
 
-#### 4c. 携带令牌提交（落库）
+#### 4c. 携带令牌提交（落库，仅两段式需要；`--submit` 模式跳过本步）
 
-读取 `/tmp/kjptai_confirm_params.json`，调用 `mcp__kjptai__review_requirement`，附加令牌字段 + `confirmed=true` + `_meta.sessionId`，**`args` 全字段原样展开**（含 `subdivisionType`/`isService`/`title`/`reviewType`/`summaryType`/`mettingSummary`/`reviewDeliveryTime`/`technologySystemRelated`/`technologyReceiver`）。评审通过（讨论中→待拆分）。
+> ⏭️ **若 4b 已用 `--submit` 一步完成 prepare+submit 且返回 SUCCESS，则跳过本步**——评审已落库（讨论中→待拆分），直接进入 Step 5 或全流程连跑后续。
+
+仅当 4b 为 prepare-only（两段式确认后）时执行本步。**推荐方式**：重新运行 `kjptai_prepare.py --submit`（re-prepare + auto-submit，最可靠）；或通过 MCP 工具提交，但**必须从 `/tmp/kjptai_confirm_params.json` 的 `serverSubmitArgs.values` 完整展开所有字段**（含 `importantDemand`/`wordCount` 等服务端补字段，禁止手动挑选子集），附加 `confirmationToken` + `expectedUpdateTime` + `requestId` + `confirmed=true` + `_meta.sessionId`。评审通过（讨论中→待拆分）。
+
+> ⛔ **R2611050089 教训**：通过 MCP 工具通道手动提交 `review_requirement` 时，仅传了 `subdivisionType`/`isService`/`title`/`reviewDeliveryTime`/`summaryType`/`reviewType`/`mettingSummary` 七个字段，**漏传 `importantDemand`/`wordCount`** → 服务端报 "Confirmed values changed; prepare again" 首提失败。根因：`serverSubmitArgs.values` 含 9+ 字段，手动构造易遗漏。**修复**：改用 `--submit` 一步模式，脚本自动合并 `serverSubmitArgs.values` 全字段，一次成功。
 
 > ⛔ 若用户拒绝确认（两段式），则本次评审不落库，可重新 prepare。
 
@@ -363,6 +391,15 @@ disable: false
 18. **默认取最新 MD 填写会议纪要（2026-09-15 实测沉淀）**：用户要求「完成评审/填写会议纪要/补纪要」且**未显式指定文件**时，**默认**读取需求分析目录（`/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/`）下对应需求编号**最新**的 ba-to-dev MD 文档（多份同编号文档按 Front Matter `updated` 或文件名日期取最新），以该文档 `#### 评审纪要` 小节**全量正文**作为 `mettingSummary` 来源，**无需再向用户确认文件路径或内容来源**；仅当最新 MD 缺失、用户明确指定其他版本、或 Step 3.5a 检测到平台内容严重漂移且用户选择刷新时才变更来源。R2609110107 实测：需求已处于「开发中」无法 `review_requirement`，改用 `add_requirement_review_minutes` 仅补纪要，纪要内容默认取最新 MD（含集中交易系统公募银保节点 XA 配置改造项），一次落库成功。
 19. **共同受理人仅补纪要（2026-09-15 沉淀）**：执行前从 `query_requirement_flow`（或 `query_requirement`）返回中读取受理人信息（`receiver`/`coReceiver` 等字段，以实际返回为准）；若**当前用户（吴进-125360）为需求「共同受理人」**（`coReceiver` 含吴进），则**无论需求状态如何**（待受理/讨论中/待拆分/开发中等），**跳过受理（`accept_requirement`）与评审（`review_requirement`）**，直接调用 `add_requirement_review_minutes` **仅新增会议纪要**（不推进状态）；纪要来源**读取用户本地修改后的 md 文件**（优先用户显式指定文件，否则取需求分析目录下同编号 MD 中用户最近编辑的一份，识别规则见模式 A），**不按平台内容构造**。R2609110107 实测：需求 receiver=盛浅雨-126468、用户为共同受理人且需求已「开发中」，仅补纪要成功（纪要 ID 2019054）。MD Front Matter 的 `co_receiver` 字段（ba-to-dev 规则 13 有则必填，2026-09-15 起强制落盘）可辅助预判与定位「用户本地修改版」，但**判定一律以平台实时 `coReceiver` 为准**（本地可能过期）。
 20. **提交失败恢复路径（对齐 gtht-story-split 规则 10，2026-10-08 落地）**：正式提交被拒（如「Confirmed values changed; prepare again」/ NEEDS_CONFIRMATION）时，恢复策略优先**提取服务端最新返回的 `submitArguments.requestId` 与 `confirmationToken` 原样复用**（服务端已刷新校验数据，旧令牌/旧 requestId 复用会被拒——R2609170062 评审首提曾用旧令牌被拒，重 prepare 成功）；若服务端错误响应**不含**可用 `submitArguments`（无新令牌可提取），再回退「查最新 flow → 重新 prepare → 携带新令牌提交」；同一次提交超时重试仍复用原 requestId（服务端 retryRule=Reuse the same requestId）。
+21. **`--submit` 一步模式优先原则（2026-11-09 R2611050089 实测沉淀）**：
+    - **核心规则**：`accept_requirement` / `review_requirement` / `add_requirement_review_minutes` 的提交，**优先使用 `kjptai_prepare.py --submit` 一步模式**（prepare + auto-submit 同一进程完成），而非「prepare-only → 读 `/tmp` 文件 → MCP 工具通道手动构造 `values` 提交」。
+    - **根因**：MCP 工具通道手动提交时，`review_requirement` 的 `serverSubmitArgs.values` 含 9+ 字段（`subdivisionType`/`isService`/`title`/`reviewDeliveryTime`/`summaryType`/`reviewType`/`mettingSummary`/`importantDemand`/`wordCount`），Agent 手动构造易遗漏服务端补字段（如 `importantDemand`/`wordCount`），导致 "Confirmed values changed; prepare again" 首提失败、需重 prepare 多花 1 轮往返。`--submit` 模式自动合并 `serverSubmitArgs.values` 全字段，零遗漏。
+    - **适用场景**：
+      - **连跑/`--yes`/`--merge` 模式**：评审步骤复用受理确认，**直接用 `--submit`**（省 4c 单独提交往返）；
+      - **两段式**：4b prepare-only 展示摘要 → 用户确认 → 4c 可选 re-prepare `--submit`（最可靠）或 MCP 工具提交（须完整展开 `serverSubmitArgs.values`）；
+      - **受理（`accept_requirement`）**：仅需 `demandId` + 令牌，MCP 工具提交较稳定（R2611050089 实测一次成功），`--submit` 同样可用但不强制。
+    - **长 HTML 传参**：`mettingSummary` 含 3KB+ HTML 时，**先写 args 到 `/tmp/review_args.json` 再 `--args "$(cat /tmp/review_args.json)"`**，避免 shell 内联转义错误（`<br>`/`<p>`/`&nbsp;` 与 shell 引号冲突）。
+22. **评审纪要素以 MD 实时内容为准，严禁依赖起草时记忆（P1，2026-11-12 R2611110028 实测沉淀）**：评审纪要的「研发人员」「预计上线日期」等要素，**一律以 `scripts/md_to_review_html.py` 本轮实时读取的 MD 当前内容为准**，**严禁**依赖 ba-to-dev 起草/落盘阶段的记忆值——用户可能在会话期间或落盘后修订 MD。本需求实测：起草时记忆为「技术研发部 **×××** / 预计 **2027年1月**上线」，但文档实际已被用户修订为「技术研发部 **张醒** / 预计 **2026年12月**上线」，脚本实时读取方向正确。执行要点：① **必先**运行 `md_to_review_html.py <MD 路径>` 输出实时 HTML 纪要，以其为唯一事实来源提取研发人员、预计上线日期，并主动与起草记忆比对，识别文档是否被用户修订；② 若脚本输出与起草记忆不符（×××→真实研发人员、上线日期变更等），**以脚本实时读取的 MD 为准直接采用**，无需返回文档重新肉眼核对或质疑脚本（脚本方向正确）；③ 据此同步刷新 `reviewDeliveryTime`（取脚本实时「预计上线日期」月末 − 14 天），保证评审落库与文档当前内容一致。
 
 ---
 
@@ -391,3 +428,4 @@ disable: false
 - **三个写操作的分工**：`accept_requirement`=受理（待受理→讨论中）；`review_requirement`=完成评审（讨论中→待拆分，含评审表单与纪要）；`add_requirement_review_minutes`=仅新增会议纪要（状态不变，供已评审需求补纪要）；
 - **与 `gtht-review-submit` 的区别**：`gtht-review-submit` 通过 REST API `saveDemandReviewInfo` 新增评审纪要（不改变需求状态）；本技能优先用 MCP `review_requirement` 完成「完成评审」按钮操作（讨论中→待拆分，同时含评审表单数据），已评审完成的场景用 MCP `add_requirement_review_minutes` 补纪要，无需再依赖 REST 通道。
 - **共同受理人场景**：当需求「共同受理人」包含当前用户（吴进-125360）时，技能**只做「新增会议纪要」一件事**——不执行受理、不执行评审，无论需求处于何种状态（待受理/讨论中/待拆分/开发中等）；纪要内容以**用户本地修改后的 md 文件**为准（优先用户显式指定，否则取用户最近编辑的一份）。
+- **纪要要素取实时 MD（2026-11-12 新增）**：评审纪要的人员/上线日期等要素一律以 `md_to_review_html.py` 实时读取的 MD 当前内容为准，**不依赖起草时记忆**——用户可能在会话中修订文档（实测：起草记忆 ×××/2027年1月 vs 实时 张醒/2026年12月），脚本实时读取方向正确，直接采用无需复核。

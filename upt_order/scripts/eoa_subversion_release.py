@@ -2237,6 +2237,234 @@ def fill_section_add_popup(page, section_keyword, fill_actions, desc=""):
     return modal_closed or 'confirmed' in str(confirm_result) or 'primary' in str(confirm_result)
 
 
+def add_extra_impl_owner(ep, owner_id, owner_name):
+    """在已选第一人后，再次打开实施负责人字段并勾选额外人员。
+    复用 [13.5] 适配器升级额外负责人的 tree-select 流程。
+    :param ep: Playwright ElementHandle/Page (ep)
+    :param owner_id: 人员工号，如 '108728'
+    :param owner_name: 人员姓名，如 '张永军'
+    """
+    print(f"\n  [13.5-extra] 新增实施负责人: {owner_name}({owner_id})...")
+    ep.keyboard.press("Escape"); time.sleep(0.5)
+
+    # 1. 触发实施负责人字段
+    trigger_result = ep.evaluate("""() => {
+        const items = document.querySelectorAll('.formfield');
+        for(const item of items){
+            const lbl = item.querySelector('.fieldlabel');
+            if(lbl && lbl.textContent.includes('实施负责人') && !lbl.textContent.includes('审核') && !lbl.textContent.includes('确认') && !lbl.textContent.includes('测试')){
+                const content = item.querySelector('.fieldcontent');
+                if(!content) return 'no_content';
+                const tryOrder = [
+                    content.querySelector('.ant-select-selection'),
+                    content.querySelector('.ant-select'),
+                    content.querySelector('input:not([type="hidden"])'),
+                    content
+                ];
+                for(const el of tryOrder){
+                    if(el && window.getComputedStyle(el).display !== 'none'){ el.click(); return 'clicked'; }
+                }
+                return 'nothing_clickable';
+            }
+        }
+        return 'not_found';
+    }""")
+    print(f"  触发实施负责人({owner_name}): {trigger_result}")
+    time.sleep(1.5)
+
+    # 2. ant-select 搜索框输入工号
+    search_result = ep.evaluate("""(keyword) => {
+        const selectors = [
+            '.ant-select-search__field',
+            '.ant-select-selection-search-input',
+            'input.ant-input[placeholder*="搜索"]',
+            '.ant-select-dropdown input'
+        ];
+        for(const sel of selectors){
+            const inputs = document.querySelectorAll(sel);
+            for(const inp of inputs){
+                if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled){
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    nativeInputValueSetter.call(inp, keyword);
+                    inp.dispatchEvent(new Event('input', {bubbles: true}));
+                    inp.dispatchEvent(new Event('change', {bubbles: true}));
+                    return {ok: true, source: sel};
+                }
+            }
+        }
+        const allInputs = document.querySelectorAll('input');
+        for(const inp of allInputs){
+            if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled && inp.type !== 'hidden'){
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeInputValueSetter.call(inp, keyword);
+                inp.dispatchEvent(new Event('input', {bubbles: true}));
+                return {ok: true, source: 'fallback_input'};
+            }
+        }
+        return {ok: false};
+    }""", owner_id)
+    print(f"  ant-select搜索框输入({owner_name}): {search_result}")
+    if search_result.get('ok'):
+        ep.keyboard.press("Enter")
+        print("  已按回车（触发弹窗）")
+        time.sleep(1.5)
+
+    # 3. Modal 检查
+    modal_check = ep.evaluate("""(keyword) => {
+        function isVis(el){
+            if(!el) return false;
+            const s = window.getComputedStyle(el);
+            return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+        }
+        const modals = document.querySelectorAll('.ant-modal-wrap');
+        let modalBody = null;
+        for(const m of modals){
+            if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+            const body = m.querySelector('.ant-modal-body');
+            if(body && body.children.length > 0){ modalBody = body; break; }
+        }
+        if(!modalBody) return {found: false};
+        const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
+        if(!input) return {found: true, hasInput: false, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length};
+        input.focus();
+        input.value = '';
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        return {found: true, hasInput: true, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length, inputFocused: document.activeElement === input};
+    }""", owner_id)
+    print(f"  Modal检查({owner_name}): {modal_check}")
+    if modal_check.get('found') and modal_check.get('hasInput'):
+        type_result = ep.evaluate("""(keyword) => {
+            function isVis(el){
+                if(!el) return false;
+                const s = window.getComputedStyle(el);
+                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+            }
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let modalBody = null;
+            for(const m of modals){
+                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                const body = m.querySelector('.ant-modal-body');
+                if(body && body.children.length > 0){ modalBody = body; break; }
+            }
+            if(!modalBody) return {ok: false, reason: 'no_modal'};
+            const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
+            if(!input) return {ok: false, reason: 'no_input'};
+            input.focus();
+            input.value = '';
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            nativeInputValueSetter.call(input, keyword);
+            input.dispatchEvent(new Event('keydown', {bubbles: true}));
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            input.dispatchEvent(new Event('keyup', {bubbles: true}));
+            input.dispatchEvent(new Event('change', {bubbles: true}));
+            const enterEvent = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true});
+            input.dispatchEvent(enterEvent);
+            input.dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}));
+            return {ok: true, inputValue: input.value};
+        }""", owner_id)
+        print(f"  Modal搜索(含Enter)({owner_name}): {type_result}")
+        time.sleep(2.5)
+    elif modal_check.get('found'):
+        print(f"  Modal已出现，无搜索框，直接在树中查找")
+        time.sleep(1.0)
+
+    # 4. 树节点勾选（使用姓名搜索树节点）
+    tree_result = ep.evaluate("""(keyword) => {
+        function isVis(el){
+            if(!el) return false;
+            const s = window.getComputedStyle(el);
+            return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+        }
+        const modals = document.querySelectorAll('.ant-modal-wrap');
+        let modalBody = null;
+        for(const m of modals){
+            if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+            const body = m.querySelector('.ant-modal-body');
+            if(body && body.children.length > 0){ modalBody = body; break; }
+        }
+        if(!modalBody) return {status: 'no_modal'};
+        const treeNodes = modalBody.querySelectorAll('.ant-tree-treenode');
+        for(const node of treeNodes){
+            if(!isVis(node)) continue;
+            const title = node.querySelector('.ant-tree-title');
+            if(!title) continue;
+            const titleText = (title.textContent || '').trim();
+            if(titleText.includes(keyword)){
+                const checkbox = node.querySelector('.ant-tree-checkbox');
+                if(checkbox){ checkbox.click(); return {status: 'checked', text: titleText.substring(0, 60)}; }
+                title.click();
+                return {status: 'clicked_title', text: titleText.substring(0, 60)};
+            }
+        }
+        const allTitles = modalBody.querySelectorAll('.ant-tree-title');
+        for(const t of allTitles){
+            if(!isVis(t)) continue;
+            const txt = (t.textContent || '').trim();
+            if(txt.includes(keyword)){
+                let el = t.parentElement;
+                while(el){
+                    const cb = el.querySelector('.ant-tree-checkbox');
+                    if(cb && isVis(cb)){ cb.click(); return {status: 'checked_ancestor', text: txt.substring(0, 60)}; }
+                    if(el.classList.contains('ant-tree')) break;
+                    el = el.parentElement;
+                }
+                let sib = t.previousElementSibling;
+                while(sib){
+                    if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_prev', text: txt.substring(0, 60)}; }
+                    sib = sib.previousElementSibling;
+                }
+                sib = t.nextElementSibling;
+                while(sib){
+                    if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_next', text: txt.substring(0, 60)}; }
+                    sib = sib.nextElementSibling;
+                }
+                const parent = t.parentElement;
+                if(parent){
+                    const cb = parent.querySelector('.ant-tree-checkbox');
+                    if(cb && isVis(cb)){ cb.click(); return {status: 'checked_parent', text: txt.substring(0, 60)}; }
+                }
+                t.click();
+                return {status: 'clicked_title_fallback', text: txt.substring(0, 60)};
+            }
+        }
+        return {status: 'not_found'};
+    }""", owner_name)
+    print(f"  树节点勾选({owner_name}): {tree_result}")
+    time.sleep(0.8)
+
+    # 5. 确认按钮
+    if tree_result.get('status', '').startswith('checked') or tree_result.get('status', '').startswith('clicked'):
+        confirm_result = ep.evaluate("""() => {
+            function isVis(el){
+                if(!el) return false;
+                const s = window.getComputedStyle(el);
+                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+            }
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            for(const m of modals){
+                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
+                const footer = m.querySelector('.ant-modal-footer');
+                if(!footer) continue;
+                for(const btn of footer.querySelectorAll('button, .ant-btn')){
+                    if(!isVis(btn)) continue;
+                    const bt = (btn.textContent || '').trim();
+                    if(bt === '确 定' || bt === '确定' || bt === '确认'){ btn.click(); return {status: 'confirmed', source: 'modal_footer', btnText: bt}; }
+                }
+                for(const btn of footer.querySelectorAll('.ant-btn-primary')){
+                    if(isVis(btn)){ btn.click(); return {status: 'confirmed_primary'}; }
+                }
+            }
+            return {status: 'no_confirm_btn'};
+        }""")
+        print(f"  确认按钮({owner_name}): {confirm_result}")
+        if confirm_result.get('status', '').startswith('confirmed'):
+            print(f"  ✅ 已选: {owner_name}({owner_id})")
+            time.sleep(1.5)
+    else:
+        print(f"  ⚠ 未在树中找到 {owner_name}: {tree_result}")
+    time.sleep(1.0)
+
+
 class AuthExpiredException(Exception):
     """Custom exception raised when EOA session invalidation or 403 Forbidden is detected during execution"""
     pass
@@ -2372,6 +2600,63 @@ def _cleanup_old_jzjy_packages(jzjy_dir, best):
     if removed:
         print(f"  [Artifactory] 已清理旧包（只保留本次 {best}）: {', '.join(removed)}")
     return removed
+
+
+def extract_local_cszx_package(version_date, project_root):
+    """
+    解压本地 jygl/CSZX-{date}.zip 到 jygl/CSZX-{date}/ 目录，供 [18.55] 变更系统信息提取内容。
+    若已存在解压目录则直接复用（不重复解压）。
+    :param version_date: 8 位日期，如 '20261106'
+    :param project_root: 版本发布项目根目录（jygl/ 所在位置）
+    :return: (success, version_dir_or_msg)
+    """
+    jygl_dir = os.path.join(project_root, "jygl")
+    if not os.path.isdir(jygl_dir):
+        return False, f"jygl 子目录不存在: {jygl_dir}"
+
+    # 查找匹配日期的 zip：优先 CSZX-{date}.zip，其次 CSZX-{date}-NN.zip
+    exact_zip = f"CSZX-{version_date}.zip"
+    exact_path = os.path.join(jygl_dir, exact_zip)
+    if os.path.exists(exact_path):
+        target_zip = exact_zip
+        zip_path = exact_path
+    else:
+        # 查找带编号后缀的（CSZX-{date}-01.zip），取编号最大
+        pattern = re.compile(rf'^CSZX-{version_date}-(\d+)\.zip$', re.IGNORECASE)
+        candidates = []
+        for f in os.listdir(jygl_dir):
+            m = pattern.match(f)
+            if m:
+                candidates.append((int(m.group(1)), f))
+        if candidates:
+            candidates.sort(key=lambda x: x[0])
+            target_zip = candidates[-1][1]
+            zip_path = os.path.join(jygl_dir, target_zip)
+        else:
+            return False, f"未找到 CSZX-{version_date}.zip（jygl 目录下无匹配 {version_date} 的 CSZX 压缩包）"
+
+    dest_dir_name = target_zip[:-4]  # 去掉 .zip
+    dest_dir = os.path.join(jygl_dir, dest_dir_name)
+
+    # 若解压目录已存在且非空，直接复用
+    if os.path.isdir(dest_dir) and os.listdir(dest_dir):
+        print(f"  [CSZX本地解压] 解压目录已存在，直接复用: {dest_dir}")
+        return True, dest_dir
+
+    print(f"  [CSZX本地解压] 找到压缩包: {target_zip}")
+
+    # 解压
+    try:
+        if os.path.isdir(dest_dir):
+            shutil.rmtree(dest_dir)
+        os.makedirs(dest_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(dest_dir)
+    except Exception as e:
+        return False, f"解压失败: {e}"
+
+    print(f"  [CSZX本地解压] 已解压 → {dest_dir}")
+    return True, dest_dir
 
 
 def download_latest_jzjy_package(version_date, project_root):
@@ -2692,6 +2977,10 @@ def main():
             "end_time": "23:30",
             "owner": "111483",
             "owner_name": "张博闻",
+            "extra_owners": [
+                {"id": "108728", "name": "张永军"},
+                {"id": "108451", "name": "朱海江"},
+            ],
             "engineering_search": "集中交易",
             "version_url": "https://yunpan.gtht.com.cn/l/XXXX",
             "version_cascader_path": ["应用", "业务营运平台", "集中交易系统"],
@@ -3133,6 +3422,68 @@ def main():
 
     time.sleep(1.0)
 
+    # ==================== Artifactory 提前下载（供 [9.3] 系统版本号匹配 / [9.5] 版本地址 / [18.55] 变更系统信息 复用） ====================
+    # jzjy 模式且关键词含 8 位日期（如 `/upt_order jzjy 20261106`）时，
+    # 自动从 Artifactory 指定日期目录下载编号最大的压缩包并解压到本地，
+    # 同时生成压缩包完整地址作为「版本地址」字段值（不再从 版本地址.txt / 配置文件读取云盘链接）
+    # 下载提前到 [9.3] 之前，以便从压缩包文件名提取版本号用于系统版本号精确匹配
+    artifactory_zip_url = None
+    downloaded_version_dir = None
+    project_root = locate_project_root()
+    if MODE == "jzjy" and project_root:
+        m_date = re.search(r'(20\d{6})', SEARCH_KEYWORD or "")
+        if m_date:
+            version_date = m_date.group(1)
+            print(f"\n  [Artifactory] 检测到版本日期参数 {version_date}，尝试自动下载 JZJY 版本压缩包...")
+            dl_result = download_latest_jzjy_package(version_date, project_root)
+            dl_ok = dl_result[0] if dl_result else False
+            dl_msg = dl_result[1] if len(dl_result) > 1 else str(dl_result)
+            if dl_ok:
+                downloaded_version_dir = dl_msg
+                artifactory_zip_url = dl_result[2] if len(dl_result) > 2 else None
+                print(f"  ✅ [Artifactory] 压缩包下载解压完成 → {artifactory_zip_url}")
+            else:
+                print(f"  ⚠ [Artifactory] {dl_msg}，回退到本地已有版本文件夹")
+
+    # ==================== cszx 本地解压（供 [18.55] 变更系统信息提取内容） ====================
+    # cszx 模式且关键词含 8 位日期（如 `/upt_order cszx 20261106`）时，
+    # 解压本地 jygl/CSZX-{date}.zip 到 jygl/CSZX-{date}/ 目录
+    if MODE == "cszx" and project_root and not downloaded_version_dir:
+        m_date_cszx = re.search(r'(20\d{6})', SEARCH_KEYWORD or "")
+        if m_date_cszx:
+            version_date_cszx = m_date_cszx.group(1)
+            print(f"\n  [CSZX本地解压] 检测到版本日期参数 {version_date_cszx}，尝试解压本地 CSZX 压缩包...")
+            cszx_result = extract_local_cszx_package(version_date_cszx, project_root)
+            cszx_ok = cszx_result[0] if cszx_result else False
+            cszx_msg = cszx_result[1] if len(cszx_result) > 1 else str(cszx_result)
+            if cszx_ok:
+                downloaded_version_dir = cszx_msg
+                print(f"  ✅ [CSZX本地解压] 压缩包解压完成 → {downloaded_version_dir}")
+            else:
+                print(f"  ⚠ [CSZX本地解压] {cszx_msg}，回退到本地已有版本文件夹")
+
+    # ==================== 版本号匹配模式提取（供 [9.3] 系统版本号精确匹配） ====================
+    # 优先级：1. Artifactory 压缩包文件名提取的完整版本号（如 SPB-V0.26.11.6）
+    #         2. 日期参数提取的 month.day 模式（如 20261106 → 11.6）
+    #         3. 标题中的日期提取的 month.day 模式（兜底）
+    version_match_patterns = []
+    if artifactory_zip_url:
+        zip_name = artifactory_zip_url.rsplit("/", 1)[-1]
+        m_ver = re.match(r'(.+?)-\d{2}\.zip$', zip_name, re.IGNORECASE)
+        if m_ver:
+            full_ver = m_ver.group(1)
+            version_match_patterns.append(full_ver)
+            print(f"  [版本匹配] 从压缩包文件名提取版本号: {full_ver}")
+    m_date_kw = re.search(r'(20\d{6})', SEARCH_KEYWORD or "")
+    if m_date_kw:
+        date_str = m_date_kw.group(1)
+        month = str(int(date_str[4:6]))
+        day = str(int(date_str[6:8]))
+        date_pattern = f"{month}.{day}"
+        if date_pattern not in version_match_patterns:
+            version_match_patterns.append(date_pattern)
+        print(f"  [版本匹配] 从日期参数 {date_str} 提取匹配模式: {date_pattern}")
+
     # ==================== [9.3] 系统版本号 ====================
     sysver_path = active_cfg.get("version_cascader_path")
     if sysver_path:
@@ -3426,19 +3777,32 @@ def main():
 
                     if trigger.get('status') == 'clicked':
                         time.sleep(0.8)
-                        select_result = ep.evaluate("""() => {
+                        select_result = ep.evaluate("""(patterns) => {
                             for(const dd of document.querySelectorAll('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')){
                                 if(!dd.offsetParent) continue;
-                                for(const item of dd.querySelectorAll('.ant-select-dropdown-menu-item')){
-                                    if(!item.offsetParent) continue;
-                                    const cls = item.className||'';
+                                const opts = Array.from(dd.querySelectorAll('.ant-select-dropdown-menu-item')).filter(o => o.offsetParent !== null);
+                                // 优先：按版本号模式精确匹配（如 SPB-V0.26.11.6 或 11.6）
+                                for(const pattern of patterns){
+                                    for(const o of opts){
+                                        const cls = o.className||'';
+                                        if(cls.includes('disabled')) continue;
+                                        const txt = (o.textContent || '').trim();
+                                        if(txt.includes(pattern)){
+                                            o.click();
+                                            return {status:'picked', text: txt, matched_by: pattern};
+                                        }
+                                    }
+                                }
+                                // 兜底：选择第一个非禁用选项
+                                for(const o of opts){
+                                    const cls = o.className||'';
                                     if(cls.includes('disabled')) continue;
-                                    const txt = item.textContent.trim();
-                                    if(txt){ item.click(); return {status:'picked', text: txt}; }
+                                    const txt = (o.textContent || '').trim();
+                                    if(txt){ o.click(); return {status:'picked', text: txt, matched_by: 'first_fallback'}; }
                                 }
                             }
                             return {status:'no_options'};
-                        }""")
+                        }""", version_match_patterns)
                         print(f"  系统版本号选择: {select_result}")
                     else:
                         print("  ⚠ 未找到系统版本号 ant-select!")
@@ -3492,8 +3856,14 @@ def main():
         else:
             version_pattern = f"{SAT_M}.{SAT_D}"
 
+        # 合并版本匹配模式：优先 Artifactory 版本号 + 日期模式，兜底标题日期模式
+        if not version_match_patterns:
+            version_match_patterns = [version_pattern]
+        elif version_pattern not in version_match_patterns:
+            version_match_patterns.append(version_pattern)
+
         print("\n" + "=" * 55)
-        print(f"[9.3] 系统版本号 → 模糊匹配日期 '{version_pattern}'...")
+        print(f"[9.3] 系统版本号 → 匹配模式 {version_match_patterns}...")
         ep.keyboard.press("Escape"); time.sleep(0.3)
         ver_trigger = ep.evaluate("""() => {
             const items = document.querySelectorAll('.formfield');
@@ -3509,7 +3879,7 @@ def main():
             available_list = []
             for _ in range(10):
                 time.sleep(0.5)
-                ver_match = ep.evaluate("""(pattern) => {
+                ver_match = ep.evaluate("""(patterns) => {
                     const activeDropdowns = Array.from(document.querySelectorAll('.ant-select-dropdown'))
                         .filter(d => d.offsetParent !== null);
                     if (activeDropdowns.length === 0) return {success: false, reason: 'no_active_dropdown'};
@@ -3517,24 +3887,26 @@ def main():
                     const activeDropdown = activeDropdowns[0];
                     const opts = activeDropdown.querySelectorAll('[role=option], .ant-select-dropdown-menu-item, li');
                     const visible = Array.from(opts).filter(o => o.offsetParent !== null);
-                    for(const o of visible){
-                        const t = (o.textContent || '').trim();
-                        if(t.includes(pattern)){
-                            o.click();
-                            return {success: true, matched_text: t};
+                    // 按模式优先级逐个匹配
+                    for(const pattern of patterns){
+                        for(const o of visible){
+                            const t = (o.textContent || '').trim();
+                            if(t.includes(pattern)){
+                                o.click();
+                                return {success: true, matched_text: t, matched_by: pattern};
+                            }
                         }
                     }
                     return {success: false, options: visible.map(o => (o.textContent || '').trim())};
-                }""", version_pattern)
+                }""", version_match_patterns)
                 if ver_match.get("success"):
                     matched_option = ver_match.get("matched_text")
+                    print(f"  ✓ 成功匹配版本号: '{matched_option}' (匹配模式: {ver_match.get('matched_by')})")
                     break
                 else:
                     available_list = ver_match.get("options", [])
-            if matched_option:
-                print(f"  ✓ 成功模糊匹配并选择第一个版本: '{matched_option}'")
-            else:
-                print(f"  ❌ 未能模糊匹配到包含 '{version_pattern}' 的系统版本选项。可用选项为: {available_list}")
+            if not matched_option:
+                print(f"  ❌ 未能匹配到系统版本选项（尝试模式: {version_match_patterns}）。可用选项为: {available_list}")
         ep.keyboard.press("Escape"); time.sleep(0.3)
 
     # ==================== [9.35] 变更分类保护复查 (防误触) ====================
@@ -3796,28 +4168,6 @@ def main():
         time.sleep(0.5)
     print("  [OK] 变更内容已完成")
     print(f"  ⏱[阶段] 登录+基础资料(至变更内容) 累计 {time.perf_counter()-_T0[0]:.1f}s")
-
-    # ==================== Artifactory 提前下载（供 [9.5] 版本地址 与 [18.55] 变更系统信息 复用） ====================
-    # jzjy 模式且关键词含 8 位日期（如 `/upt_order jzjy 20261106`）时，
-    # 自动从 Artifactory 指定日期目录下载编号最大的压缩包并解压到本地，
-    # 同时生成压缩包完整地址作为「版本地址」字段值（不再从 版本地址.txt / 配置文件读取云盘链接）
-    artifactory_zip_url = None
-    downloaded_version_dir = None
-    project_root = locate_project_root()
-    if MODE == "jzjy" and project_root:
-        m_date = re.search(r'(20\d{6})', SEARCH_KEYWORD or "")
-        if m_date:
-            version_date = m_date.group(1)
-            print(f"\n  [Artifactory] 检测到版本日期参数 {version_date}，尝试自动下载 JZJY 版本压缩包...")
-            dl_result = download_latest_jzjy_package(version_date, project_root)
-            dl_ok = dl_result[0] if dl_result else False
-            dl_msg = dl_result[1] if len(dl_result) > 1 else str(dl_result)
-            if dl_ok:
-                downloaded_version_dir = dl_msg
-                artifactory_zip_url = dl_result[2] if len(dl_result) > 2 else None
-                print(f"  ✅ [Artifactory] 压缩包下载解压完成 → {artifactory_zip_url}")
-            else:
-                print(f"  ⚠ [Artifactory] {dl_msg}，回退到本地已有版本文件夹")
 
     # ==================== [9.5] 版本地址 ====================
     # jzjy 模式优先使用 Artifactory 压缩包完整地址（版本地址 = 压缩包地址）
@@ -4195,218 +4545,17 @@ def main():
 
     time.sleep(1.0)
 
-    # 适配器升级时，在实施负责人中额外新增朱海江(108451)
-    if has_adapter_upgrade:
-        print(f"\n  [13.5-extra] 适配器升级，新增朱海江(108451)作为实施负责人...")
-        ep.keyboard.press("Escape"); time.sleep(0.5)
-        trigger_result2 = ep.evaluate("""() => {
-            const items = document.querySelectorAll('.formfield');
-            for(const item of items){
-                const lbl = item.querySelector('.fieldlabel');
-                if(lbl && lbl.textContent.includes('实施负责人') && !lbl.textContent.includes('审核') && !lbl.textContent.includes('确认') && !lbl.textContent.includes('测试')){
-                    const content = item.querySelector('.fieldcontent');
-                    if(!content) return 'no_content';
-                    const tryOrder = [
-                        content.querySelector('.ant-select-selection'),
-                        content.querySelector('.ant-select'),
-                        content.querySelector('input:not([type="hidden"])'),
-                        content
-                    ];
-                    for(const el of tryOrder){
-                        if(el && window.getComputedStyle(el).display !== 'none'){ el.click(); return 'clicked'; }
-                    }
-                    return 'nothing_clickable';
-                }
-            }
-            return 'not_found';
-        }""")
-        print(f"  触发实施负责人(朱海江): {trigger_result2}")
-        time.sleep(1.5)
+    # 添加额外实施负责人（配置中的 extra_owners）
+    added_owner_ids = {owner_search}
+    for eo in active_cfg.get("extra_owners", []):
+        if eo["id"] not in added_owner_ids:
+            add_extra_impl_owner(ep, eo["id"], eo["name"])
+            added_owner_ids.add(eo["id"])
 
-        search_result2 = ep.evaluate("""(keyword) => {
-            const selectors = [
-                '.ant-select-search__field',
-                '.ant-select-selection-search-input',
-                'input.ant-input[placeholder*="搜索"]',
-                '.ant-select-dropdown input'
-            ];
-            for(const sel of selectors){
-                const inputs = document.querySelectorAll(sel);
-                for(const inp of inputs){
-                    if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled){
-                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                        nativeInputValueSetter.call(inp, keyword);
-                        inp.dispatchEvent(new Event('input', {bubbles: true}));
-                        inp.dispatchEvent(new Event('change', {bubbles: true}));
-                        return {ok: true, source: sel};
-                    }
-                }
-            }
-            const allInputs = document.querySelectorAll('input');
-            for(const inp of allInputs){
-                if(inp.offsetParent !== null && !inp.readOnly && !inp.disabled && inp.type !== 'hidden'){
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                    nativeInputValueSetter.call(inp, keyword);
-                    inp.dispatchEvent(new Event('input', {bubbles: true}));
-                    return {ok: true, source: 'fallback_input'};
-                }
-            }
-            return {ok: false};
-        }""", "108451")
-        print(f"  ant-select搜索框输入(朱海江): {search_result2}")
-        if search_result2.get('ok'):
-            ep.keyboard.press("Enter")
-            print("  已按回车（触发弹窗）")
-            time.sleep(1.5)
-
-        modal_check2 = ep.evaluate("""(keyword) => {
-            function isVis(el){
-                if(!el) return false;
-                const s = window.getComputedStyle(el);
-                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
-            }
-            const modals = document.querySelectorAll('.ant-modal-wrap');
-            let modalBody = null;
-            for(const m of modals){
-                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
-                const body = m.querySelector('.ant-modal-body');
-                if(body && body.children.length > 0){ modalBody = body; break; }
-            }
-            if(!modalBody) return {found: false};
-            const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
-            if(!input) return {found: true, hasInput: false, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length};
-            input.focus();
-            input.value = '';
-            input.dispatchEvent(new Event('input', {bubbles: true}));
-            return {found: true, hasInput: true, treeChildCount: modalBody.querySelectorAll('.ant-tree-treenode').length, inputFocused: document.activeElement === input};
-        }""", "108451")
-        print(f"  Modal检查(朱海江): {modal_check2}")
-        if modal_check2.get('found') and modal_check2.get('hasInput'):
-            type_result2 = ep.evaluate("""(keyword) => {
-                function isVis(el){
-                    if(!el) return false;
-                    const s = window.getComputedStyle(el);
-                    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
-                }
-                const modals = document.querySelectorAll('.ant-modal-wrap');
-                let modalBody = null;
-                for(const m of modals){
-                    if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
-                    const body = m.querySelector('.ant-modal-body');
-                    if(body && body.children.length > 0){ modalBody = body; break; }
-                }
-                if(!modalBody) return {ok: false, reason: 'no_modal'};
-                const input = modalBody.querySelector('.ant-input-affix-wrapper input.ant-input');
-                if(!input) return {ok: false, reason: 'no_input'};
-                input.focus();
-                input.value = '';
-                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                nativeInputValueSetter.call(input, keyword);
-                input.dispatchEvent(new Event('keydown', {bubbles: true}));
-                input.dispatchEvent(new Event('input', {bubbles: true}));
-                input.dispatchEvent(new Event('keyup', {bubbles: true}));
-                input.dispatchEvent(new Event('change', {bubbles: true}));
-                const enterEvent = new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true});
-                input.dispatchEvent(enterEvent);
-                input.dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}));
-                return {ok: true, inputValue: input.value};
-            }""", "108451")
-            print(f"  Modal搜索(含Enter)(朱海江): {type_result2}")
-            time.sleep(2.5)
-
-        tree_result2 = ep.evaluate("""(keyword) => {
-            function isVis(el){
-                if(!el) return false;
-                const s = window.getComputedStyle(el);
-                return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
-            }
-            const modals = document.querySelectorAll('.ant-modal-wrap');
-            let modalBody = null;
-            for(const m of modals){
-                if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
-                const body = m.querySelector('.ant-modal-body');
-                if(body && body.children.length > 0){ modalBody = body; break; }
-            }
-            if(!modalBody) return {status: 'no_modal'};
-            const treeNodes = modalBody.querySelectorAll('.ant-tree-treenode');
-            for(const node of treeNodes){
-                if(!isVis(node)) continue;
-                const title = node.querySelector('.ant-tree-title');
-                if(!title) continue;
-                const titleText = (title.textContent || '').trim();
-                if(titleText.includes(keyword)){
-                    const checkbox = node.querySelector('.ant-tree-checkbox');
-                    if(checkbox){ checkbox.click(); return {status: 'checked', text: titleText.substring(0, 60)}; }
-                    title.click();
-                    return {status: 'clicked_title', text: titleText.substring(0, 60)};
-                }
-            }
-            const allTitles = modalBody.querySelectorAll('.ant-tree-title');
-            for(const t of allTitles){
-                if(!isVis(t)) continue;
-                const txt = (t.textContent || '').trim();
-                if(txt.includes(keyword)){
-                    let el = t.parentElement;
-                    while(el){
-                        const cb = el.querySelector('.ant-tree-checkbox');
-                        if(cb && isVis(cb)){ cb.click(); return {status: 'checked_ancestor', text: txt.substring(0, 60)}; }
-                        if(el.classList.contains('ant-tree')) break;
-                        el = el.parentElement;
-                    }
-                    let sib = t.previousElementSibling;
-                    while(sib){
-                        if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_prev', text: txt.substring(0, 60)}; }
-                        sib = sib.previousElementSibling;
-                    }
-                    sib = t.nextElementSibling;
-                    while(sib){
-                        if(sib.classList.contains('ant-tree-checkbox')){ sib.click(); return {status: 'checked_sibling_next', text: txt.substring(0, 60)}; }
-                        sib = sib.nextElementSibling;
-                    }
-                    const parent = t.parentElement;
-                    if(parent){
-                        const cb = parent.querySelector('.ant-tree-checkbox');
-                        if(cb && isVis(cb)){ cb.click(); return {status: 'checked_parent', text: txt.substring(0, 60)}; }
-                    }
-                    t.click();
-                    return {status: 'clicked_title_fallback', text: txt.substring(0, 60)};
-                }
-            }
-            return {status: 'not_found'};
-        }""", "朱海江")
-        print(f"  树节点勾选(朱海江): {tree_result2}")
-        time.sleep(0.8)
-
-        if tree_result2.get('status', '').startswith('checked') or tree_result2.get('status', '').startswith('clicked'):
-            confirm_result2 = ep.evaluate("""() => {
-                function isVis(el){
-                    if(!el) return false;
-                    const s = window.getComputedStyle(el);
-                    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
-                }
-                const modals = document.querySelectorAll('.ant-modal-wrap');
-                for(const m of modals){
-                    if(!isVis(m) || m.classList.contains('ant-modal-wrap-hidden')) continue;
-                    const footer = m.querySelector('.ant-modal-footer');
-                    if(!footer) continue;
-                    for(const btn of footer.querySelectorAll('button, .ant-btn')){
-                        if(!isVis(btn)) continue;
-                        const bt = (btn.textContent || '').trim();
-                        if(bt === '确 定' || bt === '确定' || bt === '确认'){ btn.click(); return {status: 'confirmed', source: 'modal_footer', btnText: bt}; }
-                    }
-                    for(const btn of footer.querySelectorAll('.ant-btn-primary')){
-                        if(isVis(btn)){ btn.click(); return {status: 'confirmed_primary'}; }
-                    }
-                }
-                return {status: 'no_confirm_btn'};
-            }""")
-            print(f"  确认按钮(朱海江): {confirm_result2}")
-            if confirm_result2.get('status', '').startswith('confirmed'):
-                print(f"  ✅ 已选: 朱海江(108451)")
-                time.sleep(1.5)
-        else:
-            print(f"  ⚠ 未在树中找到 朱海江: {tree_result2}")
-        time.sleep(1.0)
+    # 适配器升级时额外新增朱海江（如果尚未通过 extra_owners 添加）
+    if has_adapter_upgrade and "108451" not in added_owner_ids:
+        add_extra_impl_owner(ep, "108451", "朱海江")
+        added_owner_ids.add("108451")
 
     # ==================== [14] 变更需求类型 ====================
     print("\n" + "=" * 55)
@@ -4697,9 +4846,9 @@ def main():
             {"type": "input", "label": "操作步骤", "value": "按变更方式操作"},
             {"type": "input", "label": "序列", "value": "1"},
             {"type": "select", "label": "角色", "value": "主实施负责人"},
-            {"type": "tree_select", "label": "处理人", "value": "张永军", "search": "108728"},
+            {"type": "tree_select", "label": "处理人", "value": "张博闻", "search": "111483"},
         ]
-        fill_section_add_popup(ep, "变更方案", change_plan_actions_1, "变更方案 (第1条：张永军)")
+        fill_section_add_popup(ep, "变更方案", change_plan_actions_1, "变更方案 (第1条：张博闻)")
         time.sleep(2.0)
         
         # 第二条
@@ -4708,20 +4857,31 @@ def main():
             {"type": "input", "label": "操作步骤", "value": "按变更方式操作"},
             {"type": "input", "label": "序列", "value": "2"},
             {"type": "select", "label": "角色", "value": "主实施负责人"},
-            {"type": "tree_select", "label": "处理人", "value": "张博闻", "search": "111483"},
+            {"type": "tree_select", "label": "处理人", "value": "张永军", "search": "108728"},
         ]
-        fill_section_add_popup(ep, "变更方案", change_plan_actions_2, "变更方案 (第2条：张博闻)")
+        fill_section_add_popup(ep, "变更方案", change_plan_actions_2, "变更方案 (第2条：张永军)")
         time.sleep(2.0)
 
         # 第三条
         change_plan_actions_3 = [
+            {"type": "select", "label": "任务", "value": "变更任务"},
+            {"type": "input", "label": "操作步骤", "value": "按变更方式操作"},
+            {"type": "input", "label": "序列", "value": "3"},
+            {"type": "select", "label": "角色", "value": "主实施负责人"},
+            {"type": "tree_select", "label": "处理人", "value": "朱海江", "search": "108451"},
+        ]
+        fill_section_add_popup(ep, "变更方案", change_plan_actions_3, "变更方案 (第3条：朱海江)")
+        time.sleep(2.0)
+
+        # 第四条
+        change_plan_actions_4 = [
             {"type": "select", "label": "任务", "value": "复核"},
             {"type": "input", "label": "操作步骤", "value": "复核"},
-            {"type": "input", "label": "序列", "value": "3"},
+            {"type": "input", "label": "序列", "value": "4"},
             {"type": "select", "label": "角色", "value": "运维侧验证"},
             {"type": "tree_select", "label": "处理人", "value": "宋倩", "search": "114322"},
         ]
-        fill_section_add_popup(ep, "变更方案", change_plan_actions_3, "变更方案 (第3条：宋倩)")
+        fill_section_add_popup(ep, "变更方案", change_plan_actions_4, "变更方案 (第4条：宋倩)")
         time.sleep(2.0)
     else:
         change_plan_actions = [

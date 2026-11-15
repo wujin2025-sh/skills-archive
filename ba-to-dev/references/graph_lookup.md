@@ -178,9 +178,72 @@ sqlite3 "/Volumes/Macintosh HD_Data/Project/{jzjy|dys|jzqs}/.code-review-graph/g
    ```
    > ⚠️ 图谱数据实际在 `~/.cache/codebase-memory-mcp/*.db`，项目目录 `.code-review-graph/graph.db` 不存在（2026-10-20 实测）；两处路径均可尝试。
 
+### trace_path 爆炸半径/影响范围扫描（P0#25，2026-11-13 新增）
+溯源定位到核心改造函数后，用 `trace_path` 评估「改这个点影响谁」。`--help` 已核实的真实参数：
+```bash
+# direction: inbound=向上游「谁调用我」(改动入口影响面) / outbound=向下游「我调用谁」(改动数据流出口)
+# depth=扫描深度，--risk-labels 加跳数风险分级(CRITICAL/HIGH/MEDIUM/LOW)，--format tree/json
+~/.local/bin/codebase-memory-mcp cli trace_path --project <CBM项目名> \
+  --function-name <核心函数> --direction inbound --depth 3 --risk-labels --limit 20 --format tree
+~/.local/bin/codebase-memory-mcp cli trace_path --project <CBM项目名> \
+  --function-name <核心函数> --direction outbound --depth 2 --limit 20 --format tree
+```
+
+> ⚠️ **CLI 局限（2026-11-13 实测）**：`trace_path` CLI 的 `--function-name` 同名函数会返回 `ambiguous` 歧义（如 DealCredit.cpp 与 lbm_book_zy/DealCredit.cpp 各有一个 `RepayContractDebets`），需用 `search_graph` 先定位唯一符号再 trace；CLI 不接受 qualified_name/JSON 精确消歧（RC=1），**批量/精准影响范围扫描建议走 MCP 常驻服务器（原生 JSON-RPC 可传完整符号）**。
+
+要点：每涉及系统的核心改造函数各扫一次（函数 1 ↔ 扫描 1，禁止反复深扫）；优先 `inbound` 看入口调用方广度，必要时补 `outbound`；结论写入第四章审计「影响范围分析」专项；熔断同 P0#25（至多 1~2 次/改造点）。
+
 ### 结论口径
 | 情况 | 允许写法 |
 | :--- | :--- |
 | 四步兜底全未命中 + 系统有图谱 | 「图谱检索未定位到精确代码」+ 明确列出已试过的检索词/功能号（**严禁写「本地无图谱」**） |
 | 系统本身无图谱（`djgl`/`ssjs`/`jzyy`） | 「本地无图谱，待开发确认」 |
 | 定位到真实代码 | 挂 file:// 链接 + 行号，写入溯源映射表 |
+
+---
+
+## 8. 业务概念→代码符号预映射字典（首查命中率优化，2026-11-09 新增）
+
+> **用法**：CBM `search_graph` 用业务中文检索 0 命中是常态（FTS 仅索引符号四列），**首查优先用代码符号**（英文函数名/类名/文件名）而非业务中文，命中率从 ~10% 提升至 ~70%+。根据需求业务域查本表，用映射的代码符号直接 `search_graph --query <英文符号>`；映射表未收录时才降级为业务中文 + §7 兜底链。
+
+> **持续积累规则**：每次溯源定位到新代码符号后，自动追加到本表供后续需求首查复用。
+
+### 两融-担保品
+
+| 业务概念 | 系统域 | 代码符号（首查关键词） | 源码文件 | 沉淀来源 |
+| :--- | :--- | :--- | :--- | :--- |
+| 担保品返还/转出 | jzjy | `CROrderGuaranty` / `CreditGetStockDbzc` / `perCROrderGuaranty` | lbmdll/ | R2609170003 |
+| 担保品转入/转出校验 | jzjy | `PledgeInOrOutBusinessRiskCheck` | lbmdll/ | R2609170003 |
+
+### 两融-还款链路
+
+| 业务概念 | 系统域 | 代码符号（首查关键词） | 源码文件 | 沉淀来源 |
+| :--- | :--- | :--- | :--- | :--- |
+| 指定合约直接还款 | jzjy | `perLoanFundRepay` / `SettDoCommit_Repay_DEBT` / `SettDoCommit_Repay_FUNDSTK` | loantran.cpp / SettCrdMatchCommit.cpp | R2609160118 |
+| 指定合约直接还款 | dys | `ProcessDirectRepayAppoint` / `DirectRepayAppoint` / `ReturnFund` / `GetRepayItems` | direct_repay_appoint*.cpp | R2609160118 |
+| 指定合约直接还款 | jzqs | `RepayContractDebets` / `GetRepayOrderOfRzamt` / `GetRepayOrderOfRqqty` / `GetRepayOrderOfOther` / `RepayCreditDebets` | DealCredit.cpp | R2609160118 |
+| 还款顺序（融资金额） | jzqs | `GetRepayOrderOfRzamt` | DealCredit.cpp | R2609160118 |
+| 还款顺序（融券数量） | jzqs | `GetRepayOrderOfRqqty` | DealCredit.cpp | R2609160118 |
+| 还款顺序（息费优先） | jzqs | `GetRepayOrderOfOther` | DealCredit.cpp | R2609160118 |
+| 融资负债减免（DR 回调落库） | jzjy | `DYSCreditdebtsBackCall` | memdb/src/lbm/lbm_stdfast_memdb/dysfastcallback_comm_business.cpp | R2608110032 |
+| 融资负债减免（DR 接口，700805单条/700816批量） | jzjy | `tagstdDYSCreditdebtsBackCall` | lbmdll/lbm_stdfast/BusTag.h | R2608110032 |
+
+### 两融-融券高流通市值
+
+| 业务概念 | 系统域 | 代码符号（首查关键词） | 源码文件 | 沉淀来源 |
+| :--- | :--- | :--- | :--- | :--- |
+| 融券高流通市值兜底 | jzqs | `CalAmtBacktoFrz` / `CalAmtBack` | DealCredit.cpp | R2611050089 |
+| 日间高流通剩余市值 | jzqs | `m_dbExteffectamt` / `FBG3` | DealCredit.cpp | R2611050089 |
+
+### 委托表合约编号承载
+
+| 业务概念 | 系统域 | 代码符号/字段（首查关键词） | 源码文件/表名 | 沉淀来源 |
+| :--- | :--- | :--- | :--- | :--- |
+| 委托表合约编号复用 | jzjy/dys/jzqs | `bankfrzsno` | orderrec / t_order / node_orderrec | R2609160118 |
+
+> **扩展规则**：本表未覆盖的业务概念，按以下顺序首查：
+> 1. 从需求原文提取**英文功能号**（如 `121315`）→ §7 兜底链 L1.5 功能号注册表反查
+> 2. 从需求原文提取**代码符号线索**（函数名/类名/文件名片段）→ `search_graph --query <英文符号>`
+> 3. 业务中文 → `search_graph --query <中文>` （命中率低但仍需尝试）
+> 4. §7 兜底链完整执行（L1.5 → grep → CBM 换词 → sqlite 直连）
+> 5. 定位到新代码符号后追加到本表

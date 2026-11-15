@@ -14,8 +14,21 @@ config.json
 .fintech_session.json
 */.fintech_session.json
 */*/.fintech_session.json
+.*credentials*
+.db_credentials
+*/.db_credentials
+*/*/.db_credentials
+.*_state.json
+*_state.json
+*/*_state.json
+*/*/*_state.json
 
 # Caches and runtime state
+.cache/
+*/.cache/
+*/*/.cache/
+_shared/.backups/
+*.bak.*
 *.pkl
 */*.pkl
 */*/*.pkl
@@ -48,6 +61,9 @@ wide-table-query/scripts/downloads/
 proposed-schedule-confirm/scripts/*.html
 proposed-schedule-confirm/scripts/*.md
 proposed-schedule-confirm/scripts/__pycache__/
+planned-schedule/scripts/*.html
+planned-schedule/scripts/*.md
+planned-schedule/scripts/__pycache__/
 
 # Archive packages
 *.zip

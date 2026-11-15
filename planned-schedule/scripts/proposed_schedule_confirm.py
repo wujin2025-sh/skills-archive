@@ -4,15 +4,15 @@
 proposed_schedule_confirm.py — 拟排期确认工具（极速高性能版）
 =============================================================================
 根据输入的排期版本号（如 20260821 或 2026-08-21），筛选受理人含“吴进”（或指定受理人）的需求及 Story 明细，
-生成用于发送给测试同事核对进度风险的高颜值 HTML 确认表。
+生成用于发送给测试同事核对进度风险的高颜值 HTML 计划表。
 
 特性：
 - 优先通过后台 API 实时同步大宽表最新数据，刷新本地缓存 .table_cache.json。
-- 包含了 13 大核心字段。
-- 支持【发邮件/存草稿】功能：一键自动从确认表中提取开发负责人、SIT负责人、UAT负责人、业务验收人等相关人员。
+- 包含了 14 大核心字段。
+- 支持【发邮件/存草稿】功能：一键自动从计划表中提取开发负责人、SIT负责人、UAT负责人、业务验收人等相关人员。
 - 用户触发“发邮件”指令时，**默认存入 Coremail 邮件草稿箱**，以便人工审核后手动点击发送；仅在显式传入 --force-send 时才直接发送。
 
-包含字段 (共 13 列)：
+包含字段 (共 14 列)：
 1. 史诗编号 (epicCode / epicConcat - 支持相同单元格合并 rowspan)
 2. 需求编号 (demandId - 支持相同单元格合并 rowspan)
 3. story编号 (storyCode)
@@ -23,9 +23,10 @@ proposed_schedule_confirm.py — 拟排期确认工具（极速高性能版）
 8. SIT负责人 (sitTestManagePerson)
 9. UAT负责人 (uatTestManagePerson)
 10. 业务验收人 (businessAcceptor / storyBusName)
-11. 重点关注 (keyFocus)
-12. 影响灰度 (isEffectGrayUpgrade - 需求影响灰度升级)
-13. 备注 (beizhuText)
+11. 原始提出人 (orgUserName - 需求详情接口 /api/demand-service/demandsub/queryDemandsubInfo 补充)
+12. 重点关注 (keyFocus)
+13. 影响灰度 (isEffectGrayUpgrade - 需求影响灰度升级)
+14. 备注 (beizhuText)
 
 排序与合并规则：
 1. 按【史诗编号】分组排序，同一史诗的 Story 连续排列，史诗编号单元格自动合并 (rowspan)。
@@ -58,6 +59,105 @@ def _http_request(method, url, timeout=20, **kwargs):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", requests.packages.urllib3.exceptions.InsecureRequestWarning)
             return sess.request(method, url, timeout=timeout, verify=False, **kwargs)
+
+
+# =============================================================================
+# 原始提出人（orgUserName）批量补充
+# 数据来源：科技平台需求详情接口 /api/demand-service/demandsub/queryDemandsubInfo（返回 data.orgUserName）
+# 该字段仅存在于需求详情，大宽表缓存(.table_cache.json)中不含，故按需逐条查询并本地缓存(.org_user_cache.json)。
+# =============================================================================
+_FINTECH_SESSION_PATH = "/Volumes/Macintosh HD_Data/WorkBuddy/需求管理/.fintech_session.json"
+_ORG_USER_CACHE = None
+
+def _load_fintech_session():
+    """从 .fintech_session.json 提取科技平台访问 token 与 cookies。"""
+    token, cookies = None, {}
+    if os.path.exists(_FINTECH_SESSION_PATH):
+        try:
+            with open(_FINTECH_SESSION_PATH, "r", encoding="utf-8") as f:
+                sd = json.load(f)
+            for c in sd.get("cookies", []):
+                if "gtht.com.cn" in c.get("domain", ""):
+                    cookies[c["name"]] = c["value"]
+            for od in sd.get("origins", []):
+                if od.get("origin") == "https://fintech.gtht.com.cn":
+                    for it in od.get("localStorage", []):
+                        if it.get("name") == "GTJA_TOKEN":
+                            token = it.get("value")
+        except Exception:
+            pass
+    return token, cookies
+
+def _query_org_user(demand_id):
+    """按需求编号查询单个需求的原始提出人姓名 orgUserName，失败返回 None。"""
+    token, cookies = _load_fintech_session()
+    if not token:
+        return None
+    url = "https://fintech.gtht.com.cn/api/demand-service/demandsub/queryDemandsubInfo"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://fintech.gtht.com.cn/kjpt/DemandManage",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "token": token,
+    }
+    try:
+        resp = _http_request("POST", url, timeout=20, json={"demandId": demand_id},
+                             headers=headers, cookies=cookies, verify=False)
+        if resp is None or resp.status_code != 200:
+            return None
+        data = resp.json()
+        item = data.get("data") or {}
+        name = (item.get("orgUserName") or "").strip()
+        return name or None
+    except Exception:
+        return None
+
+def enrich_org_user(items):
+    """为 items 批量补充 org_user（原始提出人）字段，带本地缓存加速，查询失败回退 '--'。"""
+    global _ORG_USER_CACHE
+    if not items:
+        return
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".org_user_cache.json")
+    if _ORG_USER_CACHE is None:
+        _ORG_USER_CACHE = {}
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    _ORG_USER_CACHE = json.load(f)
+            except Exception:
+                _ORG_USER_CACHE = {}
+
+    # 先补已有缓存；收集缺失的需求编号（去重）
+    need = []
+    seen = set()
+    for it in items:
+        did = str(it.get("demand_id") or "").strip()
+        if not did or did in ("--", "None", "null"):
+            it["org_user"] = "--"
+            continue
+        if did in _ORG_USER_CACHE:
+            it["org_user"] = _ORG_USER_CACHE[did] or "--"
+            continue
+        if did not in seen:
+            seen.add(did)
+            need.append(did)
+
+    # 批量查询缺失项
+    if need:
+        print(f"[ProposedSchedule] 🔍 正在补充 {len(need)} 个需求的‘原始提出人’…")
+        for did in need:
+            name = _query_org_user(did)
+            _ORG_USER_CACHE[did] = (name or "--")
+        try:
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(_ORG_USER_CACHE, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+        for it in items:
+            did = str(it.get("demand_id") or "").strip()
+            if did in _ORG_USER_CACHE:
+                it["org_user"] = _ORG_USER_CACHE[did] or "--"
 
 # 动态获取系统当前日期
 CURRENT_NOW = datetime.now()
@@ -464,6 +564,7 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进", sy
                 "sit_owner": sit_owner,
                 "uat_owner": uat_owner,
                 "bus_owner": bus_owner,
+                "org_user": "--",
                 "key_focus": key_focus,
                 "is_key_focus": (key_focus == "是"),
                 "effect_gray": effect_gray,
@@ -478,15 +579,18 @@ def filter_and_format_stories(raw_records, target_version, receiver="吴进", sy
     # 史诗组内按【重点关注】优先，再按需求编号、Story 编号升序
     filtered_items.sort(key=lambda x: (x["epic_code"], 0 if x["is_key_focus"] else 1, x["demand_id"], x["story_code"]))
     
+    # 逐需求补充原始提出人（orgUserName），失败项回退 '--'
+    enrich_org_user(filtered_items)
+
     return filtered_items, internal_owner_names
 
 def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed=False, internal_owner_names=None):
     """
-    自动提取确认表上所有有效相关人员（开发负责人、SIT负责人、UAT负责人、业务验收人），
+    自动提取计划表上所有有效相关人员（开发负责人、SIT负责人、UAT负责人、业务验收人），
     解析并生成 Coremail 格式的标准收件人列表字符串。
     仅包含有工号（姓名-数字格式）的内部人员，自动过滤外包人员。
     固定包含：肖慧、刘青、乔露露、常丽、张帆、茆莹莹、张志鹏、薛天明、马晓鑫、李鹤晨、周尤珠、陈曦、姬攀毅、罗洁、黄增增。
-    若为 -r 模式，会自动读取此前初版确认表的人员名单缓存并自动 Merge，保持收件人完全一致。
+    若为 -r 模式，会自动读取此前初版计划表的人员名单缓存并自动 Merge，保持收件人完全一致。
     """
     unique_names = {"肖慧", "刘青", "乔露露", "常丽", "张帆", "茆莹莹", "张志鹏", "薛天明", "马晓鑫", "李鹤晨", "周尤珠", "陈曦", "姬攀毅", "罗洁", "黄增增"}
     invalid_tokens = {"--", "无需业务验收", "None", "null", "", "无"}
@@ -506,7 +610,7 @@ def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed
     cache_dir = os.path.dirname(os.path.abspath(__file__))
     recipients_cache_file = os.path.join(cache_dir, f".recipients_{clean_ver}_{clean_rec}.json")
 
-    # 若为 -r 模式，尝试合并初版确认表的人员名单
+    # 若为 -r 模式，尝试合并初版计划表的人员名单
     if is_reviewed and os.path.exists(recipients_cache_file):
         try:
             with open(recipients_cache_file, "r", encoding="utf-8") as f:
@@ -522,7 +626,7 @@ def extract_table_recipients(items, version_str="", receiver_str="", is_reviewed
         except Exception:
             pass
     elif not is_reviewed and clean_ver:
-        # 初版确认表模式：将当前收件人持久化缓存起来，供后续 -r 模式继承
+        # 初版计划表模式：将当前收件人持久化缓存起来，供后续 -r 模式继承
         try:
             with open(recipients_cache_file, "w", encoding="utf-8") as f:
                 json.dump(sorted(list(unique_names)), f, ensure_ascii=False, indent=2)
@@ -603,17 +707,18 @@ def generate_reminder_html(items, version_str="", is_reviewed=False):
   </div>
 </div>"""
 
-def send_confirmation_email(html_path, version_str, receiver_str, items, is_send=False, is_reviewed=False, internal_owner_names=None):
+def send_confirmation_email(html_path, version_str, receiver_str, items, is_send=False, is_reviewed=False, internal_owner_names=None, online_url=None):
     """
-    调用 Coremail 通用发送脚本，将 HTML 确认表存草稿箱（默认 is_send=False）供人工审核，或直接发送 (is_send=True)
+    调用 Coremail 通用发送脚本，将 HTML 计划表存草稿箱（默认 is_send=False）供人工审核，或直接发送 (is_send=True)
+    online_url: 若传入了腾讯文档在线链接，则在邮件正文顶部插入醒目的在线查看链接区块。
     """
     recipients_list = extract_table_recipients(items, version_str=version_str, receiver_str=receiver_str, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names)
     if not recipients_list:
-        print("⚠️ [Email] 确认表中未识别到有效相关人员，无法起草邮件。")
+        print("⚠️ [Email] 计划表中未识别到有效相关人员，无法起草邮件。")
         return False
         
     recipients_str = "; ".join(recipients_list)
-    subject_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求确认表"
+    subject_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求计划表"
     subject = f"{subject_prefix} ({version_str} - {receiver_str})"
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -633,7 +738,22 @@ def send_confirmation_email(html_path, version_str, receiver_str, items, is_send
         html_content = f.read()
 
     reminder_html = generate_reminder_html(items, version_str=version_str, is_reviewed=is_reviewed)
-    email_body_content = html_content + "\n<br>\n" + reminder_html
+
+    # 若提供了腾讯文档在线链接，在正文末尾紧随 @提醒 之后插入醒目的在线查看区块
+    online_block = ""
+    if online_url and str(online_url).startswith("http"):
+        online_block = (
+            '\n<br>\n'
+            '<div style="margin: 20px 32px 8px 32px; padding: 14px 18px; '
+            'background-color: #eaf4ff; border: 1px solid #93c5fd; border-radius: 10px; '
+            'font-size: 13px; line-height: 1.8;">'
+            '<div style="font-weight: 700; color: #1d4ed8; margin-bottom: 6px;">🔗 在线查看计划表（网页版）</div>'
+            f'<a href="{online_url}" style="color:#1d4ed8; word-break:break-all;">{online_url}</a>'
+            '<div style="color:#6b7280; margin-top:4px;">点击链接可直接打开网页版计划表；上方附件为完整可筛选版本，供各位老师查阅。</div>'
+            '</div>\n<br>\n'
+        )
+
+    email_body_content = html_content + "\n<br>\n" + reminder_html + online_block
 
     email_body_path = os.path.join(os.path.dirname(os.path.abspath(html_path)), f".email_body_{os.path.basename(html_path)}")
     with open(email_body_path, "w", encoding="utf-8") as f:
@@ -655,7 +775,7 @@ def send_confirmation_email(html_path, version_str, receiver_str, items, is_send
         if is_send:
             print("[Email] ✅ 邮件已成功发送！")
         else:
-            print("[Email] 💾 确认表邮件已成功存入 Coremail 草稿箱！请登录邮箱人工确认后发送。")
+            print("[Email] 💾 计划表邮件已成功存入 Coremail 草稿箱！请登录邮箱人工确认后发送。")
         return True
     except subprocess.CalledProcessError as e:
         print(f"❌ [Email Error] {action_label}失败: {e.stderr or e.stdout or e}")
@@ -700,7 +820,7 @@ def calculate_spans(items):
 
 def generate_html(items, output_path, version_str, receiver_str, is_reviewed=False, system_filter=None):
     """
-    生成高颜值 HTML 确认表 (含 开发负责人 列，带 Epic 与 Demand 单元格合并)
+    生成高颜值 HTML 计划表 (含 开发负责人 列，带 Epic 与 Demand 单元格合并)
     """
     total_count = len(items)
     key_focus_count = sum(1 for x in items if x["is_key_focus"])
@@ -709,8 +829,8 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
     demands_count = len(set(x["demand_id"] for x in items if x["demand_id"] != "--"))
     epic_spans, demand_spans = calculate_spans(items)
 
-    title_text = f"拟排期需求明细清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求确认表 ({version_str} - {receiver_str})"
-    banner_title = "📋 拟排期需求明细清单" if is_reviewed else "📋 拟排期需求确认表"
+    title_text = f"拟排期需求明细清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求计划表 ({version_str} - {receiver_str})"
+    banner_title = "📋 拟排期需求明细清单" if is_reviewed else "📋 拟排期需求计划表"
     system_tag_html = f'<span>🔧 系统筛选：{system_filter}</span>' if system_filter else ''
     
     # 构建系统筛选下拉选项
@@ -750,6 +870,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         sit_disp = f'<strong>{item["sit_owner"]}</strong>' if item["sit_owner"] != "--" else '<span class="text-muted">--</span>'
         uat_disp = f'<strong>{item["uat_owner"]}</strong>' if item["uat_owner"] != "--" else '<span class="text-muted">--</span>'
         bus_disp = f'<strong>{item["bus_owner"]}</strong>' if item["bus_owner"] != "--" else '<span class="text-muted">--</span>'
+        org_disp = f'<strong>{item.get("org_user", "--")}</strong>' if item.get("org_user") and item["org_user"] != "--" else '<span class="text-muted">--</span>'
 
         # 单元格合并逻辑
         epic_td = ""
@@ -785,6 +906,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         <td class="text-center">{sit_disp}</td>
         <td class="text-center">{uat_disp}</td>
         <td class="text-center">{bus_disp}</td>
+        <td class="text-center">{org_disp}</td>
         <td class="text-center">{kf_badge}</td>
         <td class="text-center">{gray_badge}</td>
         <td class="remark-col">{remark_disp}</td>
@@ -805,6 +927,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         <td class="text-center">{sit_disp}</td>
         <td class="text-center">{uat_disp}</td>
         <td class="text-center">{bus_disp}</td>
+        <td class="text-center">{org_disp}</td>
         <td class="text-center">{kf_badge}</td>
         <td class="text-center">{gray_badge}</td>
         <td class="remark-col">{remark_disp}</td>
@@ -815,7 +938,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
         empty_filter_suffix = f"，涉及系统包含 <strong>{system_filter}</strong>" if system_filter else ""
         empty_row = f"""
       <tr>
-        <td colspan="13" class="empty-cell">
+        <td colspan="14" class="empty-cell">
           <div class="empty-state">
             <span class="empty-icon">🔍</span>
             <p>未查找到排期版本为 <strong>{version_str}</strong> 且受理人包含 <strong>{receiver_str}</strong>{empty_filter_suffix} 的需求/Story数据。</p>
@@ -1210,6 +1333,7 @@ def generate_html(items, output_path, version_str, receiver_str, is_reviewed=Fal
           <th>SIT负责人</th>
           <th>UAT负责人</th>
           <th>业务验收人</th>
+          <th>原始提出人</th>
           <th>重点关注</th>
           <th>影响灰度</th>
           <th>备注</th>
@@ -1301,13 +1425,13 @@ def generate_markdown(items, output_path, version_str, receiver_str, is_reviewed
     """
     同时输出终端和 Markdown 表格 (包含 开发负责人)
     """
-    doc_title = f"拟排期需求清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求确认表 ({version_str} - {receiver_str})"
+    doc_title = f"拟排期需求清单 ({version_str} - {receiver_str})" if is_reviewed else f"拟排期需求计划表 ({version_str} - {receiver_str})"
     lines = []
     lines.append(f"# 📋 {doc_title}")
     lines.append(f"> **生成时间**：{CURRENT_TIME_STR} | **规则**：按【史诗编号】分组排序（同一史诗 Story 连续排列、史诗与需求单元格合并），高亮 🚨 不含生产的 SIT 未完成进度风险状态")
     lines.append("")
-    lines.append("| 史诗编号 | 需求编号 | Story编号 | 任务名称 | 涉及系统 | 当前状态 | 开发负责人 | SIT负责人 | UAT负责人 | 业务验收人 | 重点关注 | 影响灰度 | 备注 |")
-    lines.append("| :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |")
+    lines.append("| 史诗编号 | 需求编号 | Story编号 | 任务名称 | 涉及系统 | 当前状态 | 开发负责人 | SIT负责人 | UAT负责人 | 业务验收人 | 原始提出人 | 重点关注 | 影响灰度 | 备注 |")
+    lines.append("| :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |")
 
     epic_spans, demand_spans = calculate_spans(items)
 
@@ -1323,10 +1447,10 @@ def generate_markdown(items, output_path, version_str, receiver_str, is_reviewed
         lines.append(
             f"| {epic_disp} | {demand_disp} | {story_disp} | "
             f"{item['story_title']} | {item['system_name']} | {status_disp} | "
-            f"{item['dev_owner']} | {item['sit_owner']} | {item['uat_owner']} | {item['bus_owner']} | {kf_str} | {gray_str} | {item['remark']} |"
+            f"{item['dev_owner']} | {item['sit_owner']} | {item['uat_owner']} | {item['bus_owner']} | {item.get('org_user','--')} | {kf_str} | {gray_str} | {item['remark']} |"
         )
     if not items:
-        lines.append("| - | - | - | 未匹配到符合条件的需求与 Story | - | - | - | - | - | - | - | - | - |")
+        lines.append("| - | - | - | 未匹配到符合条件的需求与 Story | - | - | - | - | - | - | - | - | - | - |")
 
     status_owners = extract_current_status_owners(items)
     at_mentions_str = " ".join([f"@{name}" for name in status_owners]) if status_owners else "相关状态负责人"
@@ -1352,7 +1476,7 @@ def generate_markdown(items, output_path, version_str, receiver_str, is_reviewed
     return abs_output
 
 def main():
-    parser = argparse.ArgumentParser(description="生成拟排期需求确认表/拟计划上线清单（用于给测试及业务同事确认排期与进度风险）")
+    parser = argparse.ArgumentParser(description="生成拟排期需求计划表/拟计划上线清单（用于给测试及业务同事确认排期与进度风险）")
     parser.add_argument("version", help="计划生产排期版本号，如 20260821 或 2026-08-21")
     parser.add_argument("receiver", nargs="?", default="吴进", help="需求受理人，默认为“吴进”")
     parser.add_argument("-r", "--reviewed", action="store_true", help="沟通后拟计划上线清单模式（经过与业务、测试沟通后的拟上线清单）")
@@ -1364,6 +1488,10 @@ def main():
     parser.add_argument("--draft-mail", "--draft", action="store_true", help="触发存草稿箱功能")
     parser.add_argument("--force-send", action="store_true", help="强行直接发送邮件（跳过草稿箱）")
     parser.add_argument("--system", "-s", default=None, help="按涉及系统名称筛选（支持模糊匹配，如 \"低延时\"、\"集中清算\"）")
+    parser.add_argument("--upload", "--tencent", "--tdoc", action="store_true", help="生成 HTML 后自动上传到腾讯文档指定文件夹（同名覆盖/不同名新增）")
+    parser.add_argument("--tencent-folder", default="TNLKgDkNdIvP", help="腾讯文档目标文件夹 ID（默认：版本计划排期 TNLKgDkNdIvP）")
+    parser.add_argument("--privilege", type=int, default=2, choices=[2, 3], help="上传后文档权限：2=所有人可读(只读,默认)，3=所有人可编辑")
+    parser.add_argument("--dry-run", action="store_true", help="只查询腾讯文档同名情况，不真正上传")
     
     args = parser.parse_args()
 
@@ -1385,7 +1513,7 @@ def main():
 
     clean_ver = version_input.replace("-", "").strip()
     system_suffix = f"-{system_filter}" if system_filter else ""
-    file_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求确认表"
+    file_prefix = "拟排期需求明细清单" if is_reviewed else "拟排期需求计划表"
     default_html_name = f"{file_prefix}{clean_ver}-{receiver_input}{system_suffix}.html"
     default_md_name = f"{file_prefix}{clean_ver}-{receiver_input}.md"
 
@@ -1408,15 +1536,34 @@ def main():
         with open(saved_md, "r", encoding="utf-8") as f:
             print(f.read())
     else:
-        print(f"[ProposedSchedule] ✅ 成功抽取 {len(items)} 条数据！ (模式: {'拟排期需求明细清单' if is_reviewed else '拟排期需求确认表'}{', 系统筛选: ' + system_filter if system_filter else ''})")
+        print(f"[ProposedSchedule] ✅ 成功抽取 {len(items)} 条数据！ (模式: {'拟排期需求明细清单' if is_reviewed else '拟排期需求计划表'}{', 系统筛选: ' + system_filter if system_filter else ''})")
         print(f"[ProposedSchedule] 📄 HTML 文件已保存至: {saved_html}")
         if saved_md:
             print(f"[ProposedSchedule] 📝 Markdown 已保存至: {saved_md}")
 
+    # 当触发【上传腾讯文档】时，自动将生成的 HTML 上传到指定文件夹（同名覆盖/不同名新增）
+    uploaded_online_url = ""
+    if args.upload and saved_html:
+        try:
+            from upload_to_tencent import upload_html
+            res = upload_html(saved_html, target_folder_id=args.tencent_folder, title=None, dry_run=args.dry_run, privilege=args.privilege)
+            if args.dry_run:
+                print(f"[ProposedSchedule] ⏭ [腾讯文档·DryRun] 判定动作: {res['action']}，目标文件夹: {res['target_folder_id']}")
+                if res.get("existing"):
+                    print(f"[ProposedSchedule]   ⚠️ 已存在 {len(res['existing'])} 个同名文档将被覆盖")
+            else:
+                action_desc = "同名覆盖" if res["action"] == "overwrite" else "新增"
+                uploaded_online_url = res.get("online_url", "")
+                print(f"[ProposedSchedule] ☁️ [腾讯文档] 已{action_desc}上传成功: {res['online_url']}")
+                print(f"[ProposedSchedule]   📂 文档ID: {res.get('file_id','')}")
+        except Exception as e:
+            print(f"❌ [ProposedSchedule] 腾讯文档上传失败: {e}")
+            uploaded_online_url = ""
+
     # 当触发【发邮件】或【存草稿】时，默认存入 Coremail 草稿箱（is_send=False）；仅在显式传入 --force-send 时才真正发送
     if args.send_mail or args.draft_mail:
         should_send = args.force_send
-        send_confirmation_email(saved_html, version_input, receiver_input, items, is_send=should_send, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names)
+        send_confirmation_email(saved_html, version_input, receiver_input, items, is_send=should_send, is_reviewed=is_reviewed, internal_owner_names=internal_owner_names, online_url=uploaded_online_url)
 
 if __name__ == "__main__":
     main()

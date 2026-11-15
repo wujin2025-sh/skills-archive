@@ -12,6 +12,13 @@
   R4 (P0) 纪要末尾红线    : 严禁「涉及系统：」行；「预计上线日期」之后不得再输出其他内容行（附件清单/--- 分隔线/「评审决策日志（可选）」小节除外，附件清单标题支持纯文本或 **加粗**；评审决策日志豁免见 2026-10-12）
   R5 (P2) 分点缩进统一    : 9 项小节分点 (N) 统一 3 空格缩进；「各系统改造功能」的 ① 功能点统一 8 空格缩进（--fix 自动修复）
   R6 (P1) 表格前需空行    : 表格起始行（第一个以 | 开头的行）前一行须为空行或 --- 分隔线，否则 Obsidian/GFM 不识别为表格（2026-10-12 新增）
+  R7 (P1) 系统名门禁      : 评审纪要【改造范围】+【各系统改造功能】出现的含「系统」中文名须能在 system_list.csv 第一列精确匹配；不在清单则告警（疑似非本组/厂商系统需核实责任方，见 P0#19）
+  R8 (P1) file:// 链接存在: 文档内 file:// 本地链接逐一 test -f（自动解码 %20、剥离 :行号 伪影）；指向不存在的文件则告警死链
+  R9 (P1) 双链文件存在    : [[文件名]] 双链（含日期-R号 命名）需在文档所在目录找到对应 .md 文件，否则告警悬空双链
+
+-- content-check 说明（2026-11-12 新增强化，防系统性幻觉）:
+  * R7 依赖权威系统清单 /Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/system_list.csv（技能 P0#3 挂载，编码为 UTF-8）；
+  * R7/R8/R9 为「内容级」辅助校验，弥补 validate 原只查格式不查真伪的认知盲区；均以 P1 提示而非 P0 阻断，避免非本组/厂商系统（合法）产生误导性失败。
 
 --fix 行为（2026-10-08 修订）:
   * R4 违禁「涉及系统：」行 → 实际删除并写盘（修复成功不视为失败）；
@@ -23,6 +30,11 @@
 import re
 import sys
 import os
+import glob
+import urllib.parse
+
+# 权威系统清单（技能 P0#3 挂载，2026-11-12 硬化绝对路径）：第一列=系统中文全称
+SYSTEM_CSV = "/Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/system_list.csv"
 
 REQ_KEYS = ["req_id", "submitter", "ndw", "created", "updated",
             "tags", "domain", "system", "status"]
@@ -77,6 +89,42 @@ def review_region_bounds(text):
 def _is_fixed(problem):
     """problem: (rule, level, desc) —— 判断该问题是否已被 --fix 修复"""
     return FIXED_MARK in problem[2]
+
+
+def load_system_names():
+    """读取权威系统清单第一列，返回 {系统中文全称} 集合（UTF-8 编码，第 1 行为表头跳过）。
+    文件缺失/读失败时返回 None（主调对该文件类校验降级跳过，不阻塞 validate）。"""
+    try:
+        with open(SYSTEM_CSV, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except OSError:
+        return None
+    names = set()
+    for idx, line in enumerate(lines):
+        if idx == 0:
+            continue  # 表头
+        first = line.split(",", 1)[0].strip()
+        if first:
+            names.add(first)
+    return names if names else None
+
+
+# 含「系统」二字的中文系统名，用于 R7 门禁（排除「系统」泛称、front matter 短码等噪声）
+_SYS_TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{2,50}系统(?:[（(][^）)]+[）)])?")
+
+
+def _extract_sys_tokens(text):
+    """从评审纪要区域提取候选中文系统名 tokens（含「系统」且至少 2 个汉字前缀）。
+    排除：评审纪要小节标题（REVIEW_ITEMS）、「无XXX」否定表达、泛称「系统」."""
+    out = set()
+    for m in _SYS_TOKEN_RE.finditer(text):
+        tok = m.group(0).strip()
+        if tok in ("系统",) or tok in REVIEW_ITEMS:
+            continue
+        if tok.startswith("无"):  # 如「无跨系统」「无涉及系统」
+            continue
+        out.add(tok)
+    return out
 
 
 def check_file(path, fix=False):
@@ -250,6 +298,50 @@ def check_file(path, fix=False):
         problems.append(("R6", "P1",
                          f"表格前需空行（表格起始行前一行应为空行或 ---，当前为: {prev.strip()[:30]}）"))
         prev = line
+
+    # ---- R7 系统名门禁（P1，2026-11-12 内容级校验，依赖 system_list.csv）----
+    if bounds is not None and "评审纪要" in text:
+        start, end = bounds
+        region = text[start:end]
+        sys_names = load_system_names()
+        if sys_names is not None:
+            for tok in sorted(_extract_sys_tokens(region)):
+                if tok not in sys_names:
+                    # 低延时交易系统统称豁免：BA 阶段清单无独立域中不能精确带域，拆 Story 才区分域
+                    # （见 SKILL P0#3 补充说明）；清单内存在其域变体（如低延时交易系统(大集中-信创域)）
+                    if tok == "低延时交易系统" and any(
+                        s.startswith("低延时交易系统(") for s in sys_names
+                    ):
+                        continue
+                    problems.append(("R7", "P1",
+                                     f"系统名「{tok}」不在 system_list.csv 清单中，"
+                                     f"疑似非本组/厂商系统或全称不精确，需核实责任与域全称（P0#3/#19）"))
+
+    # ---- R8 file:// 链接存在性（P1，2026-11-12 内容级校验）----
+    for m in re.finditer(r"file://([^\s\)\]\|]+)", text):
+        loc = urllib.parse.unquote(m.group(1))
+        # 剥离末尾「:行号」伪影（保留可能的 : 路径段）
+        loc2 = re.sub(r":\d+(\s|$)", "", loc)
+        if not os.path.isfile(loc2):
+            problems.append(("R8", "P1",
+                             f"file:// 链接指向不存在文件: {m.group(1)}（死链，需核对绝对路径）"))
+
+    # ---- R9 双链文件存在性（P1，2026-11-12 内容级校验）----
+    if bounds is not None:
+        start, end = bounds
+    else:
+        start, end = 0, len(text)
+    region = text[start:end]
+    base = os.path.dirname(os.path.abspath(path))
+    for m in re.finditer(r"\[\[([^\]\|]+)", region):
+        name = m.group(1).strip()
+        if not name or not re.search(r"\d{8}-R\d", name):
+            continue  # 仅校验含日期-R号 命名的双链（多为需求文档双链）
+        # 具体文件名可能是 name.md 或 name（前缀），在文档所在目录找 name*.md
+        hits = glob.glob(os.path.join(base, name + "*.md"))
+        if not hits:
+            problems.append(("R9", "P1",
+                             f"双链 [[{name}]] 在 {os.path.basename(base)}/ 下找不到对应 .md 文件（悬空双链）"))
 
     return problems
 

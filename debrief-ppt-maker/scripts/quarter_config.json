@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "_readme": "debrief-ppt-maker · 02 模块（需求指标看板 + 版本集成发布）按季度生成配置。新增季度只需在 quarters 下补一段 kpi 基线；季度/月份/tag/统计区间由 --quarter 自动推导。",
+  "paths": {
+    "out_dir": "/Volumes/Macintosh HD_Data/Gemini/PPT/docs",
+    "main_html": "/Volumes/Macintosh HD_Data/Gemini/PPT/2026年三季度个人工作总结_吴进.html",
+    "base_html": "/Volumes/Macintosh HD_Data/Gemini/PPT/2026年三季度个人工作总结_吴进_v1_before_kpi.html",
+    "xlsx": "/Volumes/Macintosh HD_Data/Gemini/PPT/docs/各系统发版汇总.xlsx",
+    "wps_state": "/Users/wujin/.workbuddy/skills/debrief-ppt-maker/scripts/.wps_release_state.json",
+    "mail_config": "/Users/wujin/.workbuddy/skills/meet-minutes/config.json",
+    "mail_key": "/Users/wujin/.workbuddy/.meeting_skill_key"
+  },
+  "release_doc": {
+    "url": "https://www.gtht.com.cn/jswps/weboffice/l/spULaQnvVBFlD",
+    "drive_url": "https://www.gtht.com.cn/jswps/kdrive/latest",
+    "title": "各系统发版汇总",
+    "owner": "吴进"
+  },
+  "layout": {
+    "total_pages": 13,
+    "kpi_page": 7,
+    "release_page": 8,
+    "kpi_num": "06",
+    "release_num": "07",
+    "insert_before": "<!-- ==================== SLIDE 8:"
+  },
+  "base_agenda": {
+    "_readme": "母版（base_html）目录页原文锚点；换母版时同步这里，不要改脚本",
+    "m02_title": "<div class=\"agenda-title\">科技平台交付效能度量实证（P07）</div>",
+    "m02_desc": "<div class=\"agenda-desc\">基于平台原生客观数据，实证高负荷承接下的研发交付周期与高水准流动效率</div>",
+    "m03_range": "（P08 ~ P09）",
+    "m04_range": "（P10 ~ P11）",
+    "m03_pills": ["07 产品经理个人驾驶舱", "08 需求分析 SKILL 流水线"],
+    "m04_pills": ["09 后续工作规划（五阶蓝）", "10 难点创新点讨论（难点与建议）"]
+  },
+  "agenda_tpl": {
+    "m02_title": "需求指标与版本集成发布（P07 ~ P08）",
+    "desc": "受理 {accept} 项、版本排期交付 {release} 项；{tag} 负责 {versions} 个版本、{times} 次发版，已登记 {problems} 起发版问题",
+    "pills": [
+      "06 本季度需求指标看板",
+      "07 版本集成发布情况",
+      "受理 {accept} · 排期 {release} · 发版 {times} 次"
+    ],
+    "m03_range": "（P09 ~ P10）",
+    "m04_range": "（P11 ~ P12）"
+  },
+  "quarters": {
+    "2026Q3": {
+      "ready": true,
+      "kpi": {
+        "accept_total": 75,
+        "accept_months": [["7月", 33], ["8月", 24], ["9月", 18]],
+        "release_total": 85,
+        "e2e_days": "26.95",
+        "it_days": "19.55",
+        "flow_eff": "35.04%",
+        "status": [["我受理进行中", 60], ["待受理", 7], ["已上线", 8]],
+        "proposed": 15,
+        "month_note": "月度推进节奏：7 月承接 33 项 → 8 月联调 24 项 → 9 月收尾 18 项",
+        "foot1": "口径：受理数按最后一次需求受理时间，含主受理与共同受理；上线数按版本排期日期落在 2026Q3、按需求编号去重、不按需求状态筛选，已排除 2099-12-31 与年末 12-31 占位值。",
+        "foot2": "数据来源：科技平台效能度量看板（2026-07~09 原生截图）/ 需求集合大宽表；上线数沿用 2026-11-11 校准基线（实时全量 13,072 行）。Q3 已完结。"
+      }
+    },
+    "2026Q4": {
+      "ready": false,
+      "_todo": "Q4 为进行时，效能度量看板尚未出季度全量截图。已知：受理 13、版本排期交付 54、覆盖版本排期 7、Q3 参照 85、受理月份 10 月 11 / 11 月 2（见 gen_kpi_dashboard.py Q4 快照）。缺 status 状态构成、e2e_days、it_days、flow_eff；补齐后再置 ready=true。禁止用估算值填坑。",
+      "kpi": {
+        "accept_total": 13,
+        "accept_months": [["10月", 11], ["11月", 2]],
+        "release_total": 54,
+        "e2e_days": null,
+        "it_days": null,
+        "flow_eff": null,
+        "status": null,
+        "proposed": null,
+        "month_note": "口径：最后一次需求受理时间；Q4 为进行时数字",
+        "foot1": "口径：受理数按最后一次需求受理时间，含主受理与共同受理；上线数按版本排期日期落在 2026Q4、按需求编号去重、不按需求状态筛选。",
+        "foot2": "数据来源：科技平台效能度量看板 / 需求集合大宽表；Q4 未完结。"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 ---
 name: db-schema-query
-description: 数据库表结构与表字段极速查询（查表 / 表字段 / 表结构 / 字段注释 / 数据库连接）。优先尝试 dbx MCP 直查（已配置凭据实例秒级返回）；dbx
-  不可用或报 1045 凭据被拒时降级直连元数据视图（凭据向用户索取，绝不落盘、绝不出现在记忆）。内置已核验的四套库表分布参考
+description: 数据库表结构与表字段极速查询（查表 / 表字段 / 表结构 / 字段注释 / 数据库连接）。优先 dbq 直连（统一启动器自动选脚本+Python 环境，凭据经环境变量/交互输入不落盘）；
+  dbx MCP 作为降级路径（已配置凭据实例秒级返回，但部分实例 1045 频繁）。内置已核验的四套库表分布参考
   （dys 低延时 tradingdb.t_order / 集中清算 node_orderrec / 集中交易 SQL Server run.dbo.orderrec / 参数中心后台 SQL Server paramcfg），支持列库、列表、按表查字段
   （名称/类型/长度/键/注释）、按关键字搜表与搜字段。MySQL/OceanBase 用 /usr/local/bin/python3（自带 pymysql），SQL Server 用
   workbuddy python3（自带 pymssql，TDS 7.0）。触发词：数据库查询、查表、查字段、表结构、字段查询、表字段、字段注释、查数据库、
@@ -24,13 +24,13 @@ disable: false
 
 | 层级 | 方式 | 说明 | 何时使用 |
 | --- | --- | --- | --- |
-| **D1** | dbx MCP 直查 | 对已配置凭据的服务器实例，直接调 dbx MCP 的查询工具 | **默认首选** |
-| **D2** | 直连实例元数据：MySQL/OceanBase → pymysql（`query_schema.py`）；SQL Server → pymssql（`query_sqlserver.py`，TDS 7.0）。凭据经环境变量/交互输入（**不落盘**） | dbx 报 `1045 Access denied` / 连接失败 / dbx 实例未配置时 |
+| **D1** | **dbq 直连**（统一启动器）：MySQL/OceanBase → pymysql（`query_schema.py`）；SQL Server → pymssql（`query_sqlserver.py`，TDS 7.0）。凭据经环境变量/交互输入（**不落盘**） | **默认首选** | 日常查表/表字段/字典/临时 SQL |
+| **D2** | dbx MCP 直查 | 对已配置凭据的服务器实例，直接调 dbx MCP 的查询工具 | dbq 缺凭据且用户不想提供口令时；或 dbx 连接已验证可用时 |
 | **D3** | 源码图谱兜底 | CBM / 源码 grep（表名在建表 SQL/结构体） | D1/D2 均不可达时；结论标注「以数据库为准」 |
 
 > ⚠️ **dbx MCP 1045 已知问题（2026-11-05 实测）**：dbx 内置凭据对 dys-95 四个通道
 > 全部返回 `ERROR 1045 Access denied for user 'query'@... (using password: YES)`（服务端拒绝旧口令）。
-> **遇到 1045 直接走 D2**，向用户索取口令后 pymysql 直连，无需反复尝试 dbx。
+> **遇到 1045 直接走 D1**，向用户索取口令后 pymysql 直连，无需反复尝试 dbx。
 >
 > ⚠️ **Python 环境**：默认 workbuddy python（3.13.12）**无 pymysql** 但**自带 pymssql 2.4.6**；
 > `/usr/local/bin/python3` 自带 pymysql（Homebrew 3.14，PEP 668 拦截无法装 pymssql）。
@@ -43,39 +43,62 @@ disable: false
 
 ### 1.0 一键查询（推荐入口）
 
-**首选统一启动器 `dbq`**（按 profile 自动选脚本+Python 解释器，免记环境）：
+**首选统一启动器 `dbq`**（按 profile 自动选脚本+Python 解释器，免记环境，**自动加载密码**）：
 ```bash
 DBQ=/Users/wujin/.chat/skills/数据库查询/scripts/dbq
 $DBQ --list                                                    # 查看可用 profile
-DB_PASSWORD='<用户提供>' $DBQ dys95 --table tradingdb.t_order          # 低延时委托主表
-DB_PASSWORD='<用户提供>' $DBQ jzjy_sit --table run.dbo.orderrec        # 集中交易委托主表
-DB_PASSWORD='<用户提供>' $DBQ jzjy_sit --search-field err              # 搜字段（默认过滤备份表）
+$DBQ dys95 --table tradingdb.t_order                           # 低延时委托主表（密码自动加载）
+$DBQ jzjy_sit --table run.dbo.orderrec                         # 集中交易委托主表
+$DBQ jzjy_sit --search-field err                               # 搜字段（默认过滤备份表）
 ```
 
-> 将 `scripts/` 加入 PATH 后可直接 `dbq <profile> ...`；dbq 内部即按下方「底层脚本直调」执行并透传全部参数。
+> 密码已配置在 `scripts/.db_credentials`（权限 600，仅用户可读），**无需手工输入**。
+> 如需临时覆盖，设 `DB_PASSWORD` 环境变量即可。
 
 **底层脚本直调**（dbq 内部即按此执行）：
 ```bash
-# dys-95 低延时 SIT 实例（profile 已内置 host/port/user，密码仍须提供）
-DB_PASSWORD='<用户提供>' /usr/local/bin/python3 \
+# dys-95 低延时 SIT 实例（profile 已内置 host/port/user，密码自动从 .db_credentials 加载）
+/usr/local/bin/python3 \
   /Users/wujin/.chat/skills/数据库查询/scripts/query_schema.py --profile dys95 \
   --table tradingdb.t_order
 ```
 
-密码三选一（**优先级**）：环境变量 `DB_PASSWORD` > `--password` 参数 > 交互式输入（不回显）。
-**严禁**把密码写入脚本、配置文件、SKILL.md 或记忆文件。
+密码优先级：环境变量 `DB_PASSWORD` > `--password` 参数 > `.db_credentials` 文件 > 交互式输入（不回显）。
 
 **SQL Server 实例（jzjy_sit 集中交易 / cszx_sit 参数中心）**：脚本与运行环境相同（pymssql + TDS 7.0 + workbuddy python）：
 ```bash
 S=/Users/wujin/.chat/skills/数据库查询/scripts/query_sqlserver.py
 PY="$HOME/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
-DB_PASSWORD='<用户提供>' $PY $S --profile jzjy_sit --table run.dbo.orderrec   # 委托主表 91 字段+样例
-DB_PASSWORD='<用户提供>' $PY $S --profile jzjy_sit --search-table orderrec      # 表名模糊（run 库命中 655 张）
+$PY $S --profile jzjy_sit --table run.dbo.orderrec              # 委托主表 91 字段+样例
+$PY $S --profile jzjy_sit --search-table orderrec               # 表名模糊（run 库命中 655 张）
 
 # 参数中心后台 SQL Server（cszx_sit，同脚本同环境；实例 5 库中仅 run 可读 · 实测）
-DB_PASSWORD='<用户提供>' $PY $S --profile cszx_sit --list-databases            # 先探测可访问库
-DB_PASSWORD='<用户提供>' $PY $S --profile cszx_sit --table paramcfg            # 参数主表 12 字段（paramid+serverid）
+$PY $S --profile cszx_sit --list-databases                      # 先探测可访问库
+$PY $S --profile cszx_sit --table paramcfg                      # 参数主表 12 字段（paramid+serverid）
 ```
+
+### 1.0.1 凭据配置（`.db_credentials`）
+
+密码统一存储在 `scripts/.db_credentials`（权限 600，仅用户可读），格式为 `DB_PASS_<PROFILE>=密码`：
+
+```bash
+# 文件位置
+/Users/wujin/.chat/skills/数据库查询/scripts/.db_credentials
+
+# 格式示例
+DB_PASS_DYS95='xxx'
+DB_PASS_JZQS_SIT='xxx'
+DB_PASS_JZJY_SIT='xxx'
+DB_PASS_CSZX_SIT='xxx'
+
+# 权限设置（安全要求）
+chmod 600 /Users/wujin/.chat/skills/数据库查询/scripts/.db_credentials
+```
+
+**密码加载优先级**：`DB_PASSWORD` 环境变量 > `--password` 参数 > `.db_credentials` 文件 > 交互输入。
+- 环境变量优先级最高，适合临时覆盖或 CI 场景
+- `.db_credentials` 文件为默认来源，日常使用无需手工输入密码
+- 脚本启动时自动检测文件权限，若权限过宽（非 600）会输出警告
 
 ### 1.1 典型命令
 
@@ -115,7 +138,7 @@ DB_PASSWORD='***' $PY $S --profile dys95 --search-field err
 
 | 参数 | 说明 |
 | --- | --- |
-| `--profile NAME` | 预置实例：`dys95`=低延时 SIT(`10.187.101.51:8885 user=query`，MySQL)；`jzqs_sit`=集中清算 SIT(`10.187.109.56:2883 user=gjman_q@jjnode#jzqs_sit`，OceanBase MySQL 协议)；`jzjy_sit`=集中交易 SIT(**SQL Server** `10.187.160.91:1433 user=rdonly database=run`，用 `query_sqlserver.py`，TDS 7.0 + workbuddy python)；`cszx_sit`=参数中心后台 SIT(**SQL Server** `10.187.64.75:1433 user=jygl_zd database=run`，同 `query_sqlserver.py`，实例 5 库仅 run 可读、其余 18456)；密码一律运行时提供 |
+| `--profile NAME` | 预置实例：`dys95`=低延时 SIT(`10.187.101.51:8885 user=query`，MySQL)；`jzqs_sit`=集中清算 SIT(`10.187.109.56:2883 user=gjman_q@jjnode#jzqs_sit`，OceanBase MySQL 协议，**node 库**客户数据)；`jzqs_comm_sit`=集中清算通用功能 SIT(**comm 库**，`10.187.109.56:2883 user=gjman_q@comm#jzqs_sit`，OceanBase，清算公共模块、与客户数据无关)；`jzjy_sit`=集中交易 SIT(**SQL Server** `10.187.160.91:1433 user=rdonly database=run`，用 `query_sqlserver.py`，TDS 7.0 + workbuddy python)；`cszx_sit`=参数中心后台 SIT(**SQL Server** `10.187.64.75:1433 user=jygl_zd database=run`，同 `query_sqlserver.py`，实例 5 库仅 run 可读、其余 18456)；密码自动从 `.db_credentials` 加载 |
 | `--host / --port / --user` | 覆盖 profile（或直接指定实例） |
 | `--password` | 密码（**不推荐**，会短暂出现在进程参数中；优先 `DB_PASSWORD` 环境变量或交互输入） |
 | `--list-databases` | 列出实例全部数据库 |
@@ -132,6 +155,11 @@ DB_PASSWORD='***' $PY $S --profile dys95 --search-field err
 | `--max-rows N` | 搜索命中超过 N 条进入摘要模式：按表分组 TOP20 + 明细截断 + **完整结果落盘 /tmp**（默认 100） |
 | `--full` | 搜索不截断（关闭摘要模式，输出全部明细） |
 | `--json` | JSON 输出（样例并入 `sample` 结构化字段） |
+| `--dict-list` | 列出所有字典分类（dys→`t_dict_category`；jzqs→`sys_dictindex`；jzjy/cszx→`dictindex`） |
+| `--dict <分类名>` | 查指定分类的字典条目；dys 精确/模糊匹配 `category_code`；jzqs 支持数字 dictitem 和分类名模糊；jzjy/cszx 精确/模糊匹配 `dictitem` 和 `itemname` |
+| `--dict-bsflag` | 查 bsflag 专用字典（仅 dys，查 `t_bsflag_dict` 表，含 bsflag→side/credittype/businesstype/ordtype 映射） |
+| `--dict-database <库名>` | 字典表所在数据库（dys 默认 `tradingconfigdb`；jzqs 默认 `comm`；jzjy/cszx 默认 `run`） |
+| `--sql "SQL"` | 执行只读 SQL（仅 `SELECT`/`SHOW`/`DESCRIBE`/`EXPLAIN`/`WITH` 开头；结果按 Markdown 表格输出，前 200 行） |
 
 ### 1.3 输出示例（Markdown 表格）
 
@@ -154,6 +182,153 @@ tradingdb.t_order_status (25 字段)
 | moneytype | RMB |
 | nodeid | 0000 |
 ...
+```
+
+### 1.4 字段值字典查询（`--dict` / `--dict-list` / `--dict-bsflag`）
+
+查字段的**枚举值含义**（如 bsflag=0B 代表什么、business_type=200 是什么业务），不是查表结构而是查数据库内置的**字典表**。
+
+四套系统的字典表结构各不相同，脚本会**自动检测**并选择正确的查询模式：
+
+| 系统 | 字典表 | 库 | dictitem 类型 | 示例 |
+|------|--------|-----|--------------|------|
+| **dys 低延时** | `t_dict_category` + `t_dict` + `t_bsflag_dict` | tradingconfigdb | 字符串分类名（BusinessType） | `--dict BusinessType` |
+| **jzqs 集中清算** | `sys_dictindex` + `sys_dictvalue` | comm | 数字分类名（64095） | `--dict 64095` |
+| **jzjy 集中交易** | `dictindex` + `dictvalue` | run.dbo | 字符串分类名（Bjyqx） | `--dict Bjyqx` |
+| **cszx 参数中心** | `dictindex` + `dictvalue` | run.dbo | 字符串分类名（Ammlb） | `--dict Ammlb` |
+
+---
+
+#### dys 低延时字典查询（`query_schema.py`）
+
+字典表位于 `tradingconfigdb` 库：
+
+| 字典表 | 用途 | 核心字段 |
+|--------|------|---------|
+| `t_dict_category` | 字典分类表（50+ 分类） | code, name |
+| `t_dict` | 字典枚举表（每个分类下的条目） | code, value, name, category_code |
+| `t_bsflag_dict` | bsflag 专用字典（买卖标识→业务属性映射） | bsflag, side, credittype, businesstype, ordtype |
+
+```bash
+S=/Users/wujin/.chat/skills/数据库查询/scripts/query_schema.py
+PY=/usr/local/bin/python3
+
+# 1) 列出所有字典分类（50+ 个，含 BusinessType / Side / CashMargin / Currency 等）
+DB_PASSWORD='***' $PY $S --profile dys95 --dict-list
+
+# 2) 查指定分类的字典条目（精确匹配分类名）
+DB_PASSWORD='***' $PY $S --profile dys95 --dict BusinessType
+#   → 200=信用账户普通买卖, 201=融资融券, 202=直接还款, 208=...
+DB_PASSWORD='***' $PY $S --profile dys95 --dict Side
+#   → 1=买, 2=卖, g=主动卖券还款, l=成交确认卖, ...
+DB_PASSWORD='***' $PY $S --profile dys95 --dict CashMargin
+#   → 1=普通交易, 2=融资融券开仓, 3=融资融券平仓
+
+# 3) 模糊匹配分类名（大小写不敏感）
+DB_PASSWORD='***' $PY $S --profile dys95 --dict business
+#   → 匹配 BusinessType + BusinessInsType
+
+# 4) 查 bsflag 专用字典（买卖标识 → side/credittype/businesstype/ordtype 完整映射）
+DB_PASSWORD='***' $PY $S --profile dys95 --dict-bsflag
+#   → 0B→side=1,bt=200 | 0S→side=2,bt=200 | ZZ→side=1,bt=208 | ...
+
+# 5) 字典表在其他库时指定 --dict-database
+DB_PASSWORD='***' $PY $S --profile dys95 --dict-list --dict-database tradingdb
+```
+
+**输出示例**（`--dict BusinessType`）：
+```
+📖 字典 BusinessType（tradingconfigdb.t_dict）共 30 条：
+| code | value | name |
+| --- | --- | --- |
+| CreditAuction | 200 | 信用账户普通买入/普通卖出（卖券还款）交易业务 |
+| MarginTrading | 201 | 融资买入/融券卖出交易业务 |
+| DirectRepay | 202 | 直接还款 |
+...
+💡 用法：--dict <分类代码> 查字典条目，如 --dict BusinessType
+```
+
+---
+
+#### jzqs 集中清算字典查询（`query_schema.py`）
+
+字典表位于 `comm` 库（OceanBase），`dictitem` 为数字：
+
+| 字典表 | 用途 | 核心字段 |
+|--------|------|---------|
+| `sys_dictindex` | 字典分类表（570 个分类） | dictitem(int), itemname |
+| `sys_dictvalue` | 字典值表（每个分类下的条目） | dictitem, subitem, subitemname |
+
+**常用字典分类**：
+
+| dictitem | 分类名 | 条数 | 说明 |
+|----------|--------|------|------|
+| 64095 | 买卖标识 | 20 | B=买入 / S=卖出 / 5=融资买入 / 6=融券卖出 |
+| 65016 | 买卖类别 | 94 | 0B=买入 / 0S=卖出 / 0c=融资买入 / 0d=融券卖出 |
+| 64125 | 业务类型 | 26 | 998001=资金调增 / 998002=资金调减 / DF=兑付 |
+| 69022 | 集中交易买卖标识 | 44 | 与 jzjy 的 Ammlb 对应 |
+| 65017 | 信用交易摘要 | 21 | a=普通买入 / b=融资买入 / c=普通卖出 / d=融券卖出 |
+
+```bash
+S=/Users/wujin/.chat/skills/数据库查询/scripts/query_schema.py
+PY=/usr/local/bin/python3
+
+# 1) 列出所有字典分类（570 个）
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict-list
+
+# 2) 按 dictitem 数字查字典条目
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 64095      # 买卖标识
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 65016      # 买卖类别
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 64125      # 业务类型
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 69022      # 集中交易买卖标识
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 65017      # 信用交易摘要
+
+# 3) 按分类名关键词模糊匹配（自动匹配 itemname）
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 买卖        # → 买卖标识 / 买卖类别 等
+DB_PASSWORD='***' $PY $S --profile jzqs_sit --dict 信用        # → 信用交易摘要 / 信用账户标志 等
+```
+
+---
+
+#### jzjy 集中交易 & cszx 参数中心字典查询（`query_sqlserver.py`）
+
+字典表位于 `run.dbo`（SQL Server），`dictitem` 为字符串（如 `Bjyqx`、`Ammlb`）：
+
+| 字典表 | 用途 | 核心字段 |
+|--------|------|---------|
+| `dictindex` | 字典分类表（jzjy 870 个 / cszx 1670 个） | dictitem, itemname |
+| `dictvalue` | 字典值表（每个分类下的条目） | dictitem, subitem, subitemname |
+
+**常用字典分类**（jzjy 集中交易）：
+
+| dictitem | itemname | 说明 |
+|----------|----------|------|
+| Ammlb | 买卖类别 | 0B=买入 / 0S=卖出 / 0c=融资买入 / 0d=融券卖出（53 条） |
+| Bjyqx | 交易权限 | 5=证券交易 / 6=基金交易 / 7=债券交易（62 条） |
+| Emmlb | 买卖类别 | 与 Ammlb 类似的另一套买卖类别字典 |
+| Djsbz | 资金清算标志 | |
+| Djsbz | 交收标识 | |
+
+```bash
+PY="$HOME/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+S=/Users/wujin/.chat/skills/数据库查询/scripts/query_sqlserver.py
+
+# 1) 列出所有字典分类（jzjy 870 个 / cszx 1670 个）
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict-list
+DB_PASSWORD='***' $PY $S --profile cszx_sit --dict-list
+
+# 2) 按 dictitem 精确查字典条目
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict Ammlb       # 买卖类别（53 条）
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict Bjyqx       # 交易权限（62 条）
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict Djsbz       # 交收标识
+DB_PASSWORD='***' $PY $S --profile cszx_sit --dict Ammlb       # 参数中心买卖类别
+
+# 3) 按 dictitem 模糊匹配
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict Mm           # → Ammlb / Emmlb / Emmfx 等
+
+# 4) 按中文分类名模糊匹配（itemname）
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict 买卖          # → Ammlb(买卖类别) / Emmlb 等 9 个分类
+DB_PASSWORD='***' $PY $S --profile jzjy_sit --dict 交易权限       # → Bjyqx(交易权限)
 ```
 
 ---
@@ -208,6 +383,22 @@ tradingdb.t_order_status (25 字段)
 > ⚠️ **jzqs 搜字段坑（实测）**：`--search-field` LIKE 扫 columns **即使 `--database` 限定库也 60s 超时 2013**
 > （node 库过大，OceanBase 下 queries 慢）；须用 `--table 库.表` 精确查（秒回）或 `--search-table`（扫 tables 量小）。
 > 完整 6 库分布 + 字段级明细见 `references/tables.md`「jzqs」章节。
+
+### 3.5.1 jzqs 集中清算通用功能库（`jzqs_comm_sit`）
+
+**连接**：`--profile jzqs_comm_sit`（`10.187.109.56:2883`，user=`gjman_q@comm#jzqs_sit`，
+**comm 库，清算公共模块，与客户数据无关**）。密码自动从 `.db_credentials` 加载。
+
+```bash
+DBQ=/Users/wujin/.chat/skills/数据库查询/scripts/dbq
+$DBQ jzqs_comm_sit --list-databases                  # 4 个库：bak/comm/oceanbase/test
+$DBQ jzqs_comm_sit --database comm --list-tables     # comm 库 3196 张表（公共模块）
+$DBQ jzqs_comm_sit --table comm_abnorconfirm         # 精确查公共表（异常确认）
+$DBQ jzqs_comm_sit --dict 64303                      # 字典查询（自动用 comm 库）
+```
+
+> 说明：`jzqs_sit`（node 库）存清算客户主业务数据；`jzqs_comm_sit`（comm 库）存清算公共/通用模块
+> （如账户映射 `comm_accountmapped_*`、异常确认 `comm_abnorconfirm` 等），两者互不交叉。
 
 ---
 

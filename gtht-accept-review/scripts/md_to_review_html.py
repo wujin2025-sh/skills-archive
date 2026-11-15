@@ -84,6 +84,11 @@ def build_html(lines) -> str:
             html_lines.append("")  # 空元素 -> join 时产生额外 <br>，实现首行后空行
             first_content = False
             continue
+        if line.startswith("预计上线日期"):
+            # 预计上线日期行：无缩进（与首行首字符左侧对齐），前空一行与上方内容分隔
+            html_lines.append("")  # 空元素 -> join 时产生额外 <br>，实现空行
+            html_lines.append(md_line_to_html(line))
+            continue
         if line.startswith("#####") or line.startswith(">"):
             indent = ""  # 决策日志子标题 / 决策引用行（v17 位置在预计上线日期之后）
         elif CIRCLE_RE.match(line):

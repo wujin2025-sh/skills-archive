@@ -22,6 +22,7 @@ import subprocess
 import datetime
 import xml.etree.ElementTree as ET
 import os
+import shutil
 import hashlib
 import re
 import sys
@@ -425,22 +426,30 @@ def run_package_check(config, mode):
     subdir = config['zip_subdir']
     system_type = 'jzjy' if config['center'] == 'JZJY' else 'cszx'
 
-    # 1. 定位版本包文件夹
+    # 1. 定位版本包文件夹（优先重新解压压缩包，确保核对使用最新内容）
     pkg_dir = os.path.join(WORK_DIR, subdir, version)
-    if not os.path.isdir(pkg_dir):
-        zip_path = os.path.join(WORK_DIR, subdir, config['zip_filename'])
-        if os.path.exists(zip_path):
-            print(f"[CHECK] 📦 版本包未解压，自动解压 {config['zip_filename']} ...")
-            try:
-                import zipfile
-                with zipfile.ZipFile(zip_path, 'r') as zf:
-                    zf.extractall(pkg_dir)
-                pkg_dir = spb_check.resolve_extracted_dir(pkg_dir)
-            except Exception as e:
-                print(f"[CHECK] ⚠️ 自动解压失败: {e}")
-                return None
+    zip_path = os.path.join(WORK_DIR, subdir, config['zip_filename'])
+
+    if not os.path.exists(zip_path):
+        # ZIP 不存在：若已存在解压目录则直接使用，否则报错
+        if os.path.isdir(pkg_dir):
+            print(f"[CHECK] ⚠️ 未找到 ZIP 升级包 {config['zip_filename']}，使用已解压目录: {pkg_dir}")
         else:
             print(f"[CHECK] ⚠️ 未找到版本包文件夹或 ZIP: {pkg_dir}")
+            return None
+    else:
+        # 强制重新解压：先清空旧解压目录，避免旧目录内容导致缺失误报
+        print(f"[CHECK] 📦 重新解压 {config['zip_filename']} 以保证核对内容最新 ...")
+        try:
+            import zipfile
+            if os.path.isdir(pkg_dir):
+                shutil.rmtree(pkg_dir, ignore_errors=True)
+            os.makedirs(pkg_dir, exist_ok=True)
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                zf.extractall(pkg_dir)
+            pkg_dir = spb_check.resolve_extracted_dir(pkg_dir)
+        except Exception as e:
+            print(f"[CHECK] ⚠️ 自动解压失败: {e}")
             return None
 
     # 2. 确定参考文件

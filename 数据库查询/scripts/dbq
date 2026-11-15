@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# dbq —— 数据库一键查询启动器（按 profile 自动选择脚本与 Python 解释器）
+#
+# 用法：
+#   dbq --list                        列出可用 profile
+#   dbq <profile> [参数...]           按 profile 自动选脚本+python 并透传参数
+#   密码：自动从 .db_credentials 文件加载（无需手工输入）；也可用 DB_PASSWORD 环境变量覆盖
+#
+# 示例：
+#   DB_PASSWORD='***' dbq dys95 --table tradingdb.t_order
+#   DB_PASSWORD='***' dbq jzqs_sit --search-table order
+#   DB_PASSWORD='***' dbq jzjy_sit --table run.dbo.orderrec
+#   DB_PASSWORD='***' dbq cszx_sit --list-databases               # 参数中心后台（先探测可访问库）
+#   DB_PASSWORD='***' dbq jzjy_sit --search-field err --full   # 降噪过滤+摘要在脚本内已默认
+set -euo pipefail
+
+SKILL_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+QSCHEMA="$SKILL_DIR/scripts/query_schema.py"
+QSQL="$SKILL_DIR/scripts/query_sqlserver.py"
+PY_MYSQL=/usr/local/bin/python3
+PY_SQLSERVER="$HOME/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+
+if [[ $# -eq 0 ]]; then
+  echo "用法: dbq <profile> [参数...]   或   dbq --list" >&2
+  echo "profile: dys95(MySQL) / jzqs_sit(OceanBase) / jzjy_sit(SQL Server)" >&2
+  exit 1
+fi
+
+if [[ "$1" == "--list" || "$1" == "-l" ]]; then
+  echo "可用 profile："
+  echo "  dys95     低延时 SIT        MySQL 8        query_schema.py    + /usr/local/bin/python3"
+  echo "  jzqs_sit  集中清算 SIT      OceanBase 4.2  query_schema.py    + /usr/local/bin/python3 (node 库)"
+  echo "  jzqs_comm_sit 集中清算通用功能 SIT  OceanBase 4.2  query_schema.py + /usr/local/bin/python3 (comm 库, 公共模块)"
+  echo "  jzjy_sit  集中交易 SIT      SQL Server 14  query_sqlserver.py + workbuddy python3 · TDS 7.0"
+  echo "  cszx_sit  参数中心后台 SIT  SQL Server     query_sqlserver.py + workbuddy python3 · TDS 7.0"
+  echo ""
+  echo "密码：自动从 .db_credentials 加载（chmod 600）；DB_PASSWORD 环境变量可覆盖；--password 不推荐。"
+  exit 0
+fi
+
+PROFILE="$1"
+shift
+
+case "$PROFILE" in
+  dys95|jzqs_sit|jzqs_comm_sit)
+    PY="$PY_MYSQL"; SCRIPT="$QSCHEMA"
+    ;;
+  jzjy_sit|cszx_sit)
+    PY="$PY_SQLSERVER"; SCRIPT="$QSQL"
+    if [[ ! -x "$PY" ]]; then
+      echo "❌ 找不到 workbuddy python3: $PY（自带 pymssql 2.4.6，TDS 7.0）" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "❌ 未知 profile: $PROFILE（dbq --list 查看可用 profile）" >&2
+    exit 1
+    ;;
+esac
+
+# 自动加载凭据文件（若 DB_PASSWORD 未在环境中设置）
+if [[ -z "${DB_PASSWORD:-}" ]]; then
+  _CRED_FILE="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.db_credentials"
+  if [[ -f "$_CRED_FILE" ]]; then
+    source "$_CRED_FILE"
+    # profile 名转大写、非字母数字替换为下划线
+    _KEY="DB_PASS_$(printf '%s' "$PROFILE" | tr '[:lower:]' '[:upper:]' | tr -c '[:alnum:]' '_')"
+    if [[ -n "${!_KEY:-}" ]]; then
+      DB_PASSWORD="${!_KEY}"
+    fi
+    unset _CRED_FILE _KEY
+  fi
+fi
+
+exec env DB_PASSWORD="${DB_PASSWORD:-}" "$PY" "$SCRIPT" --profile "$PROFILE" "$@"

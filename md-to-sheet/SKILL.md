@@ -129,6 +129,39 @@ call_mcp("sheet.set_dimension_size", {
 1. B列下拉指示器：腾讯文档API不支持下拉列表验证规则的读写，B列值默认写入"正常"即可，下拉指示器需要用户在网页上手动使用格式刷复制。
 2. F列多系统换行：系统名之间必须使用 `\n` 换行符连接，严禁使用空格、顿号(、)、逗号(,)连接。例如：`"低延时\n集中交易"`。
 
+### Step 4.5: 统一美化模板（对齐参考页 202610）
+
+每次写入完成后，脚本会自动对目标子表套用统一美化模板，保证所有月份页视觉一致（以 `202610` 参考页为准）。
+
+模板内容（脚本内 `apply_sheet_beautify` 自动执行）：
+
+1. **列宽 (A-L，单位像素)**：`[74, 63, 207, 309, 642, 162, 72, 76, 67, 81, 193, 121]`
+   ```python
+   call_mcp("sheet.set_dimension_size", {
+       "file_id": file_id, "sheet_id": sheet_id,
+       "dimensions": [
+           {"dimension_type": "col", "index": i, "size": w}
+           for i, w in enumerate([74, 63, 207, 309, 642, 162, 72, 76, 67, 81, 193, 121])
+       ]})
+   ```
+2. **表头样式**：A-J 列背景色浅蓝 `FF8CDDFA`，K/L 列白色 `FFFFFFFF`，加粗 + 水平/垂直居中
+   ```python
+   # A-J 浅蓝
+   call_mcp("sheet.set_cell_style", {"file_id": file_id, "sheet_id": sheet_id,
+       "start_row": 0, "end_row": 0, "start_col": 0, "end_col": 9,
+       "bg_color": "FF8CDDFA", "bold": True,
+       "horizontal_align": "center", "vertical_align": "center"})
+   # K/L 白
+   call_mcp("sheet.set_cell_style", {"file_id": file_id, "sheet_id": sheet_id,
+       "start_row": 0, "end_row": 0, "start_col": 10, "end_col": 11,
+       "bg_color": "FFFFFFFF", "bold": True,
+       "horizontal_align": "center", "vertical_align": "center"})
+   ```
+3. **冻结表头首行**：`sheet.set_freeze`，`row_count=1, col_count=0`
+4. **整表筛选**：先调用 `sheet.remove_filter`（移除既有筛选避免幂等冲突，无筛选时忽略报错），再调用 `sheet.set_filter`，覆盖表头到数据区（`end_row` 取子表行数，`end_col=11`）
+
+> ⚠️ 注意：`sheet.set_cell_style` 的 `bg_color` 必须使用 **8 位 ARGB 格式**（如 `FF8CDDFA`），用 6 位会不生效。数据区 E 列浅黄高亮（`FFFFF9E3`）由 Step 4 的按行样式设置负责，不受本模板影响。
+
 ### Step 5: 验证
 
 写入完成后，用 `get_cell_data` 读取新写入的行，确认数据正确性，向用户汇报写入结果。
@@ -161,6 +194,8 @@ python3 ~/.workbuddy/skills/md-to-sheet/scripts/md_to_sheet.py rzrq --date all
 # 预览模式（只解析预览，不实际修改表格）
 python3 ~/.workbuddy/skills/md-to-sheet/scripts/md_to_sheet.py gpzy --dry-run
 ```
+
+> 🎨 **自动美化**：每次非 dry-run 同步完成后，脚本会自动对其处理的月份子表套用统一美化模板（列宽 / 表头浅蓝背景 / 冻结表头 / 整表筛选），保证各月份页视觉一致（详见 **Step 4.5**）。dry-run 模式只预览数据、不写入，因此不会触发美化。
 
 ## 已知限制
 

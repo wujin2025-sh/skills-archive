@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "updated": "2026-11-13",
+  "source": "/Users/wujin/.workbuddy/skills/_shared/SHARED.md",
+  "script": "/Users/wujin/.workbuddy/skills/_shared/sync_shared.py",
+  "backup_dir": "/Users/wujin/.workbuddy/skills/_shared/.backups",
+  "targets": [
+    "/Users/wujin/.workbuddy/skills/ba-to-dev/SKILL.md",
+    "/Users/wujin/.workbuddy/skills/biz-logic-query/SKILL.md"
+  ],
+  "section_title": "## 🔗 共性规范基线（单一事实源：_shared/SHARED.md）",
+  "section_intro": "> ⚠️ 本章由 `sync_shared.py apply` 自动同步，**禁止手工编辑块内内容**；共性改动一律先改 `~/.workbuddy/skills/_shared/SHARED.md` 再 `apply` + `check`。本章之外的内容是本技能特有的场景化扩展。",
+  "blocks": [
+    "authority_sources",
+    "evidence_grading",
+    "clarification",
+    "subscription_matrix",
+    "dataflow_diagram",
+    "sync_protocol"
+  ],
+  "constants": {
+    "interface_db": ".interface_store.db",
+    "subscription_db": ".subscription_matrix.db",
+    "system_list": "system_list.csv",
+    "dict_real_name": "run.dbo.dictindex",
+    "no_proxy": "NO_PROXY=csgl.gtht.com.cn",
+    "multi_project": "jzjy,dys,jzqs",
+    "demand_script": "demand_dep_find.py",
+    "subscription_script": "subscription_matrix.py",
+    "shared_source": "_shared/SHARED.md",
+    "sync_script": "sync_shared.py",
+    "a37_consumer": "低延时交易系统(虚拟)",
+    "db_first": "DB-First"
+  },
+  "pointers": {
+    "ba-to-dev": ["biz-logic-query", "P0#26"],
+    "biz-logic-query": ["ba-to-dev", "P0#26", "P0#22"]
+  },
+  "mirrors": [
+    {
+      "source": "/Users/wujin/.workbuddy/skills/biz-logic-query/SKILL.md",
+      "copy": "/Users/wujin/.chat/skills/biz-logic-query/SKILL.md",
+      "note": ".chat/skills/biz-logic-query 是独立真实目录（非软链接），SKILL.md 为独立副本；其 scripts/biz_logic_query.py 是硬链接（同一 inode）故无需同步。ba-to-dev 已是软链接。"
+    }
+  ],
+  "notes": [
+    "targets 中的两份 SKILL.md 通过 .chat/skills 软链接对外可见，改一处即生效",
+    "新增第三个共用技能时追加到 targets 后执行 apply --init",
+    "constants 与 pointers 是弱同步项：只校验存在，不要求措辞一致"
+  ]
+}

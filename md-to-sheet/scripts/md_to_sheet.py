@@ -255,6 +255,75 @@ def match_month_to_sheet(month_str: str, sheet_names: list[str]) -> str | None:
 
     return None
 
+# ── 表格统一美化模板（对齐参考页 202610 风格）──────────────────────────
+# 列宽 (列索引 0-11 -> A-L)，单位：像素
+_SHEET_COL_WIDTHS = [74, 63, 207, 309, 642, 162, 72, 76, 67, 81, 193, 121]
+# 表头背景色 (ARGB)：A-J 列浅蓝，K/L 列白色
+_SHEET_HEADER_BG = "FF8CDDFA"
+_SHEET_HEADER_BG_WHITE = "FFFFFFFF"
+
+
+def apply_sheet_beautify(file_id: str, sheet_id: str, row_count: int = 200):
+    """对目标子表套用统一美化模板，保持各月份页视觉一致（参照 202610 参考页）。
+
+    包含：列宽、表头背景/加粗居中、冻结表头首行、整表筛选。
+    """
+    # 1. 列宽
+    try:
+        call_mcp("sheet.set_dimension_size", {
+            "file_id": file_id,
+            "sheet_id": sheet_id,
+            "dimensions": [
+                {"dimension_type": "col", "index": i, "size": w}
+                for i, w in enumerate(_SHEET_COL_WIDTHS)
+            ]
+        })
+    except Exception as e:
+        print(f"⚠️ 美化-设置列宽失败: {e}", file=sys.stderr)
+
+    # 2. 表头样式：A-J 浅蓝，K/L 白，加粗居中
+    try:
+        call_mcp("sheet.set_cell_style", {
+            "file_id": file_id, "sheet_id": sheet_id,
+            "start_row": 0, "end_row": 0, "start_col": 0, "end_col": 9,
+            "bg_color": _SHEET_HEADER_BG, "bold": True,
+            "horizontal_align": "center", "vertical_align": "center",
+        })
+        call_mcp("sheet.set_cell_style", {
+            "file_id": file_id, "sheet_id": sheet_id,
+            "start_row": 0, "end_row": 0, "start_col": 10, "end_col": 11,
+            "bg_color": _SHEET_HEADER_BG_WHITE, "bold": True,
+            "horizontal_align": "center", "vertical_align": "center",
+        })
+    except Exception as e:
+        print(f"⚠️ 美化-设置表头样式失败: {e}", file=sys.stderr)
+
+    # 3. 冻结表头首行
+    try:
+        call_mcp("sheet.set_freeze", {
+            "file_id": file_id, "sheet_id": sheet_id,
+            "row_count": 1, "col_count": 0,
+        })
+    except Exception as e:
+        print(f"⚠️ 美化-设置冻结失败: {e}", file=sys.stderr)
+
+    # 4. 整表筛选（先移除已有筛选，避免 "already has filter" 幂等冲突）
+    try:
+        call_mcp("sheet.remove_filter", {
+            "file_id": file_id, "sheet_id": sheet_id,
+        })
+    except Exception:
+        pass  # 无既有筛选时忽略
+    try:
+        call_mcp("sheet.set_filter", {
+            "file_id": file_id, "sheet_id": sheet_id,
+            "start_row": 0, "start_col": 0,
+            "end_row": max(1, row_count), "end_col": 11,
+        })
+    except Exception as e:
+        print(f"⚠️ 美化-设置筛选失败: {e}", file=sys.stderr)
+
+
 def get_biz_type(filename: str, content: str) -> str:
     """根据文件名 and 内容智能识别业务类型: gpzy (股票质押), rzrq (融资融券) 或 qt (其他)"""
     full_text = (filename + "\n" + content).lower()
@@ -659,6 +728,11 @@ def main():
                         })
                     except Exception as e:
                         print(f"⚠️ 批量调整行高失败: {e}", file=sys.stderr)
+
+        # 套用统一美化模板（参照 202610 参考页），保证各月份页视觉一致
+        if not args.dry_run:
+            print(f"   🎨 正在套用统一美化模板 (列宽/表头/冻结/筛选)...")
+            apply_sheet_beautify(file_id, sheet_id, row_count)
 
         print(f"📊 月份 {month} 处理完毕: 追加 {added_count} 条记录, 更新 {updated_count} 条记录")
 

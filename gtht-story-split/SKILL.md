@@ -314,6 +314,54 @@ disable: false
     - **③ 优先级定义**：`P0`=本次即可落地、收益显著；`P1`=需工程化改造；`P2`=体验/流程优化；
     - **④ 状态标注**：`已落地`=本次已采用；`待落地`=已提出待实施。**「已落地」的优化点不进入清单展示**（已生效，无需再提示），仅保留「待落地」项。
     - 优化点须**基于本次实际执行情况**输出，避免空泛套话；若本次执行已足够高效，如实标注「本次执行高效，无显著优化点」。
+13. **execute 代码内 mcpContinuation 精简提取（2026-11-09 R2611050089 实测沉淀，防截断丢失）**：`create_story` / `start_technical_evaluation` 的 prepare 响应含大量嵌套结构（`normalizedValues` + `workflowDefinition` + `workflowTrace` + `stepContract`，合计数百 KB），`execute` 代码返回完整结果时**易被截断**，导致 `mcpContinuation` 丢失、被迫重新 prepare（浪费 1 轮往返）。**正确模式**：
+    ```javascript
+    // ❌ 错误：返回完整 prepareResult（易截断）
+    return prepareResult;
+
+    // ✅ 正确：只提取提交所需字段
+    const mc = prepareResult?.mcpContinuation || prepareResult?.data?.mcpContinuation;
+    if (!mc) return { status: prepareResult?.data?.status, topKeys: Object.keys(prepareResult||{}), dataKeys: prepareResult?.data ? Object.keys(prepareResult.data) : [] };
+    const submitResult = await tools.kjptai.create_story({ ...mc.submitArguments, confirmed: true });
+    return { submitStatus: submitResult?.status || submitResult?.data?.status, submitResult };
+    ```
+    **核心原则**：prepare 后**立即在同一 execute 代码块内提取 `mcpContinuation.submitArguments` 并提交**，不返回完整 prepare 响应到对话；仅当提取失败（无 mcpContinuation）时才返回调试信息（topKeys/dataKeys）。
+14. **预授权一步模式（2026-11-09 R2611050089 实测沉淀，省 1 轮往返）**：当用户已在确认摘要时**明确预授权**（回复 `2`="拆分并发起技术评估"）且 prepare 返回 `missingFields=[]`、`normalizedValues` 与预期完全一致时，**同一轮 execute 代码块内完成 prepare → 检查 normalizedValues → submit**，无需再展示摘要等待二次确认。**适用条件**：① 用户已明确回复 `1`/`2` 预授权；② `missingFields=[]`；③ `normalizedValues` 中系统/人员/标签等关键字段与模版映射表一致（Spot check 3 个字段即可：systemName/devManagePerson/systemLabelName）。**不适用**：用户未预授权（首次展示摘要）、`missingFields` 非空、`normalizedValues` 与预期不符（需向用户展示差异）。
+15. **query_requirement_flow 精简提取（2026-11-09 R2611050089 实测沉淀，token 降 ~60%）**：`query_requirement_flow` 返回约 53KB 嵌套 JSON（含 9 个 `availableActions` 完整对象，每个含 buttonId/buttonType/roleId/size/sort 等 10+ 字段），**execute 代码返回时只提取决策所需 3 个关键字段**：
+    ```javascript
+    // ✅ 精简提取模式
+    const data = flowResult?.data?.data || flowResult?.data || {};
+    return {
+      boardName: data.demand?.boardName,
+      stories: (data.stories || []).map(s => ({ storyNo: s.storyNo, summary: s.summary, status: s.status, systemName: s.systemName })),
+      hasStartTechEval: (data.availableActions || []).some(a => a.buttonName === "发起技术评估"),
+      hasCreateStory: (data.availableActions || []).some(a => a.buttonName === "新建story")
+    };
+    ```
+    **禁止**返回完整 `availableActions` 数组（9 个完整对象 ~3KB token）；仅提取 `buttonName` 做布尔判断即可。
+16. **拆分→评估链式执行（2026-11-09 R2611050089 实测沉淀，省 2 轮往返）**：用户回复 `2`（拆分+评估）时，**单系统场景**在**一个 execute 代码块内链式完成全部 4 步**：
+    ```javascript
+    // 链式执行模板（单系统，用户已预授权 2）
+    // Step 1: create_story prepare → submit
+    const prep = await tools.kjptai.create_story({ ...args });
+    const mc = prep?.mcpContinuation || prep?.data?.mcpContinuation;
+    const sub = await tools.kjptai.create_story({ ...mc.submitArguments, confirmed: true });
+    // Step 2: query_requirement_flow 确认 Story 落库
+    const flow = await tools.kjptai.query_requirement_flow({ demandId });
+    // Step 3: start_technical_evaluation prepare → submit
+    const evalPrep = await tools.kjptai.start_technical_evaluation({ demandId });
+    const evalMc = evalPrep?.mcpContinuation || evalPrep?.data?.mcpContinuation;
+    const evalSub = await tools.kjptai.start_technical_evaluation({ ...evalMc.submitArguments, confirmed: true });
+    return { storyStatus: sub?.status, evalStatus: evalSub?.status, stories: flow?.data?.data?.stories?.map(s=>s.storyNo) };
+    ```
+    **适用条件**：① 单系统 Story（无 re-prepare 串行约束）；② 用户已预授权 `2`；③ `create_story` submit 返回 SUCCESS。**不适用**：多系统 Story（需串行 re-prepare，无法链式）；用户回复 `1`（仅拆分，不发起评估）。
+17. **本地 MD Front Matter 一次性替换（2026-11-09 R2611050089 实测教训，防误删）**：更新需求 MD 文档的 Front Matter 时（如 `status` / `story` / `updated` 字段），**用一次 edit 替换整个 `---` 块**，**禁止逐行增删**（逐行 edit 易因 oldString 匹配范围不当导致相邻字段被误删，R2611050089 实测：3 次 edit 才正确更新 front matter，第 2 次 edit 误删了 status/story 行）。**正确模式**：
+    ```javascript
+    // ✅ 一次性替换整个 front matter 块
+    edit({ oldString: "---\nreq_id: R26xxxxxxx\n...全部旧字段...\n---", newString: "---\nreq_id: R26xxxxxxx\n...全部新字段...\n---" })
+    // ❌ 禁止：逐行增删（易误删相邻字段）
+    edit({ oldString: "status: 旧状态\n---", newString: "status: 新状态\nstory: S26xxx\n---" })
+    ```
 
 ---
 
