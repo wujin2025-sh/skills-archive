@@ -61,10 +61,40 @@ def get_match_stop_words() -> list:
     return cfg.get("match_stop_words", [])
 
 
-# ── MCP 调用工具 ──────────────────────────────────────────────────────────
+# 全局：代理是否已确认可用
+_PROXY_OK = False
+
+def _proxy_available() -> bool:
+    """能否导入 HTTP 代理后端（依赖 requests）。导入失败视为不可用。"""
+    global _PROXY_OK
+    if _PROXY_OK:
+        return True
+    try:
+        import mcp_http_proxy  # noqa: F401
+        _PROXY_OK = True
+        return True
+    except Exception:
+        return False
+
 
 def call_mcp(tool_name: str, args: dict, mcporter_path: str = None) -> dict:
-    """通过 mcporter 调用 tencent-docs 的 MCP 工具"""
+    """调用 tencent-docs 的 MCP 工具。
+
+    通道选择（自动降级）：
+      1. HTTP 代理通道（mcp_http_proxy，默认且恒定优先）：
+         直接经内网代理 http://172.16.0.11:3128 访问远程 MCP 的 Streamable HTTP。
+         背景：AILink 自带 connector-runtime node 已损坏，mcporter 一启动即 V8 崩溃
+         （Check failed: 12 == (*__error())）。代理通道不依赖 Node，稳定快速。
+         ⚠️ 业务错误（MCP 协议错误，如 remove_filter 无筛选）一律不降级，原样向上抛，
+         由调用方 try/except 容错。
+      2. mcporter 通道：仅在代理后端不可导入（缺 requests 等）时回退。
+    """
+    # —— 通道 1：HTTP 代理（默认，恒定优先，不因业务错误降级）——
+    if _proxy_available():
+        import mcp_http_proxy
+        return mcp_http_proxy.call_mcp(tool_name, args or {})
+
+    # —— 通道 2：mcporter（仅代理后端不可用时回退）——
     if mcporter_path is None:
         mcporter_path = get_path("mcporter", "/Users/wujin/.npm-global/bin/mcporter")
 

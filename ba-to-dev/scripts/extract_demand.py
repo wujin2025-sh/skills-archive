@@ -31,6 +31,11 @@ import urllib.parse
 # 本地缓存默认搜索路径（相对运行目录为 /Volumes/Macintosh HD_Data/obsidian/.chat）
 DEFAULT_CACHE = ".chat"
 
+# 需求号权威格式：R + 10 位数字（如 R2606030038）。
+# 2026-11-19 收紧：原入参允许 R\d{6,}，9 位残缺号可一路落盘，造成库内 20 份文档对
+# R\d{10} 检索永久不可见，故此处对入参做强制校验并显式报错，不再静默接受。
+REQ_ID_RE = re.compile(r"^R\d{10}$")
+
 
 def load_json(path):
     with open(path, encoding="utf-8") as f:
@@ -245,12 +250,23 @@ def attr_table(detail):
 
 def main():
     args = sys.argv[1:]
-    req_id = next((a for a in args if re.fullmatch(r"R\d{6,}", a) or re.fullmatch(r"\d{8}R\d{6,}", a) or re.fullmatch(r"R\d+", a)), None)
-    if not args or not req_id:
+    # 2026-11-19 收紧：先把任意形态入参（裸号 / 20260414-R2603270060 / 平台链接）归一，
+    # 再强制要求 R + 10 位。原实现接受 R\d{6,}，9 位残缺号可一路落盘 → 文档对 R\d{10} 检索隐身。
+    raw = next((a for a in args if re.search(r"R\d+", a)), None)
+    if not args or not raw:
         print(__doc__)
         return 1
-    if "R" in req_id and req_id[0].isdigit():
-        req_id = req_id[req_id.index("R"):]
+    cand = re.findall(r"R\d+", raw)
+    ok = [c for c in cand if REQ_ID_RE.match(c)]
+    if not ok:
+        print(f"✗ 需求号非法: {raw} → 解析到 {cand or '无'}。"
+              f"需求号必须是 R + 10 位数字（如 R2606030038），请回需求原文或平台链接核对。",
+              file=sys.stderr)
+        return 2
+    if len(set(ok)) > 1:
+        print(f"✗ 入参含多个合法需求号 {sorted(set(ok))}，请只保留一个。", file=sys.stderr)
+        return 2
+    req_id = ok[0]
     # 参数解析
     def flag(name, default=None):
         if name in args:

@@ -10,12 +10,13 @@ review_requirement / add_requirement_review_minutes 参数 mettingSummary 的 HT
 
 输出:
     stdout 打印 1 个 <p> 包裹的 HTML（<br> 换行、<strong> 加粗、&nbsp; 缩进），
-    末尾必含「预计上线日期」行（决策日志可选小节在其后不截断）；可直接复制填入
-    Step 4a / Step 6a 的 mettingSummary 参数。
+    末尾必含「预计上线日期」行（「评审决策日志」可选小节会自动截断，不进入纪要正文），
+    可直接复制填入 Step 4a / Step 6a 的 mettingSummary 参数。
 
 转换规则（与 SKILL.md「mettingSummary HTML 转换规则」一致，2026-10-12 用户偏好固化）:
-  1. 小节定位: 从「#### 评审纪要」/「## 评审纪要」标题行起，至「---」分隔线 / 下一章节标题 / 文件末尾止
-     （「##### **评审决策日志**」为 5 个 #，不属于下一章节标题，不截断）；
+  1. 小节定位: 从「#### 评审纪要」/「## 评审纪要」标题行起，至「---」分隔线 / 下一章节标题 /
+     「评审决策日志」标题（5 个 #） / 文件末尾止
+     （「##### **评审决策日志**」为 5 个 #，属内部决策记录，命中即截断，不进入纪要正文）；
   2. 行类型与缩进（&nbsp; 半角空格，禁 &emsp;）:
      - 首行（沟通时间与人员）与标题行（`N. **小节名**：`）: 无缩进;
      - 内容行（标题下的正文行）与 `(N)` 子条目行: 3 个 &nbsp;（对齐标题首字）;
@@ -38,6 +39,8 @@ from pathlib import Path
 SECTION_RE = re.compile(r"^#{2,4}\s*\*?\*?评审纪要\*?\*?\s*$")
 # 术语：下一章节标题（1-4 个 #）或分隔线
 SECTION_END_RE = re.compile(r"^(?:\s*---+\s*$|#{1,4}\s)")
+# 评审决策日志标题（5 个 #，位于「预计上线日期」之后）：属内部决策记录，不进入 mettingSummary
+DECISION_LOG_RE = re.compile(r"^#{5}\s*\*?\*?评审决策日志\*?\*?\s*(?:：|:|$)")
 TITLE_RE = re.compile(r"^\d+\.\s")          # 1. **需求补充说明**：
 SUBITEM_RE = re.compile(r"^(?:\(\d+\)|（\d+）)\s")  # (1) 系统A：
 CIRCLE_RE = re.compile(r"^[①-⑩]")           # ① 功能点一。
@@ -65,6 +68,10 @@ def extract_review_lines(md_text: str):
         stripped = lines[j].strip()
         if not stripped:
             continue
+        # 评审决策日志（内部决策记录）不进入评审纪要正文：命中即终止小节
+        if DECISION_LOG_RE.match(stripped):
+            end = j
+            break
         if SECTION_END_RE.match(stripped) and not SECTION_RE.match(stripped):
             end = j
             break

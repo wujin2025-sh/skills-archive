@@ -79,6 +79,16 @@ CONF_PENDING = "待确认"
 # 中文业务概念 → 英文标识符（中文在 C++ 图谱 BM25 全是 makefile 噪声、dbq 中文表名恒 0 命中）
 # 长短语优先；只登记已实证过的映射，未实证的一律走通用映射并在澄清里请用户补充
 KEYWORD_MAP = [
+    # 2026-11-17「融资规模设置菜单」实证：参数/菜单类概念必须优先于「融资」，
+    # 否则退化成 loan → 185 条「融资」同族噪声，且代码图谱完全跑偏
+    ("单一客户所有证券融资规模占净资本比例", ["creditscale", "stkChkCreditSingleScale"]),
+    ("全体客户所有证券融资规模占净资本比例", ["creditscale", "stkChkCreditTotalScale"]),
+    ("融资规模设置", ["creditscale", "creditmixparam"]),
+    ("信用交易规模", ["creditscale"]),
+    ("单一证券融资规模", ["creditscale"]),
+    ("净资本", ["creditscale", "creditmixparam"]),
+    ("规模参数", ["creditscale"]),
+    ("系统节点", ["systemcfg"]),
     ("指定合约还款", ["contract_sno", "direct_repay_appoint"]),
     ("直接还款", ["direct_repay"]),
     ("指定合约", ["contract_sno"]),
@@ -105,10 +115,22 @@ KEYWORD_MAP = [
 ]
 # 表名级关键词（字段名如 contract_sno 不能拿来搜表名，否则恒 0 命中）
 DB_KEYWORD_MAP = [
+    ("规模", "scale"), ("净资本", "creditmixparam"), ("节点", "systemcfg"),
     ("还款", "repay"), ("负债", "debt"), ("合约", "contract"),
     ("融资", "loan"), ("融券", "short"), ("清算", "clear"),
     ("展期", "delay"), ("委托", "order"), ("担保品", "guaranty"),
     ("回购", "repo"), ("质押", "pledge"), ("息费", "fee"),
+]
+# 参数/菜单类概念 → 接口库 table_name 精确回查（2026-11-17 实证，缺陷 #11）
+# 这类概念在 name/code/description 里往往完全不出现，只以「文件接口的表名」登记
+PARAM_TABLE_HINT = [
+    ("融资规模", "creditscale"),
+    ("信用交易规模", "creditscale"),
+    ("净资本", "creditscale"),
+    ("规模设置", "creditscale"),
+    ("规模参数", "creditscale"),
+    ("系统节点", "systemcfg"),
+    ("节点配置", "systemcfg"),
 ]
 # 按系统域覆盖代码检索词（2026-11-13「直接还款」实证：
 # 低延时模块名 direct_repay 在 jzjy 全库 grep 必然 0 命中且耗时 10.28s，是冷启动最大瓶颈）
@@ -281,6 +303,17 @@ def query_interface(db_path, keyword, limit=10):
                         "SELECT * FROM interfaces WHERE code=? LIMIT ?",
                         (m.group(1), limit),
                     ).fetchall()
+            if not res:
+                # 缺陷 #11：参数/菜单类概念在 name/code/description 里可能完全不出现，
+                # 只登记为文件接口的 table_name（S24 信用交易规模参数 → creditscale）
+                for phrase, table in PARAM_TABLE_HINT:
+                    if phrase in keyword:
+                        res = cur.execute(
+                            "SELECT * FROM interfaces WHERE table_name=? LIMIT ?",
+                            (table, limit),
+                        ).fetchall()
+                        if res:
+                            break
         conn.close()
     except Exception as e:                                        # noqa: BLE001
         return [], f"接口库查询失败: {e}"
@@ -626,7 +659,10 @@ def main():
         conclusion = f"「{q}」在接口库未命中（0 结果），转其他域或需人工确认"
 
     # 同族接口自动扩展：只补一条分组概览证据，不把几十条接口塞进主结论
-    family = None if (args.code or args.fast) else query_interface_family(INTERFACE_DB, q, ifaces)
+    # 参数/菜单类概念已按 table_name 精确定位，跳过「融资」等泛词同族扩展（185 条噪声）
+    param_query = any(ph in q for ph, _ in PARAM_TABLE_HINT)
+    family = (None if (args.code or args.fast or param_query)
+              else query_interface_family(INTERFACE_DB, q, ifaces))
     if family and family["total"] > len(ifaces):
         core = family["core"]
         fs = "｜".join(f"{k} {v}条" for k, v in sorted(family["by_system"].items()))

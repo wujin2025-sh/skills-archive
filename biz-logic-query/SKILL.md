@@ -1,6 +1,6 @@
 ---
 name: biz-logic-query
-description: '业务逻辑智能问答 + 证据链工具：将业务/产品/测试人员提出的业务问题（如"这笔业务系统怎么处理""某接口承载什么""改动某函数影响谁"），转化为带证据链的可追溯结论——一句话答案 + 证据出处表 + 可信度分级 + 影响范围提示。复用 ba-to-dev 三域检索权威源（接口库/代码图谱/数据库/需求反查），结论有据可查、非模型猜测。Triggers: 业务规则查询、系统怎么处理这笔业务、接口查询、证据链、查某功能实现、影响范围、业务逻辑问答、biz-logic-query、/bizqa、这是哪个接口。'
+description: '业务逻辑智能问答 + 证据链工具：将业务/产品/测试人员提出的业务问题（如"这笔业务系统怎么处理""某接口承载什么""改动某函数影响谁"），转化为带证据链的可追溯结论——一句话答案 + 证据出处表 + 可信度分级 + 影响范围提示。复用 ba-to-dev 三域检索权威源（接口查询 fwzl-mcp/接口库、代码图谱、数据库、需求反查），结论有据可查、非模型猜测。功能号/接口号精查优先走 fwzl-mcp（服务治理 MCP）。Triggers: 业务规则查询、系统怎么处理这笔业务、接口查询、证据链、查某功能实现、影响范围、业务逻辑问答、biz-logic-query、/bizqa、这是哪个接口。'
 disable: false
 ---
 
@@ -46,6 +46,11 @@ $P $S "指定合约还款" --all --timings
 $P $S "指定合约还款" --fast
 
 # 3) 功能号 / 英文函数名精查（ASCII 标识符自动走精准检索）
+#    ⚡ 功能号/接口号精查优先走 fwzl-mcp（服务治理 MCP，无浏览器/登录态）：
+#       mcp__fwzl-mcp__functionQueryServiceByKeyWord({keyWord:"7300780"})  存在性/基本信息
+#       mcp__fwzl-mcp__queryServiceParameterByFuncCode({funcCode:"7300780"})  IN/OT/HD 出入参
+#       mcp__fwzl-mcp__queryParentFunction / queryChildFunction                调用链
+#    以下脚本用于兜底（fwzl-mcp 不可用/未命中时）：
 $P $S "7300780" --code
 $P $S "RepayContractDebets" --all --project jzqs --trace
 
@@ -109,7 +114,7 @@ $P $M sql "SELECT * FROM v_a37_consumers" # 自由 SQL
 | 域 | v2 调用方式 | 特有参数 / 剪枝 |
 | :--- | :--- | :--- |
 | L0 | `demand_dep_find.py` 并行任务 | 缓存 1h；命中本地 MD 直接作 🟢 证据，输出清洗固定模板头 |
-| L1 | `.interface_store.db` 同步查询 | `FILE_CODE_TOKEN` 编号精确回退；`query_interface_family()` 同族扩展 |
+| L1 | **fwzl-mcp 优先**（`mcp__fwzl-mcp__functionQueryServiceByKeyWord` / `queryServiceParameterByFuncCode` / `queryParentFunction` / `queryChildFunction`），**兜底** `.interface_store.db` 同步查询 | 功能号/文件号精查**先走 fwzl-mcp**（无需浏览器/登录态，覆盖本地库未收录的纯数字功能号）；fwzl-mcp 不可用/未命中才回退本地库。本地库用 `FILE_CODE_TOKEN` 编号精确回退、`query_interface_family()` 同族扩展 |
 | L1.5 | `.subscription_matrix.db` 只读 | 命中文件编号自动附加消费者证据（库不存在静默跳过） |
 | L2 | CBM `search_code` 主域 / `search_graph` 辅域 | `--path-filter`、按系统域关键词覆盖、辅域 8s 上限、缓存 24h |
 | L3 | `dbq <profile>` | 中文概念 → **表名词**映射（非字段名）、缓存 24h |
@@ -146,6 +151,7 @@ $P $M sql "SELECT * FROM v_a37_consumers" # 自由 SQL
 
 | 9 | 「文件号 + 名称」组合查询（如 `A37 大宗交易预委托记录信息`）整词 `LIKE` 必然 0 命中，实际接口库精确存在 `A37` | ✅ `FILE_CODE_TOKEN` 提取编号 token 后按 `code` 精确回查；实测 0 命中 → 1 命中，澄清项 3→1 | 仅支持字母开头编号（A37/Q49/S140）或 5-9 位纯数字功能号 |
 | 10 | 编号查询被同族扩展词「委托」放大成 350 条噪声，掩盖精确命中 | ✅ 检出编号且已有命中时跳过 `query_interface_family()`；「直接还款」等同族扩展回归仍为 41 条 | 文件类查询的代码检索词仍按中文映射为 `order`，需手工 `--project jzqs` + 表名精查 |
+| 11 | 中文参数/菜单类概念（「单一客户所有证券融资规模占净资本比例」）在 `name/code/description` 中 0 命中，退化成 `loan` → 泛化成「融资」185 条同族噪声且代码层全跑偏；接口库从不检索 `table_name` | ✅ **已修复（2026-11-17）**：`KEYWORD_MAP` 增 8 条参数类长短语（优先于「融资」）、`DB_KEYWORD_MAP` 增 `规模/净资本/节点`、新增 `PARAM_TABLE_HINT` 按 `table_name` 精确回查、参数类概念跳过同族扩展。实测 0 命中+185 条 → **精确命中 S24**，关键词 `creditscale`、db `%scale%`、澄清 3→1、冷启动 11.24s→7.56s | 新参数概念需补进 `PARAM_TABLE_HINT`；`creditscale` 之外的参数表（如 `systemcfg`）需另行登记 |
 
 > 仍未固化：① 文件接口类查询应自动把代码域切到文件所属系统、并用 `table_name`（如 `dzjypreorder`）作代码检索词；② `openviking find` 冷启动约 7.5s 属内网语义检索固有耗时，仅能靠缓存规避（现已是冷启动唯一瓶颈）。
 
@@ -218,6 +224,27 @@ PY
 | 订阅矩阵（🟢 权威） | `新一代文件交互接口订阅矩阵.xlsx` Sheet1 **R299**：A37 输出系统=**集中清算系统**、**唯一消费者=低延时交易系统(虚拟)**（√）；**R523**：Q49 输出=低延时交易系统(虚拟)，消费者=**集中清算系统 + 集中交易系统**；**R49**：S140 输出=交易参数管理后台，消费者=低延时。全量 498 文件 / 743 条订阅关系，已入库 `.subscription_matrix.db` |
 | ⚠️ 口径差异（3 项待确认 + 1 项已核销） | ① 接口库 A37 登记 **39 字段**，源码导出脚本（普通/信创两版）均 **37 列**，差 `operwayext`/`userinfo`；② ✅ **已核销**：订阅矩阵 R299 明确 A37 唯一订阅者为「低延时交易系统(虚拟)」，需求文档口径正确，源码注释「统一清算-->集中交易系统」为泛称/偏差；③ Q49 在 jzqs `src_sql` 内未找到文件定义（疑在低延时侧或文件接口平台）；④ `node.cjs_dzjypreorder` SIT 0 行，A37 回流通道暂无测试数据 |
 
+### 「融资规模设置菜单 / 单一客户所有证券融资规模占净资本比例」实测映射（2026-11-17 邮件需求实证）
+
+| 层 | 实证值 |
+| :--- | :--- |
+| 需求原文 🟢 | 邮件截图 2026-11-13 15:59:59 汤嘉→杜伟毅（抄送胡业伟、胡潇红）：菜单路径「集中营运交易参数管理 → 融资融券参数 → 融资融券交易设置参数 → 融资规模设置菜单」；下设【单一客户所有证券融资规模占净资本比例】（参数值 4%）与【全体客户所有证券融资规模占净资本比例】；后者**闲置**（由融资融券总规模设置菜单替代，前期已暂停使用，维持现状）；前者**目前只对 95 节点生效**，诉求扩展到所有集中营运节点（含 96、98）客户 |
+| 参数模型 🟢 | 接口库 **S24 信用交易规模参数**（交易参数管理后台系统 / 交易参数文件，表 `creditscale`），6 字段：`creditkind` 信用类型 / `moneytype` / `custscope` 客户范围 / `stkscope` 0单一证券·1所有证券 / `scalekind` 0占净资本·1占流通股本·2占总股本·3占流通市值·4占总市值 / `scalevalue` 控制比例。**两个「参数」其实是这张表里的两行配置，不是两个菜单** |
+| 实时接口 🟢 | 低延时 **124317 交易规模控制参数设置**（KCXP，负责人 114305），入参含 `targetNode` 分区号 + 同样 6 字段，字典 `Axykhfw`/`Axyzqfw`/`Axygmlx`；输出 `CODE/LEVEL/MSG` |
+| 参数中心 🟢 | `170019 通用参数设置`（118788）内含 `170019-170049 系统节点设置`（`systemid/systemname/nodeid/nodename/status/creditnodeflag/urgentflag`）；源码 `jzjy/adaptor/参数中心/adaptor.xml:742` `srcfuncid="170236" destfuncid="177236"`（异步，仅转 `moneytype` 字典 Z000002）→ 本地 MD 的「两融规模参数设置 170236」在接口库 0 命中，靠源码映射 |
+| 校验主链路 🟢 | `CCommStk::stkChkCreditSingleScale`（公用函数 **990289**）`lbmdll/GeneralBus/CommStk.cpp:52566-52740`：① 开关 `run..creditmixparam where serverid=%d and paramkinds='29' ckind='1'`（不控制直接 return 0）；② 融资买入 `CREDITDIGESTID_RZMR` 取 `creditscale where serverid=%d creditkind='0' custscope='0' stkscope='1' scalekind='0'` → `scalevalue`；③ 分母 `creditmixparam paramkinds='18' amt`（证券公司净资本）；④ 分子 `dbFunddebts2 + dbFunddebtsfrz + |dbFundeffect|`；⑤ ≥ 阈值拒单 `-990289030`。另有单券占流通股本 `-990289050`、融券卖出 `-990289110` 分支 |
+| 全体客户对照 🟢 | `CCommStk::stkChkCreditTotalScale`（**990290**）`CommStk.cpp:52767-53556`：开关 `paramkinds='30'`；源码注释「全体信用客户融资规模占证券公司净资本比例达到设定值（100％）时限制所有客户融资买入，直至该指标低于 200％」→ 需求称该参数「闲置」，对应的是独立开关 '30' |
+| 参数设置/复核 🟢 | `CSys::sysSetCredScale` `lbmdll/lbm_sys/sysCredit.cpp:4179-4771`（`nServerid = GF_GetServerid()`）、`sysGetCredScale` :4796-4827、`sysScaleQry` :14777、`sysScaleSet` :14435、`sysScaleChk` :14603（复核 6 字段非空 + 风控数值必须为正）；柜台侧 `CTrdmngCounter::sysSetCredScale` `lbmdll/lbm_trdmngcounter/sysCredit.cpp:8859-9277`；风控调用点 `CCredit::GetChkRisk` `lbm_credit/CreditStkMatch.cpp:6649`、`Cperipherymatch::GetChkRisk` `lbm_percrdmatch/creditzrttran.cpp:3581` |
+| **节点隔离根因 🟢** | 上述所有 SQL **均带 `serverid`**；dbq 实证 `run.dbo.creditscale` 7 字段、主键 = `creditkind,custscope,moneytype,scalekind,serverid,stkscope`。参数与开关按节点本地库存储 → 这是「只对 95 节点生效」的结构性根因，而非界面限制 |
+| 节点编号 🟢/🔴 | **Z54 系统节点配置表**（`systemcfg`，交易参数管理后台系统）字段 remark：`systemid` `'03'`=集中交易柜台、**`'96'`=低时延96**、`'130'`=集中清算、`'99'`=顶点、`'111'`=交易管理系统；`nodeid` 例 `'97'`；`creditnodeflag` 0普通/1信用节点。技能实测字典另有 `GF_CheckDYSCuststatus(sysid=96)`=低延时客户。**95 / 98 未在字段字典直接列出** → 🔴 |
+| 98 节点 🟢 | 本地 MD `20260602-R260602008-集中交易系统核心98节点客户验资优化.md`（`R2606020081`）：核心 98 节点 = 集中交易系统股票质押客户交易节点，日间资金不与集中交易同步、验资在节点本地闭环 |
+| 订阅矩阵 🟢 | **S24（矩阵 R10）与 Z54（R72）唯一消费者均为「低延时交易系统(虚拟)」**；矩阵「是否根据分区号下发（仅限低延时订阅）」列在 S24 行未打勾 → 两条文件通道都不覆盖集中交易 / 核心节点 |
+| 数据库 🟢 `dbq jzjy_sit` | 搜表 `%scale%` 17 张：`creditscale`、`creditstkscale`、`totalstkcodescale`、**`creditscale96_fast_out`**、**`creditscale99_fast_out`**、`creditscale_fast_out`、`creditscale_sls/_slschk`；`creditscale96_fast_out` 为 6 字段（**去掉 serverid**）且 **SIT 暂无数据**；`creditscale` SIT 抽样仅 `serverid=1` 共 16 行，`scalevalue` 样例 `0.04010000`（与邮件「4%」量级一致）。`dys` 搜表 `%scale%` 13 张：`sourcedatadb.t_credit_trd_scale`（注释「S24信用交易规模参数」）、`tradingconfigdb.t_credit_scale`（信用交易规模参数表） |
+| 监管背景 🟡 | openviking `R2606010054`《证券经营机构数据报送接口规范》：「对单一客户融资（含融券）业务规模与净资本比例」属风险控制指标监管表报送项，依证监会公告[2024]13号 → 该指标是监管风控口径，非普通业务参数 |
+| ⚠️ 待确认 | ① 95 节点确切系统归属；② 本邮件需求的需求号（截图无编号）；③ 低延时 / 核心 98 节点侧是否有独立规模校验（`dys` 全库 grep `creditscale` **0 命中** → 低延时不共用这张表，补参数未必生效，须同步改造节点侧风控）；④ 生产各节点 `creditscale` / `creditmixparam '29'/'18'` 实际配置值（SIT 仅 serverid=1）；⑤ 需求「4%」、源码注释「2%」、SIT `0.0401` 三者口径差异 |
+
+**结论口径**：这条需求本质是「把 95 节点已生效的『单一客户所有证券融资规模占净资本比例』参数与开关覆盖到 96/98 等节点」，落点三处：① 参数数据层（`creditscale` + `creditmixparam` 按 serverid 同步）；② 参数下发层（S24 / 170236→177236 / `creditscale96_fast_out` 导出表）；③ 节点校验层（96/98 节点是否调用 990289）。**只补参数、不改节点侧校验是最容易被低估的风险**。
+
 ---
 
 ## 🗂️ 订阅矩阵库（本技能特有补充）
@@ -264,6 +291,8 @@ PY
 
 > 冷启动仍受 `openviking find`（约 7.5s 内网语义检索）限制，属数据源固有耗时；高频概念靠缓存规避，数据更新后 `--refresh`。
 
+**v2.2 增量（2026-11-17「融资规模设置菜单」实证）**：参数类概念冷启动 11.24s → **7.56s**，澄清项 3→1；接口库从「0 命中 + 185 条融资噪声」变为精确命中 `S24`，代码检索词 `loan` → `creditscale`（jzjy 8 命中），dbq `%loan%` → `%scale%`（jzjy 17 张表，含 `creditscale96_fast_out`）。回归「指定合约还款」结论 / 10 条证据 / 0 澄清不变。
+
 ---
 
 ## ❓ 交互澄清协议（本技能脚本触发细节）
@@ -304,7 +333,9 @@ PY
 | 检索域 | 权威源 | 路径 / 命令 | 口径 |
 | :--- | :--- | :--- | :--- |
 | L0 需求依赖反查 | `demand_dep_find.py` | `~/.workbuddy/skills/ba-to-dev/scripts/demand_dep_find.py <需求号> [概念...]` | 本地需求 MD 全库反查；反查词用**业务概念**，禁用 `ipoavl` 等特化字段名 |
-| L1 接口知识库 | SQLite | `/Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/.interface_store.db`（`interfaces` / `interface_fields`） | 功能号、文件编号、字段明细以本库为准 |
+| L1 接口/功能号契约（**首选**） | **fwzl-mcp**（服务治理 MCP） | `mcp__fwzl-mcp__functionQueryServiceByKeyWord` / `queryServiceParameterByFuncCode` / `queryParentFunction` / `queryChildFunction`；端点为 `https://sg.gtht.com.cn/api/v1/mcp/byApplication/fwzlMcpServer/mcp`（streamable_http，无需浏览器/登录态） | **默认首选**：按功能号/关键字查存在性、基本信息（功能号/名称/类型/所属系统/负责人）、出入参(IN/OT/HD)、调用链；本地库未收录的纯数字功能号也可命中；判定存在只用 `functionQueryServiceByKeyWord`（查不到仅=未收录，不反证不存在） |
+| L1 本地接口知识库（**兜底**） | SQLite | `/Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/.interface_store.db`（`interfaces` / `interface_fields`） | **仅当 fwzl-mcp 不可用（401/403/网关不可达/工具未加载）或未命中时**：毫秒级 3257 接口/82421 字段明细；**参数/菜单类概念**（如「融资规模设置」「净资本比例」）在 `name/code/description` 常 0 命中，须改按 `table_name` 回查（→ S24 信用交易规模参数 `creditscale`），不得退化成「融资」等泛词做同族扩展 |
+| L1.4 接口号↔菜单双向反查库（**2026-11-20 新增**） | `menu_interface_query.py` + SQLite | 脚本 `~/.workbuddy/skills/ba-to-dev/scripts/menu_interface_query.py`；源 `/Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/菜单调用接口汇总.md`；索引 `.menu_interface.db`（首次自动建，源更新自动重建） | **接口↔前台菜单双向反查**：①接口→菜单（`--code`/`--extract`，供 ba-to-dev 评审纪要第 4 项「前端界面」）；②菜单→接口（`--menu <名>` / `--menu-extract "<原文>"` 出完整去重接口号清单，供后续 fwzl-mcp 检索/第 5 项接口交互）。718 Web 平台菜单/1.1 万调用，毫秒级。**体系边界**：仅覆盖 qyyx/Web 平台菜单（5 位业务代码）；集中清算/营运 C++ 柜台菜单（6 位功能号如 504015）、低延时功能号（739xxxx）属另一体系、无 ESB 接口号，改走 CBM；8 位综合理财号+外围号可反查，公共接口命中多菜单按业务语义筛选、泛词多命中用 `--menu <精确名>` 收敛。与 L1 fwzl-mcp **互补**（前者答"接口↔前台菜单功能号"，fwzl-mcp 答"接口入参出参/所属系统"） |
 | L1.5 订阅矩阵库 | SQLite | 同目录 `.subscription_matrix.db`，见下方「订阅矩阵库」块 | 文件编号 → 输出系统 / 消费者方向 |
 | L2 代码知识图谱 | `codebase-memory-mcp` | `~/.local/bin/codebase-memory-mcp cli` 或 MCP `search_code` / `get_code_snippet` / `trace_path` | 项目 `jzjy` / `dys` / `jzqs` / `grc` / `cszx`；**中文业务词 0 命中是常态**，改英文符号 + `--path-filter` |
 | L3 数据库实证 | `dbq <profile>` | `/usr/local/bin/dbq`；profile `jzjy_sit` / `dys95` / `jzqs_sit` / `cszx_sit` / `jzqs_comm_sit` | `--table` / `--search-table` / `--sql`；**字典表真名 `run.dbo.dictindex` + `run.dbo.dictvalue`，不是 `t_dict`** |

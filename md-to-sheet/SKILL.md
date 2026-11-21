@@ -170,6 +170,8 @@ call_mcp("sheet.set_dimension_size", {
 
 已在 `scripts/md_to_sheet.py` 中封装了完整的解析与同步控制，可以通过以下命令行方式运行：
 
+> ✅ **无需任何额外参数**（2026-11-16：MCP 通道已固化为稳定 HTTP 代理，直接运行即可，无需 `--proxy` 等开关）
+
 ```bash
 # 默认模式（等同于 rzrq）：仅读取及同步融资融券当日的需求 MD 文件
 # 默认访问：https://docs.qq.com/sheet/DVGtPSXpzWU1zYXNi?tab=BB08J2 (融资融券需求跟踪)
@@ -204,6 +206,19 @@ python3 ~/.workbuddy/skills/md-to-sheet/scripts/md_to_sheet.py gpzy --dry-run
 3. **诊断数据清理**：`operation_sheet` JS脚本执行时如需写入诊断信息，务必在脚本最后用 `range.clear()` 清理，避免残留垃圾数据
 4. **C列超链接**：`set_link` 会清除该单元格原有文本，必须设置 `display_text` 参数
 5. **行号约定**：腾讯文档API和SpreadsheetApp的行列号均为1-based，`get_cell_data`/`set_range_value` 为0-based
+
+## MCP 调用通道（重要，2026-11-16 固化）
+
+**默认走稳定 HTTP 代理通道，mcporter 仅在代理不可用时回退。** 原因与机制：
+
+- **背景**：AILink 自带 `connector-runtime` Node 二进制已损坏，`mcporter`（其默认 MCP 入口）一启动即 V8 原生崩溃——
+  `Check failed: 12 == (*__error())`（SetPermissions / JIT 可执行内存权限）。直接 `python3 md_to_sheet.py` 会卡死在此崩溃，必须绕过。
+- **稳定方案**：tencent-docs 本质是**远程 HTTP MCP**（`~/.mcporter/mcporter.json` 中 `baseUrl=https://docs.qq.com/openapi/mcp` + `Authorization` token），
+  可经内网代理 `http://172.16.0.11:3128` 走 Streamable HTTP 协议直接访问，**不依赖 Node**。
+- **实现**：`common/mcp_http_proxy.py` 提供与 `sync_utils.call_mcp` 同签名的 `call_mcp(tool_name, args)`；
+  `common/sync_utils.py` 的 `call_mcp` 已改为「**代理优先、恒定通道**」：优先导入并调用 `mcp_http_proxy`，业务错误（如 `remove_filter` 无筛选、`set_filter` 格式版本不符）**原样上抛由调用方 try/except 容错，不触发降级**；仅当代理后端无法导入（缺 `requests`）才回退 mcporter。
+- **结论**：直接运行 `python3 ~/.workbuddy/skills/md-to-sheet/scripts/md_to_sheet.py rzrq` 即可，**无需任何额外参数**，全程走代理通道。若脚本报 `HTTP代理 MCP 调用失败` 且后续出现 V8 崩溃栈，说明 `sync_utils.py` 的降级逻辑被误触发，需检查代理后端导入与通道选择。
+- **代理依赖**：`requests`（已在 `/usr/local/bin/python3` 与托管 Python 可用）。若代理请求失败（网络/超时），错误同样向上抛给调用方容错。
 
 ## 使用样例与典型调用示例
 

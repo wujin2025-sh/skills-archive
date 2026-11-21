@@ -4,9 +4,12 @@
 用法:
   python3 validate_ba_md.py <file.md> [--fix]
   python3 validate_ba_md.py <dir>   [--fix]   # 目录则递归校验全部 .md
+  python3 fix_reqid_filenames.py <dir> [--apply]  # 历史文件名补号（9 位残缺号 → R+10 位），默认 dry-run
 
 规则清单:
-  R1 (P0) 文件名规范      : YYYYMMDD-R26xxxxxxx-纯中文标题.md
+  R1 (P0) 文件名规范      : YYYYMMDD-R26xxxxxxxx-标题.md；需求号必须 R + 10 位，标题首字符允许中文/字母/【
+  R1b(P0) 编号一致性       : 文件名中的需求号必须与 Front Matter 的 req_id 逐字一致（2026-11-19 新增；
+                             历史缺口=文件名写 9 位、req_id 写 10 位互不报错，导致同号截断撞名、检索隐身）
   R2 (P0) Front Matter    : 必须含 req_id/submitter/ndw/created/updated/tags/domain/system/status 九项
   R3 (P0) 评审纪要 9 项    : 需求补充说明/改造范围/各系统改造功能/前端界面/接口交互/业务参数/灰度上线关注/联测涉及系统/业务关注点 逐项齐全；并校验第 2 项【改造范围】与第 8 项【联测涉及系统】绝对互斥（改造范围内系统不得在联测项重复出现，涉及改造必然联测）
   R4 (P0) 纪要末尾红线    : 严禁「涉及系统：」行；「预计上线日期」之后不得再输出其他内容行（附件清单/--- 分隔线/「评审决策日志（可选）」小节除外，附件清单标题支持纯文本或 **加粗**；评审决策日志豁免见 2026-10-12）
@@ -15,6 +18,9 @@
   R7 (P1) 系统名门禁      : 评审纪要【改造范围】+【各系统改造功能】出现的含「系统」中文名须能在 system_list.csv 第一列精确匹配；不在清单则告警（疑似非本组/厂商系统需核实责任方，见 P0#19）
   R8 (P1) file:// 链接存在: 文档内 file:// 本地链接逐一 test -f（自动解码 %20、剥离 :行号 伪影）；指向不存在的文件则告警死链
   R9 (P1) 双链文件存在    : [[文件名]] 双链（含日期-R号 命名）需在文档所在目录找到对应 .md 文件，否则告警悬空双链
+  R10(P0) 六段闭环交付    : 一需求背景/二需求内容/三技术实现/四需求矛盾审计/评审纪要/相关链接 六段必齐（2026-11-20 新增，
+                            借鉴 universal-requirement-review「发送前强制检查」）；三技术实现需含（一）~（四）子小节；
+                            标题下严禁「需求概要/元信息」引用块。缺任一即判定文档未达"可一次交付"冻结完整版。
 
 -- content-check 说明（2026-11-12 新增强化，防系统性幻觉）:
   * R7 依赖权威系统清单 /Volumes/Macintosh HD_Data/WorkBuddy/需求分析/rules-raw/system_list.csv（技能 P0#3 挂载，编码为 UTF-8）；
@@ -40,7 +46,12 @@ REQ_KEYS = ["req_id", "submitter", "ndw", "created", "updated",
             "tags", "domain", "system", "status"]
 REVIEW_ITEMS = ["需求补充说明", "改造范围", "各系统改造功能", "前端界面",
                 "接口交互", "业务参数", "灰度上线关注", "联测涉及系统", "业务关注点"]
-FN_RE = re.compile(r"^\d{8}-R\d{9,11}-[\u4e00-\u9fff].*\.md$")
+# 2026-11-19 收紧：需求号为 R + 10 位数字（如 R2606030038）。原 R\d{9,11} 会放行 9 位残缺号，
+# 导致这类文档对 R\d{10} 检索永久不可见（库内曾累积 20 份，其中 2 对因截断撞成同号、实为 4 个不同需求）。
+# 2026-11-19 放宽标题首字符：允许中文 / 英文字母（IPO、GRISK 等缩写标题）/ 全角左括号【，
+# 原规则要求纯中文开头，把 6 份合规文档误判为不合规，门禁可信度因此受损。
+FN_RE = re.compile(r"^\d{8}-R\d{10}-[\u4e00-\u9fffA-Za-z【].*\.md$")
+REQ_ID_RE = re.compile(r"^R\d{10}$")
 ITEM_RE = re.compile(r"^\s*(\d+)\.\s*\*\*(.+?)\*\*", re.M)
 POINT_RE = re.compile(r"^(\s*)\((\d+)\)\s*(.*)$")
 CIRCLE_RE = re.compile(r"^(\s*)([①②③④⑤⑥])\s*(.*)$")
@@ -134,8 +145,28 @@ def check_file(path, fix=False):
 
     # ---- R1 文件名 ----
     if not FN_RE.match(name):
-        problems.append(("R1", "P0",
-                         f"文件名不合规: {name}，应为 YYYYMMDD-R26xxxxxxx-纯中文标题.md"))
+        title = name.split("-", 2)[2] if name.count("-") >= 2 else ""
+        if title.startswith("】"):
+            problems.append(("R1", "P0",
+                             f"文件名标题缺前半括号: {name}（标题以「】」开头，应为「【…】」）"))
+        else:
+            problems.append(("R1", "P0",
+                             f"文件名不合规: {name}，应为 YYYYMMDD-R26xxxxxxxx-纯中文标题.md（需求号 = R + 10 位）"))
+
+    # ---- R1b 文件名需求号 vs Front Matter req_id 一致性（P0，2026-11-19 新增）----
+    # 历史缺口：文件名写 9 位、Front Matter 写 10 位，两处互相矛盾却无人报错，
+    # 结果同一需求号被截断成同一文件名，两份不同需求的文档互相有覆盖风险。
+    m_fm = re.search(r'^req_id:\s*"?([^"\n]+)"?\s*$', text, re.M)
+    fm_req = m_fm.group(1).strip() if m_fm else None
+    ids_fn = re.findall(r"R\d+", name)
+    if fm_req and ids_fn:
+        fn_id = max(ids_fn, key=len)  # 取最长，兼容文件名里夹带其他 R 号
+        if not REQ_ID_RE.match(fm_req):
+            problems.append(("R1b", "P0",
+                             f"Front Matter req_id 格式非法: {fm_req}（应为 R + 10 位）"))
+        elif fn_id != fm_req:
+            problems.append(("R1b", "P0",
+                             f"文件名需求号 {fn_id} 与 Front Matter req_id {fm_req} 不一致"))
 
     # ---- R2 Front Matter ----
     fm_keys, _ = parse_frontmatter(text)
@@ -342,6 +373,39 @@ def check_file(path, fix=False):
         if not hits:
             problems.append(("R9", "P1",
                              f"双链 [[{name}]] 在 {os.path.basename(base)}/ 下找不到对应 .md 文件（悬空双链）"))
+
+    # ---- R10 六段闭环交付完整性（P0，2026-11-20 新增，借鉴 universal-requirement-review「发送前强制检查」）----
+    # 校验文档是否达到"可一次交付"的六段完整闭环：一需求背景/二需求内容/三技术实现/四需求矛盾审计/
+    # 评审纪要/相关链接。任一缺段即非冻结完整版，不得作为最终交付。
+    R10_SECTIONS = [
+        ("一、需求背景", r"^#{1,4}\s*(\*\*)?一、需求背景(\*\*)?\s*$"),
+        ("二、需求内容", r"^#{1,4}\s*(\*\*)?二、需求内容(\*\*)?\s*$"),
+        ("三、技术实现", r"^#{1,4}\s*(\*\*)?三、技术实现(\*\*)?\s*$"),
+        ("四、需求矛盾", r"^#{1,4}\s*(\*\*)?四、.*(?:矛盾|审计|漏洞|风险)(\*\*)?\s*$"),
+        ("评审纪要", r"^#{1,4}\s*(\*\*)?评审纪要(\*\*)?\s*$"),
+        ("相关链接", r"^#{1,4}\s*(\*\*)?相关链接(\*\*)?\s*$"),
+    ]
+    for secname, ptn in R10_SECTIONS:
+        if not re.search(ptn, text, re.M):
+            # 「四章」允许名为 矛盾/审计/漏洞/风险 任一，已由正则宽匹配；缺失即报
+            problems.append(("R10", "P0", f"交付完整性缺失章节: {secname}（六段闭环未齐，不得作为最终交付）"))
+    # 三技术实现需含（四）伪代码 或（一）业务逻辑 等小节，避免空壳
+    if re.search(r"^#{1,4}\s*(\*\*)?三、技术实现(\*\*)?\s*$", text, re.M):
+        has_sub = re.search(r"^#{5,6}\s*[（(][一二三四五六][）)].*($|\n)", text, re.M)
+        if not has_sub:
+            problems.append(("R10", "P0", "交付完整性：三、技术实现 无（一）~（四）子小节（章节空洞）"))
+    # 标题下严禁「需求概要/元信息」引用块（三道硬约束 2）
+    # 定位正文标题 = 第一个以 # 开头的标题行（front matter 块之后的 `# 标题`，而非首行的 front matter `---`）
+    title_line = ""
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            title_line = line
+            break
+    if title_line.startswith("# "):
+        after_title = text[text.find(title_line) + len(title_line):]
+        if re.search(r"^\s*>\s*\*\*需求(?:编号|来源)\*\*", after_title, re.M):
+            problems.append(("R10", "P0", "标题下存在「需求概要/元信息」引用块（三道硬约束 2，应删除）"))
 
     return problems
 

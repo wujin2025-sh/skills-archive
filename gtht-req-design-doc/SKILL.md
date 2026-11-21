@@ -35,14 +35,40 @@ disable: false
    - 待确认事项（Open Items，逐项列责任方与来源）
    - 风险与合规要点
    - 附录 · 事实来源与关联文档
-3. **落盘**：`100_Projects/设计文档/<主题>系统总体设计.md`，含**修订记录表**（首行 V0.1 初稿）。
-4. **标注规则**（忠于事实）：源素材未明确的系统名 / 接口号 / 表名 / 字段名，统一注 `（具体实现以研发设计为准）`；凡可澄清的待确认项汇总至"待确认事项"章节。
-5. **表格注解规范**（Markdown 源文件层面）：
+3. **图表优先原则**（核心规范，Phase 1 草稿阶段执行）：
+   - **能用图表则不用纯文字**：凡涉及流程/顺序/判定/拓扑/时间线/数据流/对比/矩阵/分层等结构化信息，**优先用 Mermaid 图表**替代或补充纯文字描述，让文档更直观可读。
+   - **每章至少评估一次**：逐章审视内容，识别可图表化点（见下方"图表类型选择指南"），主动插入图表而非等用户要求。
+   - **图表与文字互补**：图表用于直观展示结构与关系，文字用于补充细节与边界条件；图表前保留简短引导句（如"偿还顺序如下："），图表后保留必要文字说明。
+   - **Mermaid 语法要求**：使用 `flowchart TD/LR/TB` 画流程/决策/拓扑；`sequenceDiagram` 画时序；统一用 `classDef` + `class` 做颜色分组（每图 2~5 色）；节点文字用 `<br/>` 换行；主数据流用 `==>` 粗箭头、辅助流用 `-->` 细箭头、虚线用 `-.->`。
+4. **落盘**：`100_Projects/设计文档/<主题>系统总体设计.md`，含**修订记录表**（首行 V0.1 初稿）。
+5. **标注规则**（忠于事实）：源素材未明确的系统名 / 接口号 / 表名 / 字段名，统一注 `（具体实现以研发设计为准）`；凡可澄清的待确认项汇总至"待确认事项"章节。
+6. **表格注解规范**（Markdown 源文件层面）：
    - **表格阅读说明**（列标记解释、口径说明，如 `★ = QFII 设计目标模式`）→ 放表格**上方**
    - **来源/引用说明**（如 `> 来源：腾讯在线文档…`）→ 放表格**下方**（表注）
    - **章节引言式来源**（含上下文描述的 `> 来源：…`，非纯表格注解）→ 保持章节标题下方，不移动
    - 理由：读者看表前需知道列标记含义；来源出处是追溯用，看表后需要时再查
-6. **暂停等待**：Phase 1 完成后向用户呈现草稿，**等待评审完善确认指令**，不直接进入 Phase 2。
+7. **标题精简规范**：章节标题保持简洁干净，**移除括号补充说明**（口径标注、数量标注、技术路径、数据流向、英文翻译、文件名等），括号内信息移至标题下方正文首句说明。标题是导航锚点，越短越易索引；细节放正文。
+   - ✅ `演进路线（史诗口径）` → `演进路线`
+   - ✅ `需求跟踪清单（内部跟踪表全量）` → `需求跟踪清单`
+   - ✅ `待确认事项（Open Items）` → `待确认事项`
+   - ✅ `集中度预警推送（Kafka → 金证 FIX）` → `集中度预警推送`
+   - ✅ `白名单配置链路（S180 → 低延时）` → `白名单配置链路`
+   - ❌ 不移除：括号内容为标题核心组成（如 `应急旁路撤单工具（BSSAPI）` 中 BSSAPI 为工具专有名 → 建议也移至正文，标题写 `应急旁路撤单工具`）
+8. **系统名标注精简**：正文中系统名后**不加括号拼音/英文缩写**（如 jzjy、jzqs、dys、cszx 等），直接用中文系统名。拼音缩写属内部技术编码，不宜出现在面向业务/研发/测试三方的设计文档中；如需标注系统编码，移至参数表或附录的"系统编码对照表"统一列示。
+   - ✅ `集中交易（jzjy）` → `集中交易`
+   - ✅ `集中清算（jzqs）` → `集中清算`
+   - ✅ `低延时（dys）` → `低延时`
+   - ❌ 不移除：括号内为业务术语或技术协议名（如 `（T+0 下发内存）`、`（S180 字典 20）`、`（Kafka → 金证 FIX）` 属业务规则/协议路径，保留）
+9. **暂停等待**：Phase 1 完成后向用户呈现草稿，**等待评审完善确认指令**，不直接进入 Phase 2。
+10. **术语与缩略语表**：专业设计文档应在修订记录后、正文前设"术语与缩略语"章节，统一定义全文涉及的专有缩略语与系统代号（QFII、CTE、GRISK 等）。正文首次出现缩略语时无需展开，读者可查阅缩略语表。该章节标题须加入脚本的 `SKIP_HEADING_TEXTS` 集合以排除自动编号。
+11. **图表统一编号**：全文 Mermaid 图和表格必须统一编号（图1/图2/…、表1/表2/…），图编号置于图下方（`**图N　标题**`），表编号置于表上方（`**表N　标题**`），正文交叉引用用"见表N""如图N所示"。元数据表（文档修订记录、术语与缩略语表）不编号。脚本须新增 `format_figure_table_captions` 函数，将 `**图N` / `**表N` 开头的粗体段落格式化为居中、黑体、小五号标题样式。
+12. **章节导读段与术语统一**：各章（H2 标题）开头加 1-2 句导读段（引用块 `>` 格式），概括本章覆盖内容与逻辑定位。全文术语须统一：系统代号（如 CTE）仅在架构图与系统交互表中使用，正文一律用中文系统名（如"低延时交易节点"）；"自研低延时"仅在与厂商系统对比语境中保留，其余语境用"低延时"。
+13. **Mermaid 图表宽高比优化**（防图片在 Word 中不显示）：
+    - **满页宽 + 最大高度约束**：`beautify_images()` 中设 `PAGE_USABLE_EMU=14.64cm`（满页宽）和 `MAX_HEIGHT_EMU=20cm`（安全最大高度），先缩放至满页宽，若高度超 20cm 则等比缩小至 20cm，`wp:extent` 和 `a:ext` 同步更新。
+    - **纵向链式图（`flowchart TD`）节点数 ≤4 用单行文本**：节点文字去掉 `<br/>` 改为单行长句（如 `"① 账户级费用：锁券逾期违约费罚息等，无法归集到具体合约"`），增加图片宽度降低高度，避免 ratio>3.0 的极端窄高图。
+    - **横向链式图（`flowchart LR`）节点数 ≤6 改纵向**：5 个节点的横向链产出的图片 ratio<0.15（如 3798×438px），缩放至满页宽后高度仅 1.7cm 文字不可读；改为 `flowchart TD` 并合并多行 `<br/>` 为单行，产出 ratio≈2.5 的图片，经最大高度约束后 7.6×20cm 可读。
+    - **目标宽高比**：0.3 ≤ ratio ≤ 3.0 为理想区间；ratio>3.0（超高）或 ratio<0.15（过矮）均需调整 Mermaid 源码方向或节点文本布局。
+14. **样式定义完整性**（防图片/内容不显示）：pandoc 转换后会为段落分配多种样式（`FirstParagraph`、`BodyText`、`Compact`、`BlockText`、`CaptionedFigure`、`ImageCaption`、`TableCaption` 等），但参考模板的 `styles.xml` 可能**未定义其中部分样式**。Word 遇到引用未定义 `pStyle` 的段落时，会渲染异常——段落内容（含图片）虽在 XML 中结构完整，但视觉上完全空白。必须确保 `add_missing_pandoc_styles()` 覆盖 **pandoc 所有默认段落样式**（不仅是 `CaptionedFigure` 等 3 个），且图片段落 `pStyle` 强制设为已定义的 `CaptionedFigure`。生成后须运行 `verify_docx_integrity()` 验证：解压 docx 检查 `document.xml` 中所有 `pStyle` 的 `w:val` 均在 `styles.xml` 中有对应 `w:styleId` 定义。
 
 ### 🌐 腾讯在线文档补充完善（Phase 1 后 / 评审中均可触发）
 
@@ -85,10 +111,14 @@ disable: false
        - ⚠️ **元数据标题不编号**："文档修订记录"等非章节 H2 标题设 `numId=0` 跳过编号
        - ⚠️ **移除样式级 numPr**：pandoc 参考模板的 Heading 样式自带 `numPr`（numId=1），若不移除会与段落级编号冲突，导致标题显示旧编号
        - ⚠️ **清理标题版本标记**："（初稿）""（定稿）""（V0.x）"在编号前从标题文本中移除
-     - **缺失样式补全**：pandoc 引用但参考模板未定义的样式（`CaptionedFigure`、`ImageCaption`、`TableCaption`）需手动注入 styles.xml，否则 **Mermaid 图片不显示**
+     - **缺失样式补全**：pandoc 引用但参考模板未定义的样式需手动注入 styles.xml，否则 **图片/正文段落不显示**。须覆盖 pandoc 全部默认段落样式：`FirstParagraph`（首段正文）、`BodyText`（正文）、`Compact`（紧凑列表项）、`BlockText`（引用块）、`CaptionedFigure`（图片段落，居中+上下间距）、`ImageCaption`（图注）、`TableCaption`（表注）。图片段落 `pStyle` 强制设为 `CaptionedFigure` 而非 pandoc 默认的 `FirstParagraph`。
      - **样式修复**：正文 宋体/Times New Roman 12pt 两端对齐、标题 黑体/Arial 加粗、表格网格边框、表头行加粗
      - **页面设置**：A4 纸张、上下边距 2.54cm、左右边距 3.18cm
-  5. **清理**：删除临时 PNG 文件，保留 `images/` 子目录的渲染图供 Obsidian 预览。
+  5. **完整性验证**（`verify_docx_integrity()`）：生成后自动验证三项完整性，发现问题打印告警：
+     - **样式定义完整性**：检查 `document.xml` 中所有 `pStyle` 的 `w:val` 是否在 `styles.xml` 中有对应 `w:styleId` 定义（未定义→段落内容不显示）
+     - **图片段落与尺寸**：检查图片段落 `pStyle` 是否为 `CaptionedFigure`；图片宽度 ≤14.64cm、高度 ≤20cm
+     - **图片关系完整性**：检查每张图片的 `r:embed` 是否有对应 relationship 且 `target_part.blob` 非空
+  6. **清理**：删除临时 PNG 文件，保留 `images/` 子目录的渲染图供 Obsidian 预览。
 - **表格图片美化**（`beautify_tables()` + `beautify_images()` + `colorize_status_cells()`）：
   - **P0 基础美化**：表头灰底（D9D9D9）居中加粗深蓝字（1F4E79）10.5pt + 单元格内边距（上下 2pt / 左右 5.4pt）+ 数据行最小行高 14pt 垂直居中 + 图注自动提取描述性标题 + 图片上下间距
   - **P1 进阶美化**：斑马纹（≥8 行表格偶数行 F2F2F2）+ 窄表居中（≤4 列）+ 正文单元格宋体 10pt 统一 + 边框分级（外框 0.5pt 黑 / 内框 0.25pt 浅灰 BFBFBF）
@@ -142,6 +172,55 @@ disable: false
 | 描述性图注 | Mermaid 图前最近的 `#` 标题 | 正则提取，格式"图N  标题" |
 | 列宽智能分配 | 全部 ≥2 行表格 | `optimize_column_widths()` 按内容长度（中文 2/英文 1）加权分配，约束 5%–50% |
 
+---
+
+## 📊 图表类型选择指南（Phase 1 草稿阶段参考）
+
+> **核心原则**：能用图表则不用纯文字。以下为内容特征 → 图表类型的映射参考，Phase 1 逐章审视时按此表主动识别可图表化点。
+
+### 按内容特征选择图表类型
+
+| 内容特征 | 推荐图表类型 | Mermaid 语法 | 示例场景 | 颜色分组建议 |
+|:---------|:------------|:------------|:---------|:------------|
+| 多期次/多阶段 + 时间维度 | **时间轴 / 甘特图风格 flowchart** | `flowchart TD` + 节点含日期 | 演进路线、版本计划、上线排期 | 按状态分色：已上线绿/排期黄/暂停蓝/预研紫 |
+| 递进式流程（①→②→③→④） | **流程图** | `flowchart TD` | 偿还顺序、清算流程、审批流程 | 起止绿/处理蓝/结束红 |
+| 多分支判定（if/else 级联） | **决策树流程图** | `flowchart TD` + `{菱形}` 判定节点 | 风控拦截逻辑、白名单豁免、权限校验 | 判定黄/通过绿/拒绝红/告警橙 |
+| 系统间数据流向 | **数据流图** | `flowchart LR` | 集中度推送链路、指标计算流、文件导出链路 | 按系统域分色：前端蓝/服务紫/核心绿/风控橙 |
+| 部署/节点分布 | **拓扑图** | `flowchart TB` + subgraph | 节点域划分、机房分布、双节点隔离 | 按域分色：信创蓝/创新绿/源节点橙 |
+| 分层/切分模型 | **分层示意图** | `flowchart LR/TB` | JVS切蛋糕、指标体系分层、权限层级 | 集中层紫/下发层黄/节点层绿 |
+| 多系统 × 多场景对比 | **对比矩阵图** | `flowchart TB` + subgraph 分组 | 跨系统偿还规则对比、功能支持矩阵 | 目标模式高亮绿/对比项蓝 |
+| 全天时间点排列 | **时间轴图** | `flowchart LR` + 节点含时间 | 盘前/盘后文件导出、定时任务节奏 | 文件类蓝/交易类绿/收尾黄 |
+| 风险按影响分级 | **风险矩阵（分层）** | `flowchart TD` + subgraph 分层 | 风险与合规要点、问题严重度分级 | 高影响红/中影响黄/低影响绿 |
+| 系统交互时序 | **时序图** | `sequenceDiagram` + `autonumber` | 白名单配置链路、接口调用顺序 | 按 actor/participant 自动配色 |
+| 系统全景架构 | **架构图（五色分组）** | `flowchart TD` + subgraph + classDef | 总体架构图、系统交互拓扑 | 前端蓝/服务紫/核心绿/风控橙/管理青 |
+
+### 图表插入规范
+
+1. **位置**：图表插入在对应章节文字描述**之后**（先文字引导，再图表展示），不替代必要的文字说明。
+2. **图注**：由 `render_mermaid_diagrams()` 自动从最近的 `#` 标题提取，格式"图N  标题"，无需手动编写。
+3. **数量建议**：10~20 页设计文档建议 5~10 张图表（图文比 8%~15%），太少则信息密度低、太多则喧宾夺主。
+4. **颜色规范**（classDef 配色体系，已验证可读性良好）：
+
+| 色彩角色 | classDef 名 | 填充色 | 边框色 | 适用场景 |
+|:---------|:-----------|:-------|:-------|:---------|
+| 绿（通过/已上线/低风险） | `done`/`pass`/`low` | `#C8E6C9` | `#2E7D32` | 已完成状态、通过判定、低影响风险 |
+| 黄（进行中/排期/中风险） | `active`/`mid` | `#FFF9C4` | `#F9A825` | 排期中、中影响风险 |
+| 蓝（待定/前端/信息流） | `pending`/`fe` | `#E3F2FD` | `#1565C0` | 待上线、前端柜台、信息类节点 |
+| 紫（集中层/服务层） | `svc`/`cake` | `#F3E5F5` | `#6A1B9A` | JVS集中层、参数中心 |
+| 橙（风控/告警/高风险） | `risk`/`warn`/`high` | `#FFF3E0` | `#E65100` | 风控中心、告警、高影响风险 |
+| 红（拒绝/结束/高危） | `reject`/`end` | `#FFEBEE` | `#C62828` | 拒单、流程终止、高危风险 |
+| 青（管理端） | `mgmt` | `#E0F2F1` | `#00695C` | 集中营运、账户系统 |
+
+5. **渲染参数**（已固化到 `design_doc_to_docx.py`，勿回退）：
+   - `fontSize: 20px`（mermaid-config.json）
+   - `--scale 3 -w 3200 -H 1800`（高清渲染）
+   - 图片满页宽 14.64cm（A4 可用宽度）
+   - `TMPDIR=/tmp`（Homebrew mmdc mkdtemp 路径修复）
+
+---
+
+#### Phase 2 调用示例与参数
+
 - **调用示例**：
   ```bash
   /Users/wujin/.chat/runtimes/darwin-x64/python/versions/3.13.12/bin/python3 \
@@ -156,7 +235,7 @@ disable: false
   - `--skip-mermaid`：跳过 Mermaid 渲染（文档无图时加速）
   - `--title`/`--subtitle`：封面标题/副标题
   - `--epic`：史诗编号（封面显示）
-- **依赖**：`python-docx`（已安装于 managed Python）、`pandoc`（系统 `/usr/local/bin/pandoc`）、`mmdc`（`~/.npm-global` + Managed Node + Playwright Chromium）
+- **依赖**：`python-docx`（已安装于 managed Python）、`pandoc`（系统 `/usr/local/bin/pandoc`）、`mmdc`（Homebrew `/usr/local/Cellar/mermaid-cli/11.15.0` + Managed Node + Playwright Chromium）
 - **更新修订记录**：V1.0 定稿行（填写人/批准人/日期）在 Phase 1 Markdown 中更新，Phase 2 自动从 Markdown 解析并渲染到封面页修订表。
 - **输出路径**：`100_Projects/设计文档/<主题>系统总体设计.docx`
 
@@ -190,6 +269,10 @@ disable: false
 | 22 | **架构图文字太小不可读** | Mermaid 默认 `fontSize=13px` 太小；`--scale 2` + `-w 2400` 渲染分辨率偏低（图片仅 2378×950px）；Word 中图片未设满页宽，缩放后文字更小 | 三维度优化：① mermaid-config.json `fontSize` 从 13px 增至 20px；② `--scale` 从 2 提至 3、`-w/-H` 从 2400×1200 提至 3200×1800（图片增至 3567×1443px）；③ `beautify_images()` 新增图片满页宽逻辑（A4 可用宽度 14.64cm = 5270400 EMU），遍历 `wp:extent` 和 `a:ext` 设置 `cx` 为满页宽并等比缩放 `cy` |
 | 23 | **表格窄列文字被截断** | `optimize_column_widths` 中 `MIN_COL_PCT=0.05`（5%）下限太低，7 列表中最窄列仅 0.73cm（415 twips），中文 2 字标题换行严重；`MAX_COL_PCT=0.50` 允许单列占半页，挤压其他列 | `MIN_COL_PCT` 从 0.05 提至 0.08（8%）；`MAX_COL_PCT` 从 0.50 降至 0.45；新增 `MIN_COL_TWIPS=700`（≈1.23cm）绝对最小列宽，与百分比取较大者；修复后所有表格列宽均 ≥1.0cm |
 | 24 | **TOC 与正文间连续空段落** | pandoc 转换后 TOC 域与正文之间存在 3+ 个连续空段落（分页符区域），影响排版紧凑性 | 新增 `cleanup_empty_paragraphs(doc)` 函数：遍历 `w:p` 检测无文本/无图片/无域的连续空段落，保留首个作为间距，删除后续空段落；含分页符（`w:br`）的段落跳过不清除 |
+| 25 | **Mermaid 图表批量渲染失败（commander 模块缺失）** | npm-global 安装的 mermaid-cli（符号链接到 Gemini/testskills/mermaid-cli 源码目录）缺少 `node_modules`（`commander` 等依赖未安装），`npm install` 因内网镜像 401 / 公网 ETIMEDOUT 失败；Homebrew 安装的 mermaid-cli（`/usr/local/Cellar/mermaid-cli/`）有完整 `node_modules` 但 puppeteer 找不到 Chrome | 将 `mmdc_src`/`mmdc_dir` 从 npm-global 路径改为 Homebrew 路径 `/usr/local/Cellar/mermaid-cli/11.15.0/libexec/lib/node_modules/@mermaid-js/mermaid-cli/`；`env` 新增 `TMPDIR=/tmp`（Homebrew mmdc 的 mkdtemp 路径异常）；puppeteer-config 仍指向 Playwright `chromium_headless_shell`（Homebrew puppeteer 需额外安装 Chrome，Playwright 已有）；批量渲染 11 张 Mermaid 图表全部成功 |
+| 26 | **每张图出现两条图注（pandoc 自动图注 + 手动图注重复）** | pandoc `implicit_figures` 扩展（`+implicit_figures`）将图片 alt 文本自动转为图注（如"图5 清算与负债偿还机制"），同时手动添加的 `**图5　负债偿还顺序流程图**` 形成第二条图注，导致重复 | pandoc `--from` 参数将 `+implicit_figures` 改为 `-implicit_figures` 禁用隐式图注；`render_mermaid_diagrams()` 中图片 alt 文本设为空（`![](img.png)`）；手动 `**图N　...**` 图注由 `format_figure_table_captions()` 统一格式化为唯一图注 |
+| 27 | **部分图片在 Word 中显示不出来**（如图2 部署与节点域划分） | `beautify_images()` 仅设置满页宽（14.64cm）但**未限制图片最大高度**，超高图片（如图5 原 52.72cm，源图 888×3198px ratio=3.60）远超 A4 可用高度（24.6cm），Word 渲染异常或无法显示；同时部分 Mermaid 图表因 `flowchart TD/LR` 方向选择不当导致极端宽高比（LR 5 节点链→3798×438px ratio=0.12 过矮文字不可读；TD 6 节点链→888×3198px ratio=3.60 过高超页） | ① `beautify_images()` 新增 `MAX_HEIGHT_EMU=20cm` 约束：先缩放至满页宽，若高度超 20cm 则等比缩小至 20cm（`wp:extent` 和 `a:ext` 同步更新）；② Mermaid 源码优化：纵向链式图改横向（`TD→LR`）或加宽节点文本（去掉 `<br/>` 改单行长句），横向链式图改纵向（`LR→TD`）并合并多行文本为单行；③ 验证：所有 10 张图高度均 ≤20cm、宽度 ≤14.64cm |
+| 28 | **所有图片在 Word 中都不显示**（空白段落） | pandoc 为段落分配 `FirstParagraph`/`BodyText`/`Compact`/`BlockText` 等样式，但参考模板（`--ref-doc`）的 styles.xml **未定义这些样式**。Word 遇到未定义 `pStyle` 的段落时，部分版本（尤其 WPS）会渲染异常甚至不渲染段落内容，导致图片段落虽含完整 `<w:drawing>` 元素但视觉空白 | ① `add_missing_pandoc_styles()` 补全 `FirstParagraph`/`BodyText`/`Compact`/`BlockText` 四个 pandoc 默认正文样式定义（含字体、字号、行距、缩进），确保所有段落样式在 styles.xml 中有定义；② `beautify_images()` 将图片段落 `pStyle` 强制设为已定义的 `CaptionedFigure`（居中+上下间距），而非 pandoc 默认的 `FirstParagraph`；③ 验证：解压 docx 检查 `document.xml` 中所有 `pStyle` 引用的 `w:val` 均在 `styles.xml` 中有对应定义 |
 
 ---
 

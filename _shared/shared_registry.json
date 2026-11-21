@@ -20,6 +20,8 @@
   ],
   "constants": {
     "interface_db": ".interface_store.db",
+    "menu_interface_db": ".menu_interface.db",
+    "menu_interface_script": "menu_interface_query.py",
     "subscription_db": ".subscription_matrix.db",
     "system_list": "system_list.csv",
     "dict_real_name": "run.dbo.dictindex",
@@ -30,7 +32,10 @@
     "shared_source": "_shared/SHARED.md",
     "sync_script": "sync_shared.py",
     "a37_consumer": "低延时交易系统(虚拟)",
-    "db_first": "DB-First"
+    "db_first": "DB-First",
+    "fwzl_mcp": "fwzl-mcp",
+    "fwzl_endpoint": "https://sg.gtht.com.cn/api/v1/mcp/byApplication/fwzlMcpServer/mcp",
+    "fwzl_lookup": "functionQueryServiceByKeyWord"
   },
   "pointers": {
     "ba-to-dev": ["biz-logic-query", "P0#26"],

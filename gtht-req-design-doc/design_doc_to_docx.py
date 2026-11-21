@@ -74,7 +74,7 @@ def run_pandoc(input_md, output_docx, ref_doc=None, resource_path='.'):
     """运行 pandoc 将 Markdown 转为 docx"""
     cmd = [
         'pandoc',
-        '--from', 'markdown+pipe_tables+raw_html+implicit_figures-inline_notes',
+        '--from', 'markdown+pipe_tables+raw_html-implicit_figures-inline_notes',
         '--to', 'docx',
         '--resource-path', resource_path,
     ]
@@ -98,8 +98,8 @@ def render_mermaid_diagrams(md_content, work_dir):
     
     image_map = {}  # index -> path
     managed_node = '/Users/wujin/.chat/runtimes/darwin-x64/node/versions/22.22.2/bin/node'
-    mmdc_src = '/Users/wujin/.npm-global/lib/node_modules/@mermaid-js/mermaid-cli/src/cli.js'
-    mmdc_dir = '/Users/wujin/.npm-global/lib/node_modules/@mermaid-js/mermaid-cli'
+    mmdc_src = '/usr/local/Cellar/mermaid-cli/11.15.0/libexec/lib/node_modules/@mermaid-js/mermaid-cli/src/cli.js'
+    mmdc_dir = '/usr/local/Cellar/mermaid-cli/11.15.0/libexec/lib/node_modules/@mermaid-js/mermaid-cli'
     puppeteer_config = os.path.join(work_dir, 'puppeteer-config.json')
     
     # Write puppeteer config
@@ -150,6 +150,7 @@ def render_mermaid_diagrams(md_content, work_dir):
         
         env = os.environ.copy()
         env['NODE_PATH'] = os.path.join(mmdc_dir, 'node_modules')
+        env['TMPDIR'] = '/tmp'
         result = subprocess.run(
             [managed_node, mmdc_src, '-i', mmd_path, '-o', img_path,
              '-p', puppeteer_config, '-c', mermaid_config,
@@ -161,7 +162,7 @@ def render_mermaid_diagrams(md_content, work_dir):
         if result.returncode == 0 and os.path.exists(img_path):
             image_map[i+1] = img_path
             # Replace mermaid block with image reference (descriptive alt text)
-            md_content = md_content[:match.start()] + f'![{diagram_title}]({img_name})' + md_content[match.end():]
+            md_content = md_content[:match.start()] + f'![]({img_name})' + md_content[match.end():]
         else:
             print(f"Warning: Failed to render Mermaid diagram {i+1}: {result.stderr}", file=sys.stderr)
             # Keep as code block
@@ -501,7 +502,7 @@ def apply_heading_numbering(doc):
     # Mapping: H1 = document title (skip), H2 = chapter (ilvl 0 → "1、"), H3 = section (ilvl 1 → "1.1"),
     #          H4 = subsection (ilvl 2 → "1.1.1"), H5 = sub-subsection (ilvl 3 → "1.1.1.1")
     # Headings to skip from numbering: H1 (document title), "文档修订记录"
-    SKIP_HEADING_TEXTS = {'文档修订记录', '修订记录', '修订历史', '参考文献'}
+    SKIP_HEADING_TEXTS = {'文档修订记录', '修订记录', '修订历史', '参考文献', '术语与缩略语'}
 
     heading_counter = [0, 0, 0, 0]  # ilvl 0-3 counters
 
@@ -655,6 +656,30 @@ def add_missing_pandoc_styles(doc):
 
     # List of pandoc-generated styles that may be missing
     missing_styles = {
+        'FirstParagraph': {
+            'name': 'First Paragraph',
+            'type': 'paragraph',
+            'pPr': f'<w:spacing w:before="0" w:after="120" w:line="360" w:lineRule="auto"/><w:ind w:firstLineChars="200" w:firstLine="420"/>',
+            'rPr': f'<w:rFonts w:ascii="{FONT_BODY_EN}" w:eastAsia="{FONT_BODY_CN}"/><w:sz w:val="{SZ_BODY}"/><w:szCs w:val="{SZ_BODY}"/>',
+        },
+        'BodyText': {
+            'name': 'Body Text',
+            'type': 'paragraph',
+            'pPr': f'<w:spacing w:before="0" w:after="120" w:line="360" w:lineRule="auto"/><w:ind w:firstLineChars="200" w:firstLine="420"/>',
+            'rPr': f'<w:rFonts w:ascii="{FONT_BODY_EN}" w:eastAsia="{FONT_BODY_CN}"/><w:sz w:val="{SZ_BODY}"/><w:szCs w:val="{SZ_BODY}"/>',
+        },
+        'Compact': {
+            'name': 'Compact',
+            'type': 'paragraph',
+            'pPr': f'<w:spacing w:before="0" w:after="0" w:line="276" w:lineRule="auto"/>',
+            'rPr': f'<w:rFonts w:ascii="{FONT_BODY_EN}" w:eastAsia="{FONT_BODY_CN}"/><w:sz w:val="{SZ_BODY}"/><w:szCs w:val="{SZ_BODY}"/>',
+        },
+        'BlockText': {
+            'name': 'Block Text',
+            'type': 'paragraph',
+            'pPr': f'<w:spacing w:before="60" w:after="60" w:line="360" w:lineRule="auto"/><w:ind w:left="420" w:right="420"/>',
+            'rPr': f'<w:rFonts w:ascii="{FONT_BODY_EN}" w:eastAsia="{FONT_BODY_CN}"/><w:sz w:val="{SZ_BODY}"/><w:szCs w:val="{SZ_BODY}"/>',
+        },
         'CaptionedFigure': {
             'name': 'CaptionedFigure',
             'type': 'paragraph',
@@ -846,9 +871,11 @@ def beautify_tables(doc):
 
 
 def beautify_images(doc):
-    """图片美化：图片段落添加上下间距、图注增强、满页宽显示"""
+    """图片美化：图片段落添加上下间距、图注增强、满页宽显示、超高限制"""
     # A4 页面可用宽度 (21cm - 3.18cm*2 = 14.64cm)，单位 EMU (1cm = 360000 EMU)
     PAGE_USABLE_EMU = int(14.64 * 360000)  # 5270400
+    # A4 页面可用高度 (29.7cm - 2.54cm*2 = 24.62cm)，安全最大高度 20cm
+    MAX_HEIGHT_EMU = int(20 * 360000)  # 7,200,000
 
     for para in doc.paragraphs:
         # Check if paragraph contains a drawing/image
@@ -856,32 +883,62 @@ def beautify_images(doc):
         if not drawings:
             continue
 
-        # ── Set image to full page width ──
+        # ── Set image to fit within page width AND max height ──
         for drawing in drawings:
             # wp:extent (inline or anchor)
             for extent in drawing.findall('.//' + qn('wp:extent')):
                 cx = int(extent.get('cx', '0'))
                 cy = int(extent.get('cy', '0'))
-                if cx > 0 and cx < PAGE_USABLE_EMU:
+                if cx <= 0:
+                    continue
+                # Step 1: Scale to page width
+                if cx != PAGE_USABLE_EMU:
                     ratio = PAGE_USABLE_EMU / cx
-                    extent.set('cx', str(PAGE_USABLE_EMU))
-                    extent.set('cy', str(int(cy * ratio)))
+                    cx = PAGE_USABLE_EMU
+                    cy = int(cy * ratio)
+                # Step 2: Cap height to max (prevents ultra-tall images from overflowing page)
+                if cy > MAX_HEIGHT_EMU:
+                    ratio = MAX_HEIGHT_EMU / cy
+                    cx = int(cx * ratio)
+                    cy = MAX_HEIGHT_EMU
+                extent.set('cx', str(cx))
+                extent.set('cy', str(cy))
 
-            # a:ext inside a:xfrm (graphic frame)
+            # a:ext inside a:xfrm (graphic frame) — must match wp:extent
             ns_a = 'http://schemas.openxmlformats.org/drawingml/2006/main'
             for ext in drawing.findall('.//{%s}ext' % ns_a):
                 cx = int(ext.get('cx', '0'))
                 cy = int(ext.get('cy', '0'))
-                if cx > 0 and cx < PAGE_USABLE_EMU:
+                if cx <= 0:
+                    continue
+                # Step 1: Scale to page width
+                if cx != PAGE_USABLE_EMU:
                     ratio = PAGE_USABLE_EMU / cx
-                    ext.set('cx', str(PAGE_USABLE_EMU))
-                    ext.set('cy', str(int(cy * ratio)))
+                    cx = PAGE_USABLE_EMU
+                    cy = int(cy * ratio)
+                # Step 2: Cap height to max
+                if cy > MAX_HEIGHT_EMU:
+                    ratio = MAX_HEIGHT_EMU / cy
+                    cx = int(cx * ratio)
+                    cy = MAX_HEIGHT_EMU
+                ext.set('cx', str(cx))
+                ext.set('cy', str(cy))
         
         # Ensure paragraph has proper spacing (CaptionedFigure style should handle this)
         pPr = para._element.find(qn('w:pPr'))
         if pPr is None:
             pPr = parse_xml(f'<w:pPr {nsdecls("w")}></w:pPr>')
             para._element.insert(0, pPr)
+        
+        # ── Fix: Set paragraph style to CaptionedFigure (pandoc may assign FirstParagraph/BodyText
+        #    which are undefined in the reference doc's styles.xml, causing images to not render) ──
+        pStyle = pPr.find(qn('w:pStyle'))
+        if pStyle is None:
+            pPr.insert(0, parse_xml(f'<w:pStyle {nsdecls("w")} w:val="CaptionedFigure"/>'))
+        else:
+            current_style = pStyle.get(qn('w:val'), '')
+            if current_style not in ('CaptionedFigure',):
+                pStyle.set(qn('w:val'), 'CaptionedFigure')
         
         # Ensure center alignment
         jc = pPr.find(qn('w:jc'))
@@ -1101,6 +1158,137 @@ def cleanup_empty_paragraphs(doc):
 
     if to_remove:
         print(f"    Removed {len(to_remove)} consecutive empty paragraph(s)")
+
+
+def verify_docx_integrity(doc):
+    """生成后完整性验证：检查样式定义完整性、图片尺寸与样式、关系完整性。
+    返回 issues 列表（空列表=全部通过）。"""
+    issues = []
+
+    # ── 1. 检查所有段落引用的 pStyle 是否在 styles.xml 中有定义 ──
+    styles_elem = doc.styles.element
+    defined_style_ids = set()
+    for style in styles_elem.findall(qn('w:style')):
+        sid = style.get(qn('w:styleId'), '')
+        if sid:
+            defined_style_ids.add(sid)
+
+    body = doc.element.body
+    for p in body.findall(qn('w:p')):
+        pPr = p.find(qn('w:pPr'))
+        if pPr is None:
+            continue
+        pStyle = pPr.find(qn('w:pStyle'))
+        if pStyle is None:
+            continue
+        style_val = pStyle.get(qn('w:val'), '')
+        if style_val and style_val not in defined_style_ids:
+            # 检查该段落是否含图片
+            has_drawing = len(p.findall('.//' + qn('w:drawing'))) > 0
+            ctx = ' [含图片]' if has_drawing else ''
+            issues.append(f"未定义样式: pStyle='{style_val}'{ctx}")
+
+    # ── 2. 检查图片段落样式与尺寸 ──
+    PAGE_USABLE_EMU = int(14.64 * 360000)
+    MAX_HEIGHT_EMU = int(20 * 360000)
+
+    for p in body.findall(qn('w:p')):
+        drawings = p.findall('.//' + qn('w:drawing'))
+        if not drawings:
+            continue
+
+        # 检查图片段落样式
+        pPr = p.find(qn('w:pPr'))
+        if pPr is not None:
+            pStyle = pPr.find(qn('w:pStyle'))
+            if pStyle is not None:
+                style_val = pStyle.get(qn('w:val'), '')
+                if style_val != 'CaptionedFigure':
+                    issues.append(f"图片段落样式非 CaptionedFigure: '{style_val}'")
+
+        # 检查图片尺寸
+        for d in drawings:
+            ns_wp = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
+            for ext in d.findall('.//{%s}extent' % ns_wp):
+                cx = int(ext.get('cx', '0'))
+                cy = int(ext.get('cy', '0'))
+                if cx <= 0 or cy <= 0:
+                    issues.append(f"图片尺寸异常: cx={cx}, cy={cy}")
+                elif cx > PAGE_USABLE_EMU + 1:
+                    issues.append(f"图片宽度超限: {cx/360000:.1f}cm > 14.64cm")
+                elif cy > MAX_HEIGHT_EMU + 1:
+                    issues.append(f"图片高度超限: {cy/360000:.1f}cm > 20.0cm")
+
+    # ── 3. 检查图片关系完整性 ──
+    rels = doc.part.rels
+    for p in body.findall(qn('w:p')):
+        drawings = p.findall('.//' + qn('w:drawing'))
+        if not drawings:
+            continue
+        ns_a = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+        for d in drawings:
+            for blip in d.findall('.//{%s}blip' % ns_a):
+                embed = blip.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed', '')
+                if embed and embed not in rels:
+                    issues.append(f"图片关系缺失: r:embed='{embed}' 无对应 relationship")
+                elif embed:
+                    rel = rels[embed]
+                    if rel.target_part is None:
+                        issues.append(f"图片目标缺失: r:embed='{embed}' target_part is None")
+                    elif not rel.target_part.blob:
+                        issues.append(f"图片内容为空: r:embed='{embed}' blob is empty")
+
+    return issues
+
+
+def format_figure_table_captions(doc):
+    """格式化图表编号标题段落（**图N　...** / **表N　...**）。
+
+    pandoc 将 Markdown 中的 **图1　标题** 渲染为粗体段落。
+    本函数将其格式化为居中、黑体、小五号的图表标题样式。
+    """
+    caption_pattern = re.compile(r'^(图|表)\s*\d+')
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+
+        # Check if this paragraph is a figure/table caption
+        if not caption_pattern.match(text):
+            continue
+
+        # Verify it's bold (all runs should be bold, or it's a single bold run)
+        runs = para.runs
+        if not runs:
+            continue
+        all_bold = all(run.bold for run in runs if run.text.strip())
+        if not all_bold:
+            continue
+
+        # Apply caption formatting
+        pf = para.paragraph_format
+        pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pf.space_before = Pt(6)
+        pf.space_after = Pt(6)
+        pf.first_line_indent = Cm(0)
+        pf.left_indent = Cm(0)
+
+        # Set font: 黑体 9pt for all runs
+        for run in runs:
+            run.font.size = Pt(9)
+            run.font.bold = True
+            rPr = run._element.find(qn('w:rPr'))
+            if rPr is None:
+                rPr = parse_xml(f'<w:rPr {nsdecls("w")}></w:rPr>')
+                run._element.insert(0, rPr)
+            rFonts = rPr.find(qn('w:rFonts'))
+            if rFonts is None:
+                rFonts = parse_xml(f'<w:rFonts {nsdecls("w")}></w:rFonts>')
+                rPr.insert(0, rFonts)
+            rFonts.set(qn('w:eastAsia'), '黑体')
+            rFonts.set(qn('w:ascii'), 'Arial')
+            rFonts.set(qn('w:hAnsi'), 'Arial')
 
 
 def format_references(doc):
@@ -1368,10 +1556,24 @@ def main():
         print("  - Formatting references...")
         format_references(doc)
 
+        # Format figure/table captions (centered, bold, 小五号)
+        print("  - Formatting figure/table captions...")
+        format_figure_table_captions(doc)
+
         # Cleanup consecutive empty paragraphs
         print("  - Cleaning up empty paragraphs...")
         cleanup_empty_paragraphs(doc)
-        
+
+        # Verify document integrity (styles, images, relationships)
+        print("  - Verifying document integrity...")
+        issues = verify_docx_integrity(doc)
+        if issues:
+            print(f"  ⚠️  Found {len(issues)} issue(s):")
+            for iss in issues:
+                print(f"      - {iss}")
+        else:
+            print(f"  ✅ All checks passed (styles, images, relationships)")
+
         # Step 5: Save
         print("Step 5: Saving document...")
         doc.save(args.output_docx)
