@@ -93,7 +93,7 @@ graph TD
    - **⚡ L1+L2+L3 三级并行（2026-11-10 优化）**：三级检索**同时发起**，合并去重取命中文件（无需串行等待 L1→L2→L3 级联）：
      - **L1 文件名 Glob**：`rg --files | grep -i "R26xxxxxxxx"` 或 `find ... -name "*R26xxxxxxxx*"`；
      - **L2 Front Matter Grep**：`rg "^req_id: R26xxxxxxxx" "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/"`；
-     - **L3 全文内容兜底**：`rg -l "R26xxxxxxxx" "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/"`——覆盖**文件名不规范**（缺日期前缀/缺需求编号）或 **Front Matter 缺失 `req_id`** 的历史文件；命中后自动纠正文件名与 Front Matter（联动 Step 3 落盘时修复）；
+     - **L3 全文内容兜底**：`rg -l "R26xxxxxxxx" "/Volumes/Macintosh HD_Data/obsidian/100_Projects/需求分析/"`——覆盖**文件名不规范**（缺日期前缀/缺需求编号）或 **Front Matter 缺失 `req_id`** 的历史文件；命中后自动纠正文件名与 Front Matter（联动 Step 3 落盘时修复；批量存量文件少位/缺号纠偏可调用 `scripts/fix_reqid_filenames.py`）；
    - **命中即 0 秒复用**：直接读取本地文档进行增量编辑，**严禁发起远程 API 查询，严禁新建文件**；仅当三级均未命中或指令包含 `--force` / `--remote` 时才拉取科技平台。
    - **⚡ 未命中/`--force` 时的 0 秒出骨架**：拉取平台详情后直接调 `extract_demand.py` 一键生成 MD 骨架（Front Matter 9 字段 + `# 标题` + 一、二章 100% 平台原文 + 属性速览附录），免手工解析 28 万字节平台 JSON：`python3 /Users/wujin/.chat/skills/ba-to-dev/scripts/extract_demand.py <需求号> --out <落盘路径>`（自动读 `.chat/tmp_<需求号>_req.json` 缓存，缓存缺失时经 kjptai MCP 直连拉取；省略 `--out` 输出 stdout 预览；骨架的 `system` 置 `[] # TODO` 待 Step 2 三域检索后补全，一/二章为平台原文可放心作为 `--force` 覆盖基准）。
    - **⚠️ `--force` / `--remote` 强制刷新的核心语义=P0（2026-10-28 R2609220085 教训）**：携带 `--force` 时，**必须用平台最新原文 100% 覆盖本地一、二章（需求背景 + 需求内容）**，而非仅做增量编辑（改 Front Matter / 删引用块）——本地既有的一、二章可能是 BA 改写过的旧版（非原文照搬），**严禁直接复用**。执行要点：① 拉取平台详情后，**逐字提取平台原文的一、二章**（去 HTML 标签、保留原文结构、含错别字原样保留）；② 与本地一、二章**逐条比对**（如 2.1~2.8 是否逐字一致）；③ **有差异即以平台原文覆盖**，删除 BA 在原文区添加的「注：原文…错别字」注释（错别字说明移入第四章审计）；④ 再更新 Front Matter / 技术实现 / 审计 / 评审纪要。教训：R2609220085 本地 2.5 被 BA 改写为「批量修改审批通过后下一交易日同步」，而平台原文为「参数中心每日将参数同步至各个交易系统及集中清算系统」，--force 未覆盖导致需求内容与平台不一致。
@@ -135,6 +135,7 @@ graph TD
      ```bash
      python3 /Users/wujin/.chat/skills/ba-to-dev/scripts/validate_ba_md.py <落盘文件路径> --fix
      ```
+     > ⚠️ **双层校验边界**：`validate_ba_md.py --fix` 全绿（exit 0）仅代表**格式层**过关，不代表**内容层**无误；原文照搬、接口号实证、无静默跳过与源四态留痕仍须按上方打勾表与交付门禁核对。
    - **🚨 一次交付完整性门禁（P0，2026-11-20 新增，借鉴 universal-requirement-review「发送前强制检查」）**：**第一次最终回复必须携带一份"已冻结、完整、可交付"的文档**，严禁"先回答骨架/结论，等用户追问再补四章/评审纪要"。在发出最终回复前，逐条执行以下**阻断检查**，任一未过则基于同一份文档补齐后重检，**不得把"待确认后再补 XX"式半成品当作交付**：
      ```text
      □ ① 文件已落盘且 validate_ba_md.py --fix 全绿（R1~R9 无残留 FAIL）；
