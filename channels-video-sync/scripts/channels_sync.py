@@ -175,7 +175,10 @@ def get_element_coords(selector):
     try:
         data = json.loads(res)
         bar_height = data['outerHeight'] - data['innerHeight']
-        return (data['screenX'] + data['x'], data['screenY'] + bar_height + data['y'])
+        if bar_height <= 0 or bar_height > 300:
+            bar_height = 121
+        sy = data['screenY'] if data['screenY'] > 0 else 25
+        return (data['screenX'] + data['x'], sy + bar_height + data['y'])
     except:
         return None
 
@@ -272,54 +275,89 @@ def sync_to_channels(video_path: str, cover_path: str = None, short_title: str =
         if not wait_for_sheet_and_inject(video_abs):
             print("❌ 视频注入失败！")
             return False
-        print(f"[{time.time()-t0:.1f}s] ⏳ 等待视频流式载入与转码...")
-        for _ in range(35):
+        print(f"[{time.time()-t0:.1f}s] ⏳ 等待视频流式载入与封面编辑按钮就位...")
+        video_ready = False
+        for _ in range(60):
             time.sleep(0.8)
-            if exec_js("document.querySelector('wujie-app')?.shadowRoot?.querySelector('video') !== null") == "true":
-                print(f"[{time.time()-t0:.1f}s] ✅ 视频载入完成！")
+            ready = exec_js("""
+            (function() {
+                const sr = document.querySelector('wujie-app')?.shadowRoot;
+                if (!sr) return false;
+                const v = sr.querySelector('video');
+                const eb = sr.querySelector('.edit-btn');
+                return !!(v && eb && eb.getBoundingClientRect().width > 0);
+            })()
+            """)
+            if ready == "true":
+                print(f"[{time.time()-t0:.1f}s] ✅ 视频与封面编辑区域已完全就绪！")
+                video_ready = True
                 break
+        if not video_ready:
+            print("⚠️ 等待视频载入超时，尝试继续后续操作...")
 
-    # Step 2: 上传并裁切定制封面海报
+    # Step 2: 上传并裁切定制封面海报（带强校验与重试机制，绝不静默跳过）
     if cover_path and os.path.exists(cover_abs):
         print(f"[{time.time()-t0:.1f}s] 🖼️ 极速设置定制竖版封面海报...")
-        exec_js("""
-        (function() {
-            const w = document.querySelector('wujie-app');
-            if (!w || !w.shadowRoot) return;
-            const editBtn = w.shadowRoot.querySelector('.edit-btn');
-            if (editBtn) editBtn.click();
-        })()
-        """)
-        time.sleep(0.5)
-        cover_coords = get_element_coords('.single-cover-uploader-wrap .wrap') or get_element_coords('.single-cover-uploader-wrap')
-        if cover_coords:
+        cover_success = False
+        for attempt in range(2):
+            # 1. 打开编辑封面弹窗
+            exec_js("""
+            (function() {
+                const w = document.querySelector('wujie-app');
+                if (!w || !w.shadowRoot) return;
+                const editBtn = w.shadowRoot.querySelector('.edit-btn');
+                if (editBtn) editBtn.click();
+            })()
+            """)
+            # 2. 高频轮询等待封面上传区出现
+            cover_coords = None
+            for _ in range(15):
+                time.sleep(0.25)
+                cover_coords = get_element_coords('.single-cover-uploader-wrap .wrap') or get_element_coords('.single-cover-uploader-wrap')
+                if cover_coords:
+                    break
+            
+            if not cover_coords:
+                print(f"⚠️ 第 {attempt+1} 次未能打开封面上传弹窗，重试...")
+                continue
+
             activate_chrome()
             click_at(cover_coords[0], cover_coords[1])
-            if wait_for_sheet_and_inject(cover_abs, timeout=5.0):
+            if wait_for_sheet_and_inject(cover_abs, timeout=8.0):
                 time.sleep(0.8)
-                # 高频确认裁剪与确认编辑
-                for _ in range(15):
-                    done = exec_js("""
+                # 3. 高频确认“裁剪封面图 -> 确定”和“编辑封面 -> 确认”
+                crop_clicked = False
+                for _ in range(25):
+                    status = exec_js("""
                     (function() {
                         const w = document.querySelector('wujie-app');
-                        if (!w || !w.shadowRoot) return false;
-                        const cropDialog = Array.from(w.shadowRoot.querySelectorAll('.weui-desktop-dialog')).find(d => d.innerText.includes('裁剪封面图'));
+                        if (!w || !w.shadowRoot) return 'NONE';
+                        const sr = w.shadowRoot;
+                        const cropDialog = Array.from(sr.querySelectorAll('.weui-desktop-dialog')).find(d => d.innerText.includes('裁剪封面图') && d.getBoundingClientRect().width > 0);
                         if (cropDialog) {
                             const btn = Array.from(cropDialog.querySelectorAll('button')).find(b => b.innerText.trim() === '确定');
-                            if (btn) btn.click();
+                            if (btn && !btn.disabled) { btn.click(); return 'CROPPED'; }
                         }
-                        const editDialog = Array.from(w.shadowRoot.querySelectorAll('.weui-desktop-dialog')).find(d => d.innerText.includes('编辑封面'));
+                        const editDialog = Array.from(sr.querySelectorAll('.weui-desktop-dialog')).find(d => d.innerText.includes('编辑封面') && d.getBoundingClientRect().width > 0);
                         if (editDialog) {
                             const btn = Array.from(editDialog.querySelectorAll('button')).find(b => b.innerText.trim() === '确认');
-                            if (btn) { btn.click(); return true; }
+                            if (btn && !btn.disabled) { btn.click(); return 'CONFIRMED'; }
                         }
-                        return false;
+                        return 'WAITING';
                     })()
                     """)
-                    if done == "true":
+                    if status == "CROPPED":
+                        crop_clicked = True
+                        time.sleep(0.5)
+                    elif status == "CONFIRMED":
+                        cover_success = True
                         break
-                    time.sleep(0.2)
-                print(f"[{time.time()-t0:.1f}s] ✅ 封面海报上传与裁切完成！")
+                    time.sleep(0.25)
+                if cover_success:
+                    print(f"[{time.time()-t0:.1f}s] ✅ 封面海报上传、裁剪与确认全部成功！")
+                    break
+        if not cover_success:
+            print("❌ 警告：封面海报上传未能完整确认，请检查！")
 
     # Step 3: 注入短标题与规范描述
     clean_title = short_title[:16] if short_title else ""
@@ -408,7 +446,10 @@ def sync_to_channels(video_path: str, cover_path: str = None, short_title: str =
         if res and res != "null":
             data = json.loads(res)
             bar_height = data['outerHeight'] - data['innerHeight']
-            btn_coords = (data['screenX'] + data['x'], data['screenY'] + bar_height + data['y'])
+            if bar_height <= 0 or bar_height > 300:
+                bar_height = 121
+            sy = data['screenY'] if data['screenY'] > 0 else 25
+            btn_coords = (data['screenX'] + data['x'], sy + bar_height + data['y'])
 
     if btn_coords:
         activate_chrome()

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-11-13",
+  "updated": "2026-11-21",
   "source": "/Users/wujin/.workbuddy/skills/_shared/SHARED.md",
   "script": "/Users/wujin/.workbuddy/skills/_shared/sync_shared.py",
   "backup_dir": "/Users/wujin/.workbuddy/skills/_shared/.backups",
@@ -9,14 +9,13 @@
     "/Users/wujin/.workbuddy/skills/biz-logic-query/SKILL.md"
   ],
   "section_title": "## 🔗 共性规范基线（单一事实源：_shared/SHARED.md）",
-  "section_intro": "> ⚠️ 本章由 `sync_shared.py apply` 自动同步，**禁止手工编辑块内内容**；共性改动一律先改 `~/.workbuddy/skills/_shared/SHARED.md` 再 `apply` + `check`。本章之外的内容是本技能特有的场景化扩展。",
+  "section_intro": "> ⚠️ 本章由 `sync_shared.py apply` 自动同步，**禁止手工编辑块内内容**；共性改动一律先改 `~/.workbuddy/skills/_shared/SHARED.md` 再 `apply` + `check`（同步协议详见 `_shared/SHARED.md` 底部）。本章之外的内容是本技能特有的场景化扩展。",
   "blocks": [
     "authority_sources",
     "evidence_grading",
     "clarification",
     "subscription_matrix",
-    "dataflow_diagram",
-    "sync_protocol"
+    "dataflow_diagram"
   ],
   "constants": {
     "interface_db": ".interface_store.db",

@@ -417,33 +417,3 @@ PY
 
 **落点**：`ba-to-dev` → 三（二）模板与 A37/Q49 范例（`validate_ba_md.py` R1–R9 不校验 Mermaid，加图不改变门禁）；`biz-logic-query` → 查到文件编号 / 接口族时，用会话可视化卡片呈现同一张图，编号与方向直接取订阅矩阵与接口核对结论。
 <!-- SHARED:dataflow_diagram END -->
-
-<!-- SHARED:sync_protocol START -->
-### 🔄 共性同步协议（后续优化 SKILL 时必执行）
-
-**共性项清单**（改动任一即视为「共性改动」，必须双技能同步）：
-
-| # | 共性项 | 块 ID |
-| :--- | :--- | :--- |
-| 1 | 权威源路径 / profile / CBM 项目名 / 字典表真名 / DB-First 优先级 / 软链接约定 | `authority_sources` |
-| 2 | 证据可信度三态与诚实原则 | `evidence_grading` |
-| 3 | 交互澄清协议与已确认字典 | `clarification` |
-| 4 | 订阅矩阵库路径 / 命令 / A37 结论 / 联动方式 | `subscription_matrix` |
-| 5 | 接口/文件数据流图两图分工与 6 铁律 | `dataflow_diagram` |
-| 6 | 业务概念 → 英文标识符 / 表名词映射、实测字典中的**跨技能通用结论**、共享脚本路径、复盘固化机制 | 见 `shared_registry.json` 的 `constants` |
-
-**执行动作（智能体在任一次技能优化收尾时必做）**：
-
-1. **判定**：本次优化是否触及上表任一项或 `constants` 中的共享常量？否 → 只改本技能，无需同步。
-2. **改源**：改 `~/.workbuddy/skills/_shared/SHARED.md` 对应块（必要时同步 `shared_registry.json` 的 `constants`）。**不要直接改两份 SKILL.md 的共性块**。
-3. **推送 + 校验**：
-   ```bash
-   P=/Users/wujin/.chat/runtimes/darwin-x64/python/versions/3.13.12/bin/python3
-   S=~/.workbuddy/skills/_shared/sync_shared.py
-   $P $S apply && $P $S check
-   ```
-   `apply` 自动备份并把块推送到两份 `SKILL.md`；`check` 有任何漂移返回退出码 1，**未通过不得结束本轮**。
-4. **复盘留痕**：按「技能完成复盘机制」输出稳定性 / 质量 / 速度三维优化点，并把共性改动记入当天工作日志；单边特有改动（如 P0 编号、性能基线、实测映射细节）只记本技能，不推送。
-
-**规则**：① 共性块内容两边**严格一致**（由 `check` 哈希比对保证），场景差异写在块外的本技能章节；② 单边新增的权威结论若对另一技能有价值（如新的文件编号消费者、新的字典真名），须提升为共性项并写进 SHARED.md；③ 新增第三个共用技能时，在 `shared_registry.json` 的 `targets` 追加后重跑 `apply --init`；④ 禁止用「复制粘贴」代替同步，禁止手工删改 `<!-- SHARED:... -->` 标记；⑤ **副本镜像**：`.chat/skills/biz-logic-query` 是独立真实目录（非软链接），其 `SKILL.md` 为独立副本 —— `apply` 自动把权威版镜像过去、`check` 校验逐字一致；`ba-to-dev` 已是软链接、`scripts/` 为硬链接，均无需处理；新增独立副本时登记到 registry 的 `mirrors`。
-<!-- SHARED:sync_protocol END -->
